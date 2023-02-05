@@ -1,0 +1,4 @@
+data/io.sixpounder.Manuscript.desktop.in
+data/io.sixpounder.Manuscript.appdata.xml.in
+data/io.sixpounder.Manuscript.gschema.xml
+src/window.ui

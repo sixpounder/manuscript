@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="manuscript">
+	<schema id="io.sixpounder.Manuscript" path="/io/sixpounder/Manuscript/">
+	</schema>
+</schemalist>
