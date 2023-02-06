@@ -80,13 +80,6 @@ impl<'d> TryFrom<&'d [u8]> for Document {
     }
 }
 
-impl From<SerializableDocument> for Document {
-    fn from(_: SerializableDocument) -> Self {
-        // TODO: implement the conversion
-        unimplemented!()
-    }
-}
-
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SerializableDocument {
     manifest: DocumentManifest,
@@ -119,15 +112,82 @@ impl SerializableDocument {
             character_sheets,
         }
     }
+
+    pub fn chapters(&self) -> &Vec<Chapter> {
+        self.chapters.as_ref()
+    }
+}
+
+impl From<SerializableDocument> for Document {
+    fn from(source: SerializableDocument) -> Self {
+        let mut document = Document::default();
+        document.manifest = source.manifest.clone();
+        for chapter in source.chapters {
+            document.add_chunk(chapter);
+        }
+
+        for character_sheet in source.character_sheets {
+            document.add_chunk(character_sheet);
+        }
+
+        document
+    }
+}
+
+impl From<&Document> for SerializableDocument {
+    fn from(source: &Document) -> Self {
+        Self::new(source)
+    }
+}
+
+impl From<Vec<u8>> for Document {
+    fn from(source: Vec<u8>) -> Self {
+        Document::try_from(source.as_slice()).unwrap()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn make_test_document_1() -> Document {
+        let mut doc: Document = Document::default();
+        doc.add_chunk(Chapter::default());
+        doc.add_chunk(Chapter::default());
+        doc.add_chunk(Chapter::default());
+        doc.add_chunk(CharacterSheet::default());
+        assert_eq!(doc.chunks().len(), 4);
+        doc
+    }
+
     #[test]
-    fn serialize() {
+    fn serialize_default() {
         let doc: Document = Document::default();
         let serialized = doc.serialize();
         assert!(serialized.is_ok());
+    }
+
+    #[test]
+    fn serialize_with_content() {
+        let doc = make_test_document_1();
+        let serialized = doc.serialize();
+        assert!(serialized.is_ok());
+    }
+
+    #[test]
+    fn deserialize() {
+        let doc = make_test_document_1();
+        let all_ids: Vec<&str> = doc.chunks().iter().map(|c| c.id()).collect();
+        let serialized = doc.serialize();
+        assert!(serialized.is_ok());
+
+        let deserialized = Document::try_from(serialized.unwrap());
+        assert!(deserialized.is_ok());
+        let deserialized = deserialized.unwrap();
+        assert_eq!(deserialized.chunks().len(), 4);
+
+        // Check deserialization preserves ids
+        for id in all_ids {
+            assert!(deserialized.get_chunk_ref(id).is_some());
+        }
     }
 }

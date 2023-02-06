@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use gtk::prelude::TextBufferExt;
 use serde::{Deserialize, Serialize};
+use super::{Chapter, CharacterSheet};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum ChunkType {
@@ -17,7 +18,7 @@ pub enum ManuscriptError {
     ChunkUnavailable,
 }
 
-pub trait DocumentChunk: std::any::Any {
+pub trait DocumentChunk {
     fn id(&self) -> &str;
     fn chunk_type(&self) -> ChunkType;
     fn priority(&self) -> Option<u64>;
@@ -35,7 +36,14 @@ impl dyn DocumentChunk {
 
 impl Clone for Box<dyn DocumentChunk> {
     fn clone(&self) -> Self {
-        todo!()
+        let any = self.as_any();
+        if let Some(chapter) = any.downcast_ref::<Chapter>() {
+            Box::new(chapter.clone())
+        } else if let Some(character_sheet) = any.downcast_ref::<CharacterSheet>() {
+            Box::new(character_sheet.clone())
+        } else {
+            unreachable!()
+        }
     }
 }
 
