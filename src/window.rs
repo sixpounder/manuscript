@@ -22,7 +22,7 @@ use adw::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::{gio, glib};
 
-use crate::widgets::ManuscriptTextEditor;
+use crate::{services::DocumentManager, widgets::ManuscriptTextEditor};
 
 mod imp {
     use super::*;
@@ -35,6 +35,8 @@ mod imp {
         pub header_bar: TemplateChild<gtk::HeaderBar>,
         #[template_child]
         pub editor: TemplateChild<ManuscriptTextEditor>,
+
+        pub(super) document_manager: DocumentManager,
     }
 
     #[glib::object_subclass]

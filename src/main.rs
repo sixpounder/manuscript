@@ -21,6 +21,7 @@
 mod application;
 mod config;
 mod models;
+mod services;
 mod widgets;
 mod window;
 

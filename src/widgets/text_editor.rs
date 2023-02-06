@@ -1,4 +1,4 @@
-use crate::models::{ManuscriptError, MutableBufferChunk};
+use crate::models::{Document, ManuscriptError, MutableBufferChunk};
 use adw::subclass::prelude::*;
 use bytes::Bytes;
 use gtk::prelude::*;
@@ -16,7 +16,8 @@ mod imp {
     #[derive(Default, gtk::CompositeTemplate)]
     #[template(resource = "/io/sixpounder/Manuscript/text_editor.ui")]
     pub struct ManuscriptTextEditor {
-        pub(super) chunk: RefCell<Option<Weak<RefCell<dyn MutableBufferChunk>>>>,
+        pub(super) document: Weak<RefCell<Document>>,
+        pub(super) buffer: RefCell<Option<Bytes>>,
         pub(super) text_buffer: RefCell<Option<gtk::TextBuffer>>,
         pub(super) locked: Cell<bool>,
     }
@@ -82,25 +83,17 @@ glib::wrapper! {
 }
 
 impl ManuscriptTextEditor {
-    pub fn set_chunk(&self, value: Option<Weak<RefCell<dyn MutableBufferChunk>>>) {
+    pub fn set_buffer(&self, value: Option<Bytes>) {
         let imp = self.imp();
         match value {
-            Some(chunk) => {
-                if let Some(upgraded_chunk) = chunk.upgrade() {
-                    let borrowed_chunk = upgraded_chunk.borrow();
-                    let text_buffer = gtk::TextBuffer::new(None);
-                    text_buffer.set_text(
-                        String::from_utf8(borrowed_chunk.buffer().slice(..).to_vec())
-                            .unwrap()
-                            .as_str(),
-                    );
-
-                    imp.text_buffer.replace(Some(text_buffer));
-                    imp.chunk.replace(Some(chunk));
-                }
+            Some(buf) => {
+                let text_buffer = gtk::TextBuffer::new(None);
+                text_buffer.set_text(String::from_utf8(buf.slice(..).to_vec()).unwrap().as_str());
+                imp.text_buffer.replace(Some(text_buffer));
+                imp.buffer.replace(Some(buf));
             }
             None => {
-                imp.chunk.replace(None);
+                imp.buffer.replace(None);
                 imp.text_buffer.replace(None);
             }
         };
@@ -124,27 +117,16 @@ impl ManuscriptTextEditor {
     }
 
     fn on_buffer_changed(&self, buf: &gtk::TextBuffer) -> Result<(), ManuscriptError> {
-        let chunk = self.imp().chunk.borrow_mut();
-        if let Some(weak_chunk) = chunk.as_ref() {
-            if let Some(upgraded) = weak_chunk.upgrade() {
-                let start_iter = buf.start_iter();
-                let end_iter = buf.end_iter();
-                let result = match upgraded.try_borrow_mut() {
-                    Ok(mut borrowed) => {
-                        borrowed.set_buffer(Bytes::from(
-                            buf.text(&start_iter, &end_iter, true).to_string(),
-                        ));
-                        Ok(())
-                    }
-                    Err(_) => Err(ManuscriptError::ChunkBusy),
-                };
-
-                result
-            } else {
-                Err(ManuscriptError::ChunkUnavailable)
-            }
-        } else {
+        let buffer = &self.imp().buffer;
+        if let Ok(mut buffer) = buffer.try_borrow_mut() {
+            let start_iter = buf.start_iter();
+            let end_iter = buf.end_iter();
+            *buffer = Some(Bytes::from(
+                buf.text(&start_iter, &end_iter, true).to_string(),
+            ));
             Ok(())
+        } else {
+            Err(ManuscriptError::ChunkBusy)
         }
     }
 }

@@ -1,13 +1,15 @@
 use super::chunk::{Chapter, CharacterSheet, DocumentManifest};
 use super::prelude::{ChunkType, DocumentChunk, ManuscriptError};
 use serde::{Deserialize, Serialize};
-use std::{any::Any, collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Document {
     manifest: DocumentManifest,
     chunks: HashMap<String, Box<dyn DocumentChunk>>,
 }
+
+unsafe impl Send for Document {}
 
 impl Document {
     pub fn add_chunk<C: DocumentChunk + 'static>(&mut self, value: C) {

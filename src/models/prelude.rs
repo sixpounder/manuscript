@@ -1,12 +1,18 @@
+use super::{Chapter, CharacterSheet};
 use bytes::Bytes;
 use gtk::prelude::TextBufferExt;
 use serde::{Deserialize, Serialize};
-use super::{Chapter, CharacterSheet};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum ChunkType {
     Chapter,
     CharacterSheet,
+}
+
+impl std::fmt::Display for ChunkType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +29,13 @@ pub trait DocumentChunk {
     fn chunk_type(&self) -> ChunkType;
     fn priority(&self) -> Option<u64>;
     fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+}
+
+impl std::fmt::Debug for dyn DocumentChunk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}#{}", self.chunk_type(), self.id())
+    }
 }
 
 impl dyn DocumentChunk {
