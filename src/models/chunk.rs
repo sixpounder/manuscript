@@ -25,6 +25,7 @@ impl Default for DocumentManifest {
 pub struct Chapter {
     id: String,
     priority: u64,
+    locked: bool,
     title: String,
     buffer: Bytes,
     notes: Vec<Note>,
@@ -43,12 +44,24 @@ impl DocumentChunk for Chapter {
         Some(self.priority)
     }
 
+    fn set_priority(&mut self, value: Option<u64>) {
+        self.priority = value.unwrap_or(0);
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+
+    fn locked(&self) -> bool {
+        self.locked
+    }
+
+    fn set_locked(&mut self, value: bool) {
+        self.locked = value;
     }
 }
 
@@ -69,6 +82,7 @@ impl Default for Chapter {
         Self {
             id: Ulid::new().into(),
             priority: 0,
+            locked: false,
             title: String::from(""),
             buffer: Bytes::from(""),
             notes: vec![],
@@ -114,14 +128,29 @@ impl Chapter {
 }
 
 /// A CharacterSheet is a chunk representing the description of a character
-#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CharacterSheet {
     id: String,
     priority: u64,
+    locked: bool,
     name: String,
     physical_traits: Bytes,
     psycological_traits: Bytes,
     background: Bytes,
+}
+
+impl Default for CharacterSheet {
+    fn default() -> Self {
+        Self {
+            id: Ulid::new().into(),
+            priority: 0,
+            locked: false,
+            name: String::from(""),
+            physical_traits: Bytes::new(),
+            psycological_traits: Bytes::new(),
+            background: Bytes::new(),
+        }
+    }
 }
 
 impl DocumentChunk for CharacterSheet {
@@ -137,12 +166,24 @@ impl DocumentChunk for CharacterSheet {
         Some(self.priority)
     }
 
+    fn set_priority(&mut self, value: Option<u64>) {
+        self.priority = value.unwrap_or(0);
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+
+    fn locked(&self) -> bool {
+        self.locked
+    }
+
+    fn set_locked(&mut self, value: bool) {
+        self.locked = value;
     }
 }
 

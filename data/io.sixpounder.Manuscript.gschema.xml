@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="manuscript">
 	<schema id="io.sixpounder.Manuscript" path="/io/sixpounder/Manuscript/">
+	  <key name="window-width" type="i">
+	    <default>600</default>
+	  </key>
+	  <key name="window-height" type="i">
+	    <default>600</default>
+	  </key>
 	</schema>
 </schemalist>

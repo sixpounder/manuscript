@@ -9,6 +9,12 @@ pub struct Document {
     chunks: HashMap<String, Box<dyn DocumentChunk>>,
 }
 
+impl glib::StaticType for Document {
+    fn static_type() -> glib::Type {
+        glib::Type::OBJECT
+    }
+}
+
 unsafe impl Send for Document {}
 
 impl Document {

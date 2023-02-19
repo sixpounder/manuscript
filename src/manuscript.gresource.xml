@@ -3,6 +3,8 @@
   <gresource prefix="/io/sixpounder/Manuscript">
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks" alias="text_editor.ui">widgets/text_editor.ui</file>
+    <file preprocess="xml-stripblanks" alias="project_layout.ui">widgets/project_layout.ui</file>
+    <file preprocess="xml-stripblanks" alias="welcome_view.ui">widgets/welcome_view.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
   </gresource>
 </gresources>

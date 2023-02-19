@@ -1,7 +1,7 @@
 use super::{Chapter, CharacterSheet};
 use bytes::Bytes;
-use gtk::prelude::TextBufferExt;
 use serde::{Deserialize, Serialize};
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum ChunkType {
@@ -17,17 +17,24 @@ impl std::fmt::Display for ChunkType {
 
 #[derive(Debug, Clone)]
 pub enum ManuscriptError {
+    DocumentLock,
     DocumentSerialize,
     DocumentDeserialize,
     ChunkParse,
     ChunkBusy,
     ChunkUnavailable,
+    Reason(&'static str),
 }
+
+pub type ManuscriptResult<T> = Result<T, ManuscriptError>;
 
 pub trait DocumentChunk {
     fn id(&self) -> &str;
     fn chunk_type(&self) -> ChunkType;
     fn priority(&self) -> Option<u64>;
+    fn set_priority(&mut self, value: Option<u64>);
+    fn locked(&self) -> bool;
+    fn set_locked(&mut self, value: bool);
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
@@ -44,6 +51,43 @@ impl dyn DocumentChunk {
         C: DocumentChunk + Default,
     {
         C::default()
+    }
+}
+
+impl<C> DocumentChunk for Box<C>
+where
+    C: DocumentChunk,
+{
+    fn id(&self) -> &str {
+        self.deref().id()
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self.deref().as_any()
+    }
+
+    fn priority(&self) -> Option<u64> {
+        self.deref().priority()
+    }
+
+    fn set_priority(&mut self, value: Option<u64>) {
+        self.deref_mut().set_priority(value);
+    }
+
+    fn chunk_type(&self) -> ChunkType {
+        self.deref().chunk_type()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self.deref_mut().as_any_mut()
+    }
+
+    fn locked(&self) -> bool {
+        self.deref().locked()
+    }
+
+    fn set_locked(&mut self, value: bool) {
+        self.deref_mut().set_locked(value);
     }
 }
 
@@ -66,42 +110,6 @@ pub trait BufferChunk {
     fn buffer(&self) -> &Bytes;
 }
 
-impl From<&dyn BufferChunk> for gtk::TextBuffer {
-    fn from(source: &dyn BufferChunk) -> Self {
-        bytes_to_text_buffer(source.buffer().slice(..))
-    }
-}
-
-impl From<Box<dyn BufferChunk>> for gtk::TextBuffer {
-    fn from(source: Box<dyn BufferChunk>) -> Self {
-        bytes_to_text_buffer(source.buffer().slice(..))
-    }
-}
-
 pub trait MutableBufferChunk: BufferChunk {
     fn set_buffer(&mut self, value: Bytes);
-}
-
-impl From<&dyn MutableBufferChunk> for gtk::TextBuffer {
-    fn from(source: &dyn MutableBufferChunk) -> Self {
-        bytes_to_text_buffer(source.buffer().slice(..))
-    }
-}
-
-impl From<Box<dyn MutableBufferChunk>> for gtk::TextBuffer {
-    fn from(source: Box<dyn MutableBufferChunk>) -> Self {
-        bytes_to_text_buffer(source.buffer().slice(..))
-    }
-}
-
-impl From<Box<&dyn MutableBufferChunk>> for gtk::TextBuffer {
-    fn from(source: Box<&dyn MutableBufferChunk>) -> Self {
-        bytes_to_text_buffer(source.buffer().slice(..))
-    }
-}
-
-pub fn bytes_to_text_buffer(source: Bytes) -> gtk::TextBuffer {
-    let text_buffer = gtk::TextBuffer::new(None);
-    text_buffer.set_text(String::from_utf8(source.to_vec()).unwrap().as_str());
-    text_buffer
 }

@@ -20,6 +20,7 @@
 
 mod application;
 mod config;
+mod lib;
 mod models;
 mod services;
 mod widgets;
