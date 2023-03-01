@@ -88,6 +88,12 @@ glib::wrapper! {
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
 }
 
+impl Default for ManuscriptTextEditor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ManuscriptTextEditor {
     pub fn new() -> Self {
         glib::Object::new(&[])
@@ -118,13 +124,10 @@ impl ManuscriptTextEditor {
     }
 
     fn connect_text_buffer(&self) {
-        match self.text_buffer().as_ref() {
-            Some(buffer) => {
-                buffer.connect_changed(clone!(@strong self as this => move |buf| {
-                    this.on_buffer_changed(buf).expect("Could not update chunk")
-                }));
-            }
-            None => (),
+        if let Some(buffer) = self.text_buffer().as_ref() {
+            buffer.connect_changed(clone!(@strong self as this => move |buf| {
+                this.on_buffer_changed(buf).expect("Could not update chunk")
+            }));
         }
     }
 
@@ -136,10 +139,13 @@ impl ManuscriptTextEditor {
             let new_bytes = Bytes::from(buf.text(&start_iter, &end_iter, true).to_string());
             let tx = self.imp().sender.borrow();
             let tx = tx.as_ref().unwrap();
-            if let Ok(_) = tx.send(DocumentAction::UpdateChunkBuffer(
-                chunk_id.to_string(),
-                new_bytes,
-            )) {
+            if tx
+                .send(DocumentAction::UpdateChunkBuffer(
+                    chunk_id.to_string(),
+                    new_bytes,
+                ))
+                .is_ok()
+            {
                 Ok(())
             } else {
                 Err(ManuscriptError::ChunkUnavailable)

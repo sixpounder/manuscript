@@ -44,6 +44,10 @@ mod imp {
             let obj = self.instance();
             obj.setup_gactions();
             obj.set_accels_for_action("app.quit", &["<primary>q"]);
+            obj.set_accels_for_action("win.new-project", &["<ctrl>n"]);
+            obj.set_accels_for_action("win.open-project", &["<ctrl>o"]);
+            obj.set_accels_for_action("win.toggle-command-palette", &["<ctrl><shift>p"]);
+            obj.set_accels_for_action("project.search", &["<ctrl>f"]);
         }
     }
 

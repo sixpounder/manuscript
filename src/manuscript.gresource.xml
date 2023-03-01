@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/io/sixpounder/Manuscript">
+    <file alias="style.css">gtk/style.css</file>
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks" alias="text_editor.ui">widgets/text_editor.ui</file>
+    <file preprocess="xml-stripblanks" alias="sheet_editor.ui">widgets/sheet_editor.ui</file>
     <file preprocess="xml-stripblanks" alias="project_layout.ui">widgets/project_layout.ui</file>
+    <file preprocess="xml-stripblanks" alias="command_palette.ui">widgets/command_palette.ui</file>
     <file preprocess="xml-stripblanks" alias="welcome_view.ui">widgets/welcome_view.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
   </gresource>

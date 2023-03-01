@@ -7,13 +7,15 @@ use crate::{
 };
 use adw::subclass::prelude::*;
 use bytes::Bytes;
-use glib::{clone, MainContext, ObjectExt, Receiver, Sender};
+use glib::{clone, MainContext, ObjectExt, Receiver, Sender, ToValue};
 use std::{
     cell::RefCell,
-    sync::{Arc, Mutex},
+    sync::{LockResult, RwLock},
 };
 
+#[derive(Debug, Clone)]
 pub enum DocumentAction {
+    SetTitle(String),
     AddChapter(Chapter),
     AddCharacterSheet(CharacterSheet),
     UpdateChunkBuffer(String, Bytes),
@@ -28,7 +30,7 @@ mod imp {
     use once_cell::sync::Lazy;
 
     pub struct ManuscriptDocumentManager {
-        pub(super) document: Arc<Mutex<Document>>,
+        pub(super) document: RwLock<Document>,
         pub(super) rx: RefCell<Option<Receiver<DocumentAction>>>,
         pub(super) tx: Sender<DocumentAction>,
     }
@@ -36,7 +38,7 @@ mod imp {
     impl Default for ManuscriptDocumentManager {
         fn default() -> Self {
             let (tx, rx) = MainContext::channel(glib::PRIORITY_DEFAULT);
-            let document = Arc::new(Mutex::new(Document::default()));
+            let document = RwLock::new(Document::default());
 
             Self {
                 document,
@@ -62,6 +64,7 @@ mod imp {
             static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
                 vec![
                     Signal::builder("document-loaded").build(),
+                    Signal::builder("title-set").build(),
                     Signal::builder("chunk-added")
                         .param_types([String::static_type()])
                         .build(),
@@ -99,7 +102,7 @@ impl DocumentManager {
     where
         F: Fn(&Document) -> Result<T, ManuscriptError>,
     {
-        if let Ok(lock) = self.imp().document.lock() {
+        if let Ok(lock) = self.imp().document.read() {
             f(&lock)
         } else {
             Err(ManuscriptError::DocumentLock)
@@ -110,7 +113,7 @@ impl DocumentManager {
     where
         F: FnOnce(&mut Document) -> Result<T, ManuscriptError>,
     {
-        if let Ok(mut lock) = self.imp().document.lock() {
+        if let Ok(mut lock) = self.imp().document.write() {
             f(&mut lock)
         } else {
             Err(ManuscriptError::DocumentLock)
@@ -118,7 +121,7 @@ impl DocumentManager {
     }
 
     pub fn set_document(&self, document: Document) -> ManuscriptResult<()> {
-        if let Ok(mut lock) = self.imp().document.lock() {
+        if let Ok(mut lock) = self.imp().document.write() {
             *lock = document;
             self.emit_by_name::<()>("document-loaded", &[]);
             Ok(())
@@ -138,9 +141,14 @@ impl DocumentManager {
         );
     }
 
-    fn process_action(&self, action: DocumentAction) {
-        if let Ok(mut lock) = self.imp().document.lock() {
+    pub fn process_action(&self, action: DocumentAction) {
+        if let Ok(mut lock) = self.imp().document.write() {
+            glib::g_debug!(G_LOG_DOMAIN, "DocumentManager -> {:?}", action);
             match action {
+                DocumentAction::SetTitle(new_title) => {
+                    lock.set_title(new_title);
+                    self.emit_by_name::<()>("title-set", &[]);
+                }
                 DocumentAction::AddChapter(value) => {
                     let id = value.id().to_string();
                     lock.add_chunk(value);
@@ -171,17 +179,18 @@ impl DocumentManager {
 
     pub fn add_chunk<C: DocumentChunk + 'static>(&self, value: C) {
         let id = value.id().to_string();
-        if let Ok(_) = self.with_document_mut(move |document| {
+        let add_chunk_result = self.with_document_mut(move |document| {
             document.add_chunk(value);
             Ok(())
-        }) {
+        });
+        if add_chunk_result.is_ok() {
             self.emit_by_name::<()>("chunk-added", &[&id]);
         }
     }
 
     pub fn remove_chunk(&self, id: &String) -> Option<Box<dyn DocumentChunk>> {
         let imp = self.imp();
-        if let Ok(mut lock) = imp.document.lock() {
+        if let Ok(mut lock) = imp.document.write() {
             let removed = lock.remove_chunk(id);
             drop(lock);
             self.emit_by_name::<()>("chunk-removed", &[id]);
@@ -191,8 +200,8 @@ impl DocumentManager {
         }
     }
 
-    pub fn document_ref(&self) -> &std::sync::Mutex<Document> {
-        self.imp().document.as_ref()
+    pub fn document_ref(&self) -> LockResult<std::sync::RwLockReadGuard<Document>> {
+        self.imp().document.read()
     }
 
     pub fn action_sender(&self) -> Sender<DocumentAction> {

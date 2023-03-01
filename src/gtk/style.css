@@ -1,0 +1,18 @@
+#main_stack.command-palette {
+}
+
+entry.manuscript-title {
+  font-size: 1.2rem;
+  border-radius: .25rem;
+  padding: .5rem;
+  transition: background-color .3s ease, color .3s ease;
+}
+
+entry.manuscript-title:hover {
+  background-color: @accent_color;
+  color: @light_2;
+}
+
+.dark entry.manuscript-title:hover {
+  background-color: @purple_3;
+}

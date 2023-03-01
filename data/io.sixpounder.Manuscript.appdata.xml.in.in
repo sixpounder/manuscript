@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+	<id>io.sixpounder.Manuscript.desktop</id>
+	<metadata_license>CC0-1.0</metadata_license>
+	<project_license>GPL-3.0-or-later</project_license>
+  <name>Manuscript</name>
+  <summary>Write your stories</summary>
+	<description>
+	  <p>A text editor specifically designed for book writers, authors and storytellers.</p>
+	</description>
+
+  <launchable type="desktop-id">@APPLICATION_ID@.desktop</launchable>
+  <url type="homepage">https://github.com/sixpounder/manuscript</url>
+  <developer_name>Andrea Coronese</developer_name>
+  <update_contact>sixpounder_at_protonmail.com</update_contact>
+  <translation type="gettext">manuscript</translation>
+
+  <screenshots></screenshots>
+
+  <requires>
+	  <display_length compare="ge">600</display_length>
+  </requires>
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+  <content_rating type="oars-1.1"/>
+  <provides>@APPLICATION_ID@.desktop</provides>
+
+  <releases>
+    <release version="0.0.1" date="2023-05-01">
+      <description>
+        <p>First release</p>
+      </description>
+    </release>
+  </releases>
+</component>

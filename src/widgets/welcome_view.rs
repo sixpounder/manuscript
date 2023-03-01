@@ -33,6 +33,12 @@ glib::wrapper! {
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
 }
 
+impl Default for ManuscriptWelcomeView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ManuscriptWelcomeView {
     pub fn new() -> Self {
         glib::Object::new(&[])

@@ -1,4 +1,5 @@
 use super::{BufferChunk, ChunkType, DocumentChunk, MutableBufferChunk};
+use crate::services::i18n::i18n;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
@@ -20,13 +21,22 @@ impl Default for DocumentManifest {
     }
 }
 
+impl DocumentManifest {
+    pub fn title(&self) -> Option<&String> {
+        self.title.as_ref()
+    }
+    pub fn set_title(&mut self, value: Option<String>) {
+        self.title = value;
+    }
+}
+
 /// A Chapter is a chunk representing the content of a single manuscript chapter
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chapter {
     id: String,
     priority: u64,
     locked: bool,
-    title: String,
+    title: Option<String>,
     buffer: Bytes,
     notes: Vec<Note>,
 }
@@ -36,8 +46,23 @@ impl DocumentChunk for Chapter {
         self.id.as_str()
     }
 
+    fn title(&self) -> Option<&str> {
+        match self.title.as_ref() {
+            Some(title) => Some(title.as_str()),
+            None => None,
+        }
+    }
+
+    fn default_title(&self) -> &str {
+        "Untitled chapter"
+    }
+
     fn chunk_type(&self) -> ChunkType {
         ChunkType::Chapter
+    }
+
+    fn category_name(&self) -> String {
+        i18n("Chapters")
     }
 
     fn priority(&self) -> Option<u64> {
@@ -83,7 +108,7 @@ impl Default for Chapter {
             id: Ulid::new().into(),
             priority: 0,
             locked: false,
-            title: String::from(""),
+            title: None,
             buffer: Bytes::from(""),
             notes: vec![],
         }
@@ -95,12 +120,12 @@ impl Chapter {
         Self::default()
     }
 
-    pub fn title(&self) -> &str {
-        self.title.as_str()
+    pub fn title(&self) -> Option<&String> {
+        self.title.as_ref()
     }
 
     pub fn set_title(&mut self, value: &str) {
-        self.title = String::from(value)
+        self.title = Some(String::from(value))
     }
 
     pub fn add_note(&mut self, from: NoteOffsetType, to: NoteOffsetType, content: String) {
@@ -133,7 +158,7 @@ pub struct CharacterSheet {
     id: String,
     priority: u64,
     locked: bool,
-    name: String,
+    name: Option<String>,
     physical_traits: Bytes,
     psycological_traits: Bytes,
     background: Bytes,
@@ -145,7 +170,7 @@ impl Default for CharacterSheet {
             id: Ulid::new().into(),
             priority: 0,
             locked: false,
-            name: String::from(""),
+            name: None,
             physical_traits: Bytes::new(),
             psycological_traits: Bytes::new(),
             background: Bytes::new(),
@@ -158,8 +183,23 @@ impl DocumentChunk for CharacterSheet {
         self.id.as_str()
     }
 
+    fn title(&self) -> Option<&str> {
+        match self.name.as_ref() {
+            Some(title) => Some(title.as_str()),
+            None => None,
+        }
+    }
+
+    fn default_title(&self) -> &str {
+        "Unnamed character"
+    }
+
     fn chunk_type(&self) -> ChunkType {
         ChunkType::CharacterSheet
+    }
+
+    fn category_name(&self) -> String {
+        i18n("Character sheets")
     }
 
     fn priority(&self) -> Option<u64> {

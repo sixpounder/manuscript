@@ -6,10 +6,10 @@
     <property name="default-width">600</property>
     <property name="default-height">300</property>
     <property name="content">
-      <object class="GtkWindowHandle">
-        <child>
-          <object class="AdwToastOverlay" id="toast_overlay">
-            <property name="child">
+      <object class="AdwToastOverlay" id="toast_overlay">
+        <property name="child">
+          <object class="GtkOverlay" id="command_palette_overlay">
+            <child>
               <object class="GtkStack" id="main_stack">
                 <property name="transition-type">crossfade</property>
                 <child>
@@ -20,19 +20,23 @@
                         <property name="orientation">vertical</property>
                         <property name="spacing">6</property>
                         <child>
-                          <object class="GtkHeaderBar">
-                            <style>
-                              <class name="flat"/>
-                            </style>
-                            <child type="title">
-                              <object class="GtkBox">
-                                <property name="visible">false</property>
-                              </object>
-                            </child>
-                            <child type="end">
-                              <object class="GtkMenuButton">
-                                <property name="icon-name">open-menu-symbolic</property>
-                                <property name="menu-model">primary_menu</property>
+                          <object class="GtkWindowHandle">
+                            <child>
+                              <object class="GtkHeaderBar">
+                                <style>
+                                  <class name="flat"/>
+                                </style>
+                                <child type="title">
+                                  <object class="GtkBox">
+                                    <property name="visible">false</property>
+                                  </object>
+                                </child>
+                                <child type="end">
+                                  <object class="GtkMenuButton">
+                                    <property name="icon-name">open-menu-symbolic</property>
+                                    <property name="menu-model">primary_menu</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -54,7 +58,7 @@
                     <property name="child">
                       <object class="AdwFlap" id="flap">
                         <property name="fold-duration">250</property>
-                        <property name="fold-threshold-policy">ADW_FOLD_THRESHOLD_POLICY_MINIMUM</property>
+                        <property name="fold-threshold-policy">ADW_FOLD_THRESHOLD_POLICY_NATURAL</property>
                         <property name="vexpand">True</property>
                         <property name="hexpand">True</property>
                         <property name="reveal-flap"
@@ -80,6 +84,7 @@
                         <!-- Flap -->
                         <property name="flap">
                           <object class="ManuscriptProjectLayout" id="project_layout">
+                            <property name="width-request">380</property>
                           </object>
                         </property>
                         <property name="content">
@@ -117,7 +122,25 @@
                             </child>
                             <!-- Content -->
                             <child>
-                              <object class="GtkBox" id="editor_view_container"></object>
+                              <object class="GtkBox">
+                                <property name="orientation">vertical</property>
+                                <property name="width-request">420</property>
+                                <child>
+                                  <object class="AdwTabBar" id="editor_tab_bar">
+                                    <property name="expand-tabs">true</property>
+                                    <property name="autohide">false</property>
+                                    <property name="hexpand">true</property>
+                                    <property name="view">editor_tab_view</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="AdwTabView" id="editor_tab_view">
+                                    <property name="vexpand">true</property>
+                                    <property name="valign">fill</property>
+                                    <property name="halign">fill</property>
+                                  </object>
+                                </child>
+                              </object>
                             </child>
                           </object>
                         </property>
@@ -126,9 +149,9 @@
                   </object>
                 </child>
               </object>
-            </property>
+            </child>
           </object>
-        </child>
+        </property>
       </object>
     </property>
   </template>

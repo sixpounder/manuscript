@@ -4,10 +4,129 @@
   <requires lib="Adw" version="1.0"/>
   <template class="ManuscriptProjectLayout" parent="GtkWidget">
     <child>
-      <object class="AdwExpanderRow">
-        <property name="title">Leroooy</property>
+      <!-- Main layout box -->
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <!-- Top status bar -->
+          <object class="GtkCenterBox">
+            <property name="orientation">horizontal</property>
+            <property name="hexpand">true</property>
+            <property name="halign">fill</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="margin-start">12</property>
+            <property name="margin-end">12</property>
+            <child type="start">
+                <object class="GtkEntry" id="title_entry">
+                  <property name="xalign">0</property>
+                  <property name="hexpand">true</property>
+                  <property name="width-request">180</property>
+                  <property name="text"></property>
+                  <property name="placeholder-text" translatable="yes">Untitled project</property>
+                  <property name="tooltip-text" translatable="yes">The title of your project. Click to edit.</property>
+                  <style>
+                    <class name="flat" />
+                    <class name="manuscript-title" />
+                  </style>
+                  <child>
+                    <object class="GtkPopover" id="title_popover">
+                    </object>
+                  </child>
+                </object>
+            </child>
+            <child type="end">
+              <!-- Top toolbar (search, add ecc...) -->
+              <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="spacing">2</property>
+                <property name="hexpand">true</property>
+                <property name="halign">end</property>
+                <child>
+                  <object class="GtkMenuButton">
+                    <property name="icon-name">list-add-symbolic</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="tooltip-text" translatable="yes">Add elements to the project</property>
+                    <style>
+                      <class name="flat"/>
+                    </style>
+                    <property name="popover">
+                      <object class="GtkPopoverMenu">
+                        <property name="menu-model">add-chunk-menu</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkToggleButton">
+                    <property name="icon-name">system-search-symbolic</property>
+                    <property name="action-name">project.search</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="tooltip-text" translatable="yes">Search for elements in the project</property>
+                    <style>
+                      <class name="flat"/>
+                    </style>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkToggleButton" id="select_button">
+                    <property name="icon-name">selection-mode-symbolic</property>
+                    <property name="action-name">project.select</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="tooltip-text" translatable="yes">Select elements from the project</property>
+                    <style>
+                      <class name="flat"/>
+                    </style>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSearchBar" id="searchbar">
+            <property name="child">
+              <object class="GtkSearchEntry" id="searchentry">
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="hscrollbar-policy">never</property>
+            <property name="vscrollbar-policy">automatic</property>
+            <property name="propagate-natural-height">true</property>
+            <property name="max-content-width">320</property>
+            <property name="width-request">320</property>
+            <property name="vexpand">true</property>
+            <child>
+              <!-- Main content -->
+              <object class="GtkBox" id="layout">
+                <property name="orientation">vertical</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
   </template>
+
+  <menu id="add-chunk-menu">
+    <section>
+      <item>
+        <attribute name="label">Chapter</attribute>
+        <attribute name="action">project.add-chapter</attribute>
+        <!-- <attribute name="verb-icon">edit-cut-symbolic</attribute> -->
+      </item>
+      <item>
+        <attribute name="label">Character sheet</attribute>
+        <attribute name="action">project.add-character-sheet</attribute>
+        <!-- <attribute name="verb-icon">edit-copy-symbolic</attribute> -->
+      </item>
+    </section>
+  </menu>
 </interface>
 

@@ -18,6 +18,10 @@ impl glib::StaticType for Document {
 unsafe impl Send for Document {}
 
 impl Document {
+    pub fn set_title(&mut self, value: String) {
+        self.manifest.set_title(Some(value));
+    }
+
     pub fn add_chunk<C: DocumentChunk + 'static>(&mut self, value: C) {
         self.chunks
             .insert(String::from(value.id()), Box::new(value));
@@ -27,8 +31,11 @@ impl Document {
         self.chunks.remove(id)
     }
 
-    pub fn get_chunk_ref(&self, id: &str) -> Option<&Box<dyn DocumentChunk>> {
-        self.chunks.get(id)
+    pub fn get_chunk_ref(&self, id: &str) -> Option<&dyn DocumentChunk> {
+        match self.chunks.get(id) {
+            Some(chunk) => Some(chunk.as_ref()),
+            None => None,
+        }
     }
 
     pub fn get_chunk_mut(&mut self, id: &str) -> Option<&mut Box<dyn DocumentChunk>> {
@@ -39,24 +46,27 @@ impl Document {
         &self.manifest
     }
 
-    pub fn chunks(&self) -> Vec<&Box<dyn DocumentChunk>> {
+    pub fn chunks(&self) -> Vec<&dyn DocumentChunk> {
         self.chunks
             .values()
-            .collect::<Vec<&Box<dyn DocumentChunk>>>()
+            .map(|c| c.as_ref())
+            .collect::<Vec<&dyn DocumentChunk>>()
     }
 
-    pub fn chunks_by_type_ref(&self, ty: ChunkType) -> Vec<&Box<dyn DocumentChunk>> {
+    pub fn chunks_by_type_ref(&self, ty: ChunkType) -> Vec<&dyn DocumentChunk> {
         self.chunks
             .values()
             .filter(|v| v.chunk_type() == ty)
-            .collect::<Vec<&Box<dyn DocumentChunk>>>()
+            .map(|c| c.as_ref())
+            .collect::<Vec<&dyn DocumentChunk>>()
     }
 
-    pub fn chunks_by_type(&mut self, ty: ChunkType) -> Vec<&Box<dyn DocumentChunk>> {
+    pub fn chunks_by_type(&mut self, ty: ChunkType) -> Vec<&dyn DocumentChunk> {
         self.chunks
             .values()
             .filter(|v| v.chunk_type() == ty)
-            .collect::<Vec<&Box<dyn DocumentChunk>>>()
+            .map(|c| c.as_ref())
+            .collect::<Vec<&dyn DocumentChunk>>()
     }
 }
 
@@ -126,10 +136,12 @@ impl SerializableDocument {
     }
 }
 
+#[allow(clippy::field_reassign_with_default)]
 impl From<SerializableDocument> for Document {
     fn from(source: SerializableDocument) -> Self {
         let mut document = Document::default();
         document.manifest = source.manifest.clone();
+
         for chapter in source.chapters {
             document.add_chunk(chapter);
         }

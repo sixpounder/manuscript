@@ -1,5 +1,4 @@
 use crate::{config::G_LOG_DOMAIN, models::*, services::i18n::i18n};
-use adw::subclass::prelude::*;
 use gtk::gio;
 use gtk::prelude::*;
 use std::io::Read;
@@ -7,7 +6,7 @@ use std::io::Read;
 pub fn with_file_open_dialog<F, E>(on_success: F, on_error: E)
 where
     F: Fn(Document) + 'static,
-    E: Fn(&'static str) + 'static,
+    E: Fn(String) + 'static,
 {
     let app = gio::Application::default()
         .expect("Failed to retrieve application singleton")
@@ -60,18 +59,18 @@ where
                                 Ok(document) => {
                                     on_success(document);
                                 },
-                                Err(error) => {
-                                    on_error("Unreadable file");
+                                Err(_error) => {
+                                    on_error(i18n("Unreadable file"));
 
                                 }
                             }
                         } else {
                             // Failed to read file
-                            on_error("Unreadable file");
+                            on_error(i18n("Unreadable file"));
                         }
                     } else {
                         // File not accessible
-                        on_error("File not existing or not accessible");
+                        on_error(i18n("File not existing or not accessible"));
                     }
                 }
             }

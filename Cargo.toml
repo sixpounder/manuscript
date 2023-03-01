@@ -22,4 +22,3 @@ features = ["v1_2"]
 [dependencies.glib]
 version = "0.16.7"
 features = ["log_macros"]
-

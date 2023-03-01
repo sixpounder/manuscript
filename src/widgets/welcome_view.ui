@@ -6,6 +6,7 @@
     <child>
       <object class="AdwClamp">
         <property name="maximum-size">450</property>
+        <property name="height-request">400</property>
         <property name="vexpand">true</property>
         <property name="valign">fill</property>
         <property name="child">

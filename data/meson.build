@@ -19,11 +19,24 @@ if desktop_utils.found()
   test('Validate desktop file', desktop_utils, args: [desktop_file])
 endif
 
+# appstream_file = i18n.merge_file(
+#         input: 'io.sixpounder.Manuscript.appdata.xml.in',
+#        output: 'io.sixpounder.Manuscript.appdata.xml',
+#        po_dir: '../po',
+#       install: true,
+#   install_dir: join_paths(get_option('datadir'), 'appdata')
+# )
+appstream_data = configuration_data()
+appstream_data.set('APPLICATION_ID', application_id)
 appstream_file = i18n.merge_file(
-        input: 'io.sixpounder.Manuscript.appdata.xml.in',
-       output: 'io.sixpounder.Manuscript.appdata.xml',
-       po_dir: '../po',
-      install: true,
+  input: configure_file(
+    input: 'io.sixpounder.Manuscript.appdata.xml.in.in',
+    output: 'io.sixpounder.Manuscript.appdata.xml.in',
+    configuration: appstream_data,
+  ),
+  output: 'io.sixpounder.Manuscript.appdata.xml',
+  po_dir: '../po',
+  install: true,
   install_dir: join_paths(get_option('datadir'), 'appdata')
 )
 
@@ -42,5 +55,10 @@ if compile_schemas.found()
        compile_schemas,
        args: ['--strict', '--dry-run', meson.current_source_dir()])
 endif
+
+install_data(
+    join_paths('application-manuscript.xml'),
+    install_dir: join_paths(manuscript_datadir, 'mime', 'packages')
+)
 
 subdir('icons')

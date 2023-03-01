@@ -12,6 +12,9 @@ i18n = import('i18n')
 gnome = import('gnome')
 fs = import('fs')
 
+manuscript_prefix = get_option('prefix')
+manuscript_datadir = join_paths(manuscript_prefix, get_option('datadir'))
+
 add_global_arguments('-DGETTEXT_PACKAGE="@0@"'.format (meson.project_name()), language:'c')
 
 cargo = find_program('cargo', required: true)
@@ -61,7 +64,7 @@ summary({
     'prefix': get_option('prefix'),
     'libdir': get_option('libdir'),
     'datadir': get_option('datadir'),
-    'bindir': get_option('bindir'),
+    'bindir': get_option('bindir')
   },
   section: 'Directories',
 )

@@ -3,7 +3,7 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum ChunkType {
     Chapter,
     CharacterSheet,
@@ -11,7 +11,11 @@ pub enum ChunkType {
 
 impl std::fmt::Display for ChunkType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        let desc = match self {
+            ChunkType::Chapter => "Chapter",
+            ChunkType::CharacterSheet => "Character Sheet",
+        };
+        write!(f, "{desc}")
     }
 }
 
@@ -30,7 +34,10 @@ pub type ManuscriptResult<T> = Result<T, ManuscriptError>;
 
 pub trait DocumentChunk {
     fn id(&self) -> &str;
+    fn title(&self) -> Option<&str>;
+    fn default_title(&self) -> &str;
     fn chunk_type(&self) -> ChunkType;
+    fn category_name(&self) -> String;
     fn priority(&self) -> Option<u64>;
     fn set_priority(&mut self, value: Option<u64>);
     fn locked(&self) -> bool;
@@ -62,6 +69,14 @@ where
         self.deref().id()
     }
 
+    fn title(&self) -> Option<&str> {
+        self.deref().title()
+    }
+
+    fn default_title(&self) -> &str {
+        self.deref().default_title()
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self.deref().as_any()
     }
@@ -76,6 +91,10 @@ where
 
     fn chunk_type(&self) -> ChunkType {
         self.deref().chunk_type()
+    }
+
+    fn category_name(&self) -> String {
+        self.deref().category_name()
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
