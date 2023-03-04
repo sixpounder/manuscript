@@ -1,11 +1,16 @@
-use crate::{config::G_LOG_DOMAIN, models::*, services::DocumentAction};
+use super::factories;
+use crate::{
+    config::G_LOG_DOMAIN,
+    models::*,
+    services::{i18n::i18n, DocumentAction},
+};
 use adw::{
+    prelude::{ActionRowExt, ExpanderRowExt},
     subclass::prelude::*,
-    prelude::{ExpanderRowExt, ActionRowExt}
 };
 use glib::Sender;
 use gtk::{gio, prelude::*};
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 mod imp {
     use super::*;
@@ -85,6 +90,8 @@ impl ManuscriptProjectLayout {
     }
 
     fn setup_widgets(&self) {
+        self.style_context().add_class("default-bg");
+
         let entry = self.imp().searchentry.get();
         self.imp().searchbar.connect_entry(&entry);
 
@@ -110,55 +117,6 @@ impl ManuscriptProjectLayout {
         document.chunks().iter().for_each(|chunk| {
             self.add_chunk(*chunk);
         });
-    }
-
-    fn get_or_create_expander_row_for_chunk(&self, chunk: &dyn DocumentChunk) -> adw::ExpanderRow {
-        let layout = self.imp().layout.get();
-        let mut child = layout.first_child();
-        let mut existing_expander = None;
-        while child.is_some() {
-            let existing_child = child.unwrap();
-            child = existing_child.next_sibling();
-            let maybe_data = unsafe {
-                existing_child.data::<ChunkType>("chunk_type")
-            };
-            if let Some(inner_data) = maybe_data {
-                let inner_data = unsafe { inner_data.as_ref() };
-                if *inner_data == chunk.chunk_type() {
-                    existing_expander = Some(
-                        existing_child
-                            .downcast::<adw::ExpanderRow>()
-                            .expect("Not an adw::ExpanderRow"),
-                    );
-                }
-            }
-        }
-
-        existing_expander.unwrap_or_else(|| {
-            let expander_row = adw::ExpanderRow::builder()
-                .hexpand(true)
-                .halign(gtk::Align::Fill)
-                .title(chunk.category_name().as_str())
-                .build();
-            unsafe { expander_row.set_data("chunk_type", chunk.chunk_type()) };
-            layout.append(&expander_row);
-            expander_row
-        })
-    }
-
-    fn get_or_create_row_for_chunk(&self, chunk: &dyn DocumentChunk) -> adw::ActionRow {
-        let row = adw::ActionRow::builder()
-            .title(chunk.title().unwrap_or(chunk.default_title()))
-            .build();
-
-        row.add_suffix(
-            &gtk::Button::builder()
-                .icon_name("document-edit-symbolic")
-                .css_classes(vec!["flat".into()])
-                .build()
-        );
-
-        row
     }
 
     fn clear(&self) {
@@ -189,9 +147,16 @@ impl ManuscriptProjectLayout {
             "Adding chunk with id {} to project layout",
             chunk.id()
         );
-        let expander_row = self.get_or_create_expander_row_for_chunk(chunk);
+        let layout = self.imp().layout.get();
+        let expander_row =
+            factories::get_or_create_expander_row_for_chunk(&layout.upcast::<gtk::Widget>(), chunk);
         expander_row.set_expanded(true);
-        expander_row.add_row(&self.get_or_create_row_for_chunk(chunk));
+
+        let row = factories::create_row_for_chunk(chunk);
+        row.connect_activated(glib::clone!(@weak self as this => move |row| {
+            this.send_action(DocumentAction::SelectChunk(row.chunk_id()));
+        }));
+        expander_row.add_row(&row);
     }
 
     pub fn remove_chunk<S: ToString>(&self, chunk_id: S) {
@@ -212,5 +177,12 @@ impl ManuscriptProjectLayout {
 
     pub fn set_select(&self, value: bool) {
         // TODO
+    }
+
+    fn send_action(&self, action: DocumentAction) {
+        let maybe_channel = self.imp().channel.borrow();
+        if let Some(channel) = maybe_channel.as_ref() {
+            channel.send(action).expect("Could not send action");
+        }
     }
 }

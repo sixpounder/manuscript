@@ -1,11 +1,13 @@
+mod chunk_row;
 mod command_palette;
+mod editor_view_shell;
+pub mod editors;
+pub mod factories;
 mod project_layout;
-mod text_editor;
-mod sheet_editor;
 mod welcome_view;
 
+pub use chunk_row::*;
 pub use command_palette::*;
+pub use editor_view_shell::*;
 pub use project_layout::*;
-pub use text_editor::*;
-pub use sheet_editor::*;
 pub use welcome_view::*;

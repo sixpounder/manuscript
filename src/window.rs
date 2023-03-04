@@ -20,10 +20,14 @@
 
 use crate::{
     config::{APPLICATION_G_PATH, G_LOG_DOMAIN},
+    consts::CHUNK_ID_DATA_KEY,
     libs::files::with_file_open_dialog,
     models::*,
     services::{i18n::i18n, DocumentManager, ManuscriptSettings},
-    widgets::{ManuscriptProjectLayout, ManuscriptTextEditor, ManuscriptCharacterSheetEditor, ManuscriptWelcomeView},
+    widgets::{
+        editors::{ManuscriptCharacterSheetEditor, ManuscriptTextEditor},
+        ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptWelcomeView,
+    },
 };
 use adw::subclass::prelude::*;
 use gtk::prelude::*;
@@ -48,13 +52,16 @@ mod imp {
         pub(super) welcome_view: TemplateChild<ManuscriptWelcomeView>,
 
         #[template_child]
-        pub(super) editor_tab_bar: TemplateChild<adw::TabBar>,
-
-        #[template_child]
         pub(super) project_layout: TemplateChild<ManuscriptProjectLayout>,
 
         #[template_child]
         pub(super) command_palette_overlay: TemplateChild<gtk::Overlay>,
+
+        #[template_child]
+        pub(super) editor_view: TemplateChild<ManuscriptEditorViewShell>,
+
+        #[template_child]
+        pub(super) flap: TemplateChild<adw::Flap>,
 
         pub(super) style_manager: adw::StyleManager,
 
@@ -80,9 +87,10 @@ mod imp {
                 toast_overlay: TemplateChild::default(),
                 main_stack: TemplateChild::default(),
                 welcome_view: TemplateChild::default(),
-                editor_tab_bar: TemplateChild::default(),
                 project_layout: TemplateChild::default(),
                 command_palette_overlay: TemplateChild::default(),
+                editor_view: TemplateChild::default(),
+                flap: TemplateChild::default(),
                 style_manager: adw::StyleManager::default(),
                 provider: gtk::CssProvider::default(),
                 settings: ManuscriptSettings::default(),
@@ -95,11 +103,11 @@ mod imp {
         fn class_init(klass: &mut Self::Class) {
             klass.bind_template();
 
-            klass.install_action("win.new-project", None, move |win, _, _| {
+            klass.install_action("app.new-project", None, move |win, _, _| {
                 win.new_project();
             });
 
-            klass.install_action("win.open-project", None, move |win, _, _| {
+            klass.install_action("app.open-project", None, move |win, _, _| {
                 win.open_project();
             });
 
@@ -184,12 +192,17 @@ impl ManuscriptWindow {
         self.imp().document_manager.clone()
     }
 
+    pub fn editor_view(&self) -> ManuscriptEditorViewShell {
+        self.imp().editor_view.get()
+    }
+
     fn add_toast(&self, msg: String) {
         let toast = adw::Toast::new(&msg);
         self.imp().toast_overlay.add_toast(&toast);
     }
 
     fn new_project(&self) {
+        self.set_document(Document::default());
         self.imp().main_stack.set_visible_child_name("project-view");
     }
 
@@ -246,6 +259,14 @@ impl ManuscriptWindow {
             }),
         );
 
+        dm.connect_closure(
+            "chunk-selected",
+            false,
+            closure_local!(@strong self as this => move |_obj: DocumentManager, id: String| {
+                this.on_chunk_selected(id);
+            }),
+        );
+
         self.imp().style_manager.connect_dark_notify(
             glib::clone!(@strong self as this => move |_sm| {
                 this.update_widgets();
@@ -282,20 +303,8 @@ impl ManuscriptWindow {
     fn setup_widgets(&self) {
         let project_layout = self.imp().project_layout.get();
         project_layout.set_channel(self.document_manager().action_sender());
-    }
-
-    fn editor_view_widget_for_chunk(&self, chunk: &dyn DocumentChunk) -> gtk::Widget {
-        match chunk.chunk_type() {
-            ChunkType::Chapter => {
-                let text_view = ManuscriptTextEditor::new();
-                text_view.set_halign(gtk::Align::Fill);
-                text_view.set_valign(gtk::Align::Fill);
-                text_view.set_hexpand(true);
-                text_view.init(chunk.id().into(), None);
-                text_view.upcast::<gtk::Widget>()
-            },
-            ChunkType::CharacterSheet => ManuscriptCharacterSheetEditor::new().upcast::<gtk::Widget>()
-        }
+        let editor_view = self.editor_view();
+        editor_view.set_channel(self.document_manager().action_sender());
     }
 
     fn on_document_loaded(&self) {
@@ -318,18 +327,16 @@ impl ManuscriptWindow {
 
     fn on_chunk_added(&self, id: String) {
         if let Ok(lock) = self.imp().document_manager.document_ref() {
+            let imp = self.imp();
             let added_chunk = lock.get_chunk_ref(id.as_str()).unwrap();
+            imp.editor_view.add_and_select_page(added_chunk);
+            imp.project_layout.add_chunk(added_chunk);
 
-            let view_child = self.editor_view_widget_for_chunk(added_chunk);
-
-            let page_title = added_chunk.title().unwrap_or(added_chunk.default_title());
-            glib::g_debug!(G_LOG_DOMAIN, "on_chunk_added - Page title -> {page_title}");
-            let view = self.editor_view();
-            let page = view.append(&view_child);
-            page.set_title(page_title);
-            view.set_selected_page(&page);
-
-            self.imp().project_layout.add_chunk(added_chunk);
+            // Ensure flap closes and editor view gets revealed if in folded mode
+            let flap = imp.flap.get();
+            if flap.is_folded() {
+                flap.set_reveal_flap(false);
+            }
         }
     }
 
@@ -340,12 +347,11 @@ impl ManuscriptWindow {
         }
     }
 
-    fn tab_bar(&self) -> adw::TabBar {
-        self.imp().editor_tab_bar.get()
-    }
-
-    fn editor_view(&self) -> adw::TabView {
-        self.tab_bar().view().expect("Could not get tab view")
+    fn on_chunk_selected(&self, id: String) {
+        if let Ok(lock) = self.imp().document_manager.document_ref() {
+            let selected_chunk = lock.get_chunk_ref(id.as_str()).unwrap();
+            self.editor_view().select_page(selected_chunk);
+        }
     }
 
     fn search_mode(&self) -> bool {
@@ -400,4 +406,6 @@ impl ManuscriptWindow {
             .document_manager
             .add_chunk(CharacterSheet::default());
     }
+
+    fn add_chunk_view(&self, chunk: &dyn DocumentChunk) {}
 }

@@ -18,6 +18,7 @@ pub enum DocumentAction {
     SetTitle(String),
     AddChapter(Chapter),
     AddCharacterSheet(CharacterSheet),
+    SelectChunk(String),
     UpdateChunkBuffer(String, Bytes),
 }
 
@@ -69,6 +70,9 @@ mod imp {
                         .param_types([String::static_type()])
                         .build(),
                     Signal::builder("chunk-removed")
+                        .param_types([String::static_type()])
+                        .build(),
+                    Signal::builder("chunk-selected")
                         .param_types([String::static_type()])
                         .build(),
                     Signal::builder("chunk-updated")
@@ -142,30 +146,44 @@ impl DocumentManager {
     }
 
     pub fn process_action(&self, action: DocumentAction) {
-        if let Ok(mut lock) = self.imp().document.write() {
-            glib::g_debug!(G_LOG_DOMAIN, "DocumentManager -> {:?}", action);
-            match action {
-                DocumentAction::SetTitle(new_title) => {
+        glib::g_debug!(G_LOG_DOMAIN, "DocumentManager::{:?}", action);
+        match action {
+            DocumentAction::SetTitle(new_title) => {
+                if let Ok(mut lock) = self.imp().document.write() {
                     lock.set_title(new_title);
-                    self.emit_by_name::<()>("title-set", &[]);
                 }
-                DocumentAction::AddChapter(value) => {
-                    let id = value.id().to_string();
+                self.emit_by_name::<()>("title-set", &[]);
+            }
+            DocumentAction::AddChapter(value) => {
+                let id = value.id().to_string();
+                if let Ok(mut lock) = self.imp().document.write() {
                     lock.add_chunk(value);
-                    self.emit_by_name::<()>("chunk-added", &[&id]);
                 }
-                DocumentAction::AddCharacterSheet(value) => {
-                    let id = value.id().to_string();
+                self.emit_by_name::<()>("chunk-added", &[&id]);
+            }
+            DocumentAction::AddCharacterSheet(value) => {
+                let id = value.id().to_string();
+                if let Ok(mut lock) = self.imp().document.write() {
                     lock.add_chunk(value);
-                    self.emit_by_name::<()>("chunk-added", &[&id]);
                 }
-                DocumentAction::UpdateChunkBuffer(id, bytes) => {
+                self.emit_by_name::<()>("chunk-added", &[&id]);
+            }
+            DocumentAction::SelectChunk(id) => {
+                if let Ok(lock) = self.imp().document.read() {
+                    if let Some(_chunk) = lock.get_chunk_ref(id.as_str()) {
+                        self.emit_by_name::<()>("chunk-selected", &[&id]);
+                    } else {
+                        glib::g_warning!(G_LOG_DOMAIN, "DocumentManager -> Tried to select chunk {} but it was not found in document", id);
+                    }
+                }
+            }
+            DocumentAction::UpdateChunkBuffer(id, bytes) => {
+                if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(chunk) = lock.get_chunk_mut(id.as_str()) {
                         let id = chunk.id().to_string();
                         let as_any = Box::new(chunk.as_any_mut());
                         if let Some(mbc) = as_any.downcast_mut::<Box<dyn MutableBufferChunk>>() {
                             mbc.set_buffer(bytes);
-                            self.emit_by_name::<()>("chunk-updated", &[&id]);
                         } else {
                             glib::warn!("An UpdateChunkBuffer was requested on {:?}, but it doesnt implement MutableBufferChunk", as_any);
                         }
@@ -173,6 +191,8 @@ impl DocumentManager {
                         glib::warn!("An UpdateChunkBuffer was requested on chunk with id {id}, but it was not found");
                     }
                 }
+
+                self.emit_by_name::<()>("chunk-updated", &[&id]);
             }
         }
     }

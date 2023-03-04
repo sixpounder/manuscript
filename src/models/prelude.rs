@@ -1,10 +1,20 @@
 use super::{Chapter, CharacterSheet};
 use bytes::Bytes;
+use glib::{StaticType, Type};
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
+pub enum Color {
+    Default,
+    Cyan,
+    Yellow,
+    Green,
+    Custom(u8, u8, u8),
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum ChunkType {
+    Manifest,
     Chapter,
     CharacterSheet,
 }
@@ -12,6 +22,7 @@ pub enum ChunkType {
 impl std::fmt::Display for ChunkType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let desc = match self {
+            ChunkType::Manifest => "Manifest",
             ChunkType::Chapter => "Chapter",
             ChunkType::CharacterSheet => "Character Sheet",
         };
@@ -44,6 +55,22 @@ pub trait DocumentChunk {
     fn set_locked(&mut self, value: bool);
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+
+    fn accent(&self) -> Color {
+        Color::Default
+    }
+
+    fn set_accent(&mut self, _value: Color) {}
+
+    fn safe_title(&self) -> &str {
+        self.title().unwrap_or(self.default_title())
+    }
+}
+
+impl StaticType for dyn DocumentChunk {
+    fn static_type() -> Type {
+        Type::OBJECT
+    }
 }
 
 impl std::fmt::Debug for dyn DocumentChunk {
@@ -127,8 +154,37 @@ pub trait SerializableChunk<'de>: DocumentChunk + Serialize + Deserialize<'de> {
 
 pub trait BufferChunk {
     fn buffer(&self) -> &Bytes;
+
+    /// Counts the words in the buffer
+    fn words_count(&self) -> u64 {
+        let mut state = 0;
+        let mut wc: u64 = 0;
+        let buffer = self.buffer();
+        for i in 0..buffer.len() {
+            let c = buffer[i];
+            if c == b' ' || c == b'\n' || c == b'\t' || c == b'\r' {
+                state = 0;
+            } else if state == 0 {
+                state = 1;
+                wc += 1;
+            }
+        }
+
+        wc
+    }
+
+    /// Estimates the reading time of this buffer
+    fn estimate_reading_time(&self) -> (u64, u64) {
+        let words = self.words_count();
+        let words_divided_two_hundreds = words as f64 / 200.0;
+        let minutes = words_divided_two_hundreds.floor() as u64;
+        let seconds = (words_divided_two_hundreds * 0.60) as u64;
+
+        (minutes, seconds)
+    }
 }
 
 pub trait MutableBufferChunk: BufferChunk {
     fn set_buffer(&mut self, value: Bytes);
 }
+

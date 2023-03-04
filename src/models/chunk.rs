@@ -8,6 +8,7 @@ use ulid::Ulid;
 pub struct DocumentManifest {
     title: Option<String>,
     author: String,
+    locked: bool,
 }
 
 impl Default for DocumentManifest {
@@ -17,6 +18,7 @@ impl Default for DocumentManifest {
             author: gtk::glib::real_name()
                 .into_string()
                 .unwrap_or(String::from("")),
+            locked: false,
         }
     }
 }
@@ -27,6 +29,53 @@ impl DocumentManifest {
     }
     pub fn set_title(&mut self, value: Option<String>) {
         self.title = value;
+    }
+}
+
+impl DocumentChunk for DocumentManifest {
+    fn id(&self) -> &str {
+        "manifest"
+    }
+
+    fn title(&self) -> Option<&str> {
+        match self.title.as_ref() {
+            Some(title) => Some(title.as_str()),
+            None => None,
+        }
+    }
+
+    fn default_title(&self) -> &str {
+        "Untitled manuscript"
+    }
+
+    fn chunk_type(&self) -> ChunkType {
+        ChunkType::Manifest
+    }
+
+    fn category_name(&self) -> String {
+        i18n("Manifest")
+    }
+
+    fn priority(&self) -> Option<u64> {
+        Some(100)
+    }
+
+    fn set_priority(&mut self, value: Option<u64>) {}
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn locked(&self) -> bool {
+        self.locked
+    }
+
+    fn set_locked(&mut self, value: bool) {
+        self.locked = value;
     }
 }
 
@@ -159,6 +208,7 @@ pub struct CharacterSheet {
     priority: u64,
     locked: bool,
     name: Option<String>,
+    synopsis: Option<String>,
     physical_traits: Bytes,
     psycological_traits: Bytes,
     background: Bytes,
@@ -171,10 +221,21 @@ impl Default for CharacterSheet {
             priority: 0,
             locked: false,
             name: None,
+            synopsis: None,
             physical_traits: Bytes::new(),
             psycological_traits: Bytes::new(),
             background: Bytes::new(),
         }
+    }
+}
+
+impl CharacterSheet {
+    pub fn name(&self) -> Option<&String> {
+        self.name.as_ref()
+    }
+
+    pub fn synopsis(&self) -> Option<&String> {
+        self.synopsis.as_ref()
     }
 }
 

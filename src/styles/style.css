@@ -16,3 +16,16 @@ entry.manuscript-title:hover {
 .dark entry.manuscript-title:hover {
   background-color: @purple_3;
 }
+
+.default-bg {
+  background-color: #fafafa;
+}
+
+.dark .default-bg {
+  background-color: #242424;
+}
+
+.editor-view-placeholder-label {
+  filter: opacity(60%);
+  font-size: 1.5rem;
+}

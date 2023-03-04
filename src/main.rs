@@ -20,6 +20,7 @@
 
 mod application;
 mod config;
+mod consts;
 mod libs;
 mod models;
 mod services;

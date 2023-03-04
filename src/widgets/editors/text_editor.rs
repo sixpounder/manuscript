@@ -14,11 +14,15 @@ mod imp {
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
-    #[template(resource = "/io/sixpounder/Manuscript/text_editor.ui")]
+    #[template(resource = "/io/sixpounder/Manuscript/editors/text_editor.ui")]
     pub struct ManuscriptTextEditor {
+        #[template_child]
+        pub(super) text_view: TemplateChild<gtk::TextView>,
+
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
         pub(super) chunk_id: RefCell<Option<String>>,
         pub(super) text_buffer: RefCell<Option<gtk::TextBuffer>>,
+        pub(super) update_idle_resource_id: RefCell<Option<glib::SourceId>>,
         pub(super) locked: Cell<bool>,
     }
 
@@ -45,11 +49,11 @@ mod imp {
                     ParamSpecBoolean::new("locked", "", "", false, ParamFlags::READWRITE),
                     ParamSpecString::new("chunk-id", "", "", None, ParamFlags::READWRITE),
                     ParamSpecObject::new(
-                        "text-buffer",
+                        "buffer",
                         "",
                         "",
                         Option::<gtk::TextBuffer>::static_type(),
-                        ParamFlags::READABLE,
+                        ParamFlags::READWRITE,
                     ),
                 ]
             });
@@ -62,7 +66,7 @@ mod imp {
             match pspec.name() {
                 "locked" => imp.locked.get().to_value(),
                 "chunk-id" => imp.chunk_id.borrow().to_value(),
-                "text-buffer" => imp.text_buffer.borrow().to_value(),
+                "buffer" => imp.text_buffer.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -74,7 +78,8 @@ mod imp {
                 "chunk-id" => {
                     self.chunk_id
                         .replace(value.get::<Option<String>>().unwrap());
-                }
+                },
+                "buffer" => { self.text_buffer.replace(value.get::<Option<gtk::TextBuffer>>().unwrap()); },
                 _ => unimplemented!(),
             }
         }
@@ -90,13 +95,16 @@ glib::wrapper! {
 
 impl Default for ManuscriptTextEditor {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
 impl ManuscriptTextEditor {
-    pub fn new() -> Self {
-        glib::Object::new(&[])
+    pub fn new(sender: Option<Sender<DocumentAction>>) -> Self {
+        let obj: Self = glib::Object::new(&[]);
+        obj.imp().sender.replace(sender);
+
+        obj
     }
 
     pub fn init(&self, chunk_id: String, buffer: Option<Bytes>) {
@@ -114,6 +122,7 @@ impl ManuscriptTextEditor {
                 .unwrap()
                 .as_str(),
         );
+        imp.text_view.set_buffer(Some(&text_buffer));
         imp.text_buffer.replace(Some(text_buffer));
 
         self.connect_text_buffer();
@@ -126,33 +135,48 @@ impl ManuscriptTextEditor {
     fn connect_text_buffer(&self) {
         if let Some(buffer) = self.text_buffer().as_ref() {
             buffer.connect_changed(clone!(@strong self as this => move |buf| {
-                this.on_buffer_changed(buf).expect("Could not update chunk")
+                this.on_buffer_changed(buf);
             }));
         }
     }
 
-    fn on_buffer_changed(&self, buf: &gtk::TextBuffer) -> Result<(), ManuscriptError> {
+    fn on_buffer_changed(&self, _buffer: &gtk::TextBuffer) {
         let chunk_id = self.imp().chunk_id.borrow();
-        if let Some(chunk_id) = chunk_id.as_ref() {
-            let start_iter = buf.start_iter();
-            let end_iter = buf.end_iter();
-            let new_bytes = Bytes::from(buf.text(&start_iter, &end_iter, true).to_string());
-            let tx = self.imp().sender.borrow();
-            let tx = tx.as_ref().unwrap();
-            if tx
-                .send(DocumentAction::UpdateChunkBuffer(
-                    chunk_id.to_string(),
-                    new_bytes,
-                ))
-                .is_ok()
-            {
-                Ok(())
-            } else {
-                Err(ManuscriptError::ChunkUnavailable)
+        if let Some(_chunk_id) = chunk_id.as_ref() {
+
+            // Cancel any closure registered before, obtain a debounce effect
+            let mut source_id = self.imp().update_idle_resource_id.borrow_mut();
+            if source_id.is_some() {
+                let source_id = source_id.take().unwrap();
+                source_id.remove();
             }
+            drop(source_id);
+
+            let source_id = glib::source::timeout_add_local(
+                std::time::Duration::from_millis(500),
+                glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
+                    if let Some(buf) = this.text_buffer().as_ref() {
+                        let chunk_id = this.imp().chunk_id.borrow();
+                        let chunk_id = chunk_id.as_ref().unwrap();
+                        let start_iter = buf.start_iter();
+                        let end_iter = buf.end_iter();
+                        let new_bytes = Bytes::from(buf.text(&start_iter, &end_iter, true).to_string());
+                        let tx = this.imp().sender.borrow();
+                        let tx = tx.as_ref().expect("No channel sender found");
+                        tx.send(DocumentAction::UpdateChunkBuffer(
+                            chunk_id.to_string(),
+                            new_bytes,
+                        )).expect("Could not send buffer updates");
+                        this.imp().update_idle_resource_id.replace(None);
+                    }
+
+                    glib::Continue(false)
+                })
+            );
+            self.imp().update_idle_resource_id.replace(Some(source_id));
         } else {
             glib::warn!("No chunk id is set on this ManuscriptTextEditor");
-            Err(ManuscriptError::ChunkUnavailable)
+            // Err(ManuscriptError::ChunkUnavailable)
         }
     }
 }

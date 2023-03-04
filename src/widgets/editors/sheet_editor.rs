@@ -14,7 +14,7 @@ mod imp {
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
-    #[template(resource = "/io/sixpounder/Manuscript/sheet_editor.ui")]
+    #[template(resource = "/io/sixpounder/Manuscript/editors/sheet_editor.ui")]
     pub struct ManuscriptCharacterSheetEditor {}
 
     #[glib::object_subclass]
@@ -74,4 +74,3 @@ impl ManuscriptCharacterSheetEditor {
         glib::Object::new(&[])
     }
 }
-
