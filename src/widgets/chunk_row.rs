@@ -2,7 +2,7 @@ use crate::{
     config::G_LOG_DOMAIN,
     consts::CHUNK_ID_DATA_KEY,
     models::*,
-    services::{DocumentAction, i18n::i18n}
+    services::{i18n::i18n, DocumentAction},
 };
 use adw::prelude::{ActionRowExt, PreferencesRowExt};
 use adw::subclass::prelude::*;
@@ -103,7 +103,12 @@ impl ManuscriptChunkRow {
             if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
                 self.set_subtitle(format!("{} {}", chapter.words_count(), i18n("words")).as_str());
             } else if let Some(character_sheet) = chunk.as_any().downcast_ref::<CharacterSheet>() {
-                self.set_subtitle(character_sheet.synopsis().unwrap_or(&"Empty synopsis".into()).as_str());
+                self.set_subtitle(
+                    character_sheet
+                        .synopsis()
+                        .unwrap_or(&"Empty synopsis".into())
+                        .as_str(),
+                );
             }
         } else {
             *self.imp().chunk_id.borrow_mut() = "".into();

@@ -319,7 +319,7 @@ impl ManuscriptWindow {
                 let new_document = new_document.deref();
 
                 // Update project layout
-                this.imp().project_layout.load_document(new_document);
+                this.imp().project_layout.load_document(new_document.as_ref());
                 glib::Continue(false)
             }),
         );
@@ -327,30 +327,36 @@ impl ManuscriptWindow {
 
     fn on_chunk_added(&self, id: String) {
         if let Ok(lock) = self.imp().document_manager.document_ref() {
-            let imp = self.imp();
-            let added_chunk = lock.get_chunk_ref(id.as_str()).unwrap();
-            imp.editor_view.add_and_select_page(added_chunk);
-            imp.project_layout.add_chunk(added_chunk);
+            if let Some(document) = lock.as_ref() {
+                let imp = self.imp();
+                let added_chunk = document.get_chunk_ref(id.as_str()).unwrap();
+                imp.editor_view.add_and_select_page(added_chunk);
+                imp.project_layout.add_chunk(added_chunk);
 
-            // Ensure flap closes and editor view gets revealed if in folded mode
-            let flap = imp.flap.get();
-            if flap.is_folded() {
-                flap.set_reveal_flap(false);
+                // Ensure flap closes and editor view gets revealed if in folded mode
+                let flap = imp.flap.get();
+                if flap.is_folded() {
+                    flap.set_reveal_flap(false);
+                }
             }
         }
     }
 
     fn on_chunk_removed(&self, id: String) {
         if let Ok(lock) = self.imp().document_manager.document_ref() {
-            let removed_chunk = lock.get_chunk_ref(id.as_str()).unwrap();
-            self.imp().project_layout.remove_chunk(removed_chunk.id());
+            if let Some(document) = &*lock {
+                let removed_chunk = document.get_chunk_ref(id.as_str()).unwrap();
+                self.imp().project_layout.remove_chunk(removed_chunk.id());
+            }
         }
     }
 
     fn on_chunk_selected(&self, id: String) {
         if let Ok(lock) = self.imp().document_manager.document_ref() {
-            let selected_chunk = lock.get_chunk_ref(id.as_str()).unwrap();
-            self.editor_view().select_page(selected_chunk);
+            if let Some(document) = &*lock {
+                let selected_chunk = document.get_chunk_ref(id.as_str()).unwrap();
+                self.editor_view().select_page(selected_chunk);
+            }
         }
     }
 

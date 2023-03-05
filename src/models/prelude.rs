@@ -32,6 +32,7 @@ impl std::fmt::Display for ChunkType {
 
 #[derive(Debug, Clone)]
 pub enum ManuscriptError {
+    NoDocument,
     DocumentLock,
     DocumentSerialize,
     DocumentDeserialize,
@@ -207,4 +208,3 @@ impl BufferAnalytics for Bytes {
         (minutes, seconds)
     }
 }
-

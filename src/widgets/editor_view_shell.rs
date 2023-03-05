@@ -1,7 +1,6 @@
 use crate::{
     config::G_LOG_DOMAIN, consts::CHUNK_ID_DATA_KEY, models::*, services::DocumentAction,
-    widgets::editors::*,
-    services::DocumentManager
+    services::DocumentManager, widgets::editors::*,
 };
 use adw::subclass::prelude::*;
 use bytes::Bytes;
@@ -22,6 +21,7 @@ mod imp {
     pub struct ManuscriptEditorViewShell {
         #[template_child]
         pub(super) editor_tab_bar: TemplateChild<adw::TabBar>,
+
         #[template_child]
         pub(super) editor_tab_view: TemplateChild<adw::TabView>,
 

@@ -1,7 +1,7 @@
 use crate::{
     models::*,
-    services::{DocumentAction, prelude::bytes_from_text_buffer},
-    widgets::ManuscriptProgress
+    services::{prelude::bytes_from_text_buffer, DocumentAction},
+    widgets::ManuscriptProgressIndicator,
 };
 use adw::subclass::prelude::*;
 use bytes::Bytes;
@@ -27,7 +27,7 @@ mod imp {
         pub(super) text_view: TemplateChild<gtk::TextView>,
 
         #[template_child]
-        pub(super) progress_indicator: TemplateChild<ManuscriptProgress>,
+        pub(super) progress_indicator: TemplateChild<ManuscriptProgressIndicator>,
 
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
         pub(super) chunk_id: RefCell<Option<String>>,
@@ -36,7 +36,6 @@ mod imp {
         pub(super) locked: Cell<bool>,
         pub(super) words_count: Cell<u64>,
         pub(super) reading_time: Cell<(u64, u64)>,
-        pub(super) scroll_progress_percentage: Cell<u8>
     }
 
     #[glib::object_subclass]
@@ -96,8 +95,11 @@ mod imp {
                 "chunk-id" => {
                     self.chunk_id
                         .replace(value.get::<Option<String>>().unwrap());
-                },
-                "buffer" => { self.text_buffer.replace(value.get::<Option<gtk::TextBuffer>>().unwrap()); },
+                }
+                "buffer" => {
+                    self.text_buffer
+                        .replace(value.get::<Option<gtk::TextBuffer>>().unwrap());
+                }
                 _ => unimplemented!(),
             }
         }
@@ -210,7 +212,7 @@ impl ManuscriptTextEditor {
                     }
 
                     glib::Continue(false)
-                })
+                }),
             );
             self.imp().update_idle_resource_id.replace(Some(source_id));
         } else {

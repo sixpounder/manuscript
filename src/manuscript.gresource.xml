@@ -9,7 +9,7 @@
     <file preprocess="xml-stripblanks" alias="project_layout.ui">widgets/gtk/project_layout.ui</file>
     <file preprocess="xml-stripblanks" alias="chunk_row.ui">widgets/gtk/chunk_row.ui</file>
     <file preprocess="xml-stripblanks" alias="command_palette.ui">widgets/gtk/command_palette.ui</file>
-    <file preprocess="xml-stripblanks" alias="progress.ui">widgets/gtk/progress.ui</file>
+    <file preprocess="xml-stripblanks" alias="progress_indicator.ui">widgets/gtk/progress_indicator.ui</file>
     <file preprocess="xml-stripblanks" alias="welcome_view.ui">widgets/gtk/welcome_view.ui</file>
     <file preprocess="xml-stripblanks">widgets/gtk/help-overlay.ui</file>
   </gresource>

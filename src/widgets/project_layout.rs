@@ -106,17 +106,19 @@ impl ManuscriptProjectLayout {
         self.imp().title_entry.set_text(value.to_string().as_str());
     }
 
-    pub fn load_document(&self, document: &Document) {
+    pub fn load_document(&self, document: Option<&Document>) {
         glib::debug!("Loading document on project layout widget");
         // Clear layout
         self.clear();
 
-        // Populate project structure
+        if let Some(document) = document {
+            // Populate project structure
 
-        // 1. Add chunk categories entries
-        document.chunks().iter().for_each(|chunk| {
-            self.add_chunk(*chunk);
-        });
+            // 1. Add chunk categories entries
+            document.chunks().iter().for_each(|chunk| {
+                self.add_chunk(*chunk);
+            });
+        }
     }
 
     fn clear(&self) {

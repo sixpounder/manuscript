@@ -1,19 +1,16 @@
 use adw::subclass::prelude::*;
-use gtk::{
-    gio, glib,
-    prelude::*,
-};
+use gtk::{gio, glib, prelude::*};
 use std::cell::Cell;
 
 mod imp {
     use super::*;
     use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecInt};
-    use once_cell::sync::Lazy;
     use gtk::gdk::RGBA;
+    use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
-    #[template(resource = "/io/sixpounder/Manuscript/progress.ui")]
-    pub struct ManuscriptProgress {
+    #[template(resource = "/io/sixpounder/Manuscript/progress_indicator.ui")]
+    pub struct ManuscriptProgressIndicator {
         pub(super) value: Cell<i32>,
         pub(super) min: Cell<i32>,
         pub(super) max: Cell<i32>,
@@ -21,9 +18,9 @@ mod imp {
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for ManuscriptProgress {
-        const NAME: &'static str = "ManuscriptProgress";
-        type Type = super::ManuscriptProgress;
+    impl ObjectSubclass for ManuscriptProgressIndicator {
+        const NAME: &'static str = "ManuscriptProgressIndicator";
+        type Type = super::ManuscriptProgressIndicator;
         type ParentType = gtk::Widget;
 
         fn class_init(klass: &mut Self::Class) {
@@ -36,17 +33,19 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for ManuscriptProgress {
+    impl ObjectImpl for ManuscriptProgressIndicator {
         fn constructed(&self) {
             self.parent_constructed();
         }
         fn properties() -> &'static [gtk::glib::ParamSpec] {
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| vec![
-                ParamSpecInt::new("value", "", "", 0, i32::MAX , 0, ParamFlags::READWRITE),
-                ParamSpecInt::new("min", "", "", 0, i32::MAX , 0, ParamFlags::READWRITE),
-                ParamSpecInt::new("max", "", "", 0, i32::MAX , 0, ParamFlags::READWRITE),
-                ParamSpecBoolean::new("show-label", "", "", true, ParamFlags::READWRITE)
-            ]);
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![
+                    ParamSpecInt::new("value", "", "", 0, i32::MAX, 0, ParamFlags::READWRITE),
+                    ParamSpecInt::new("min", "", "", 0, i32::MAX, 0, ParamFlags::READWRITE),
+                    ParamSpecInt::new("max", "", "", 0, i32::MAX, 0, ParamFlags::READWRITE),
+                    ParamSpecBoolean::new("show-label", "", "", true, ParamFlags::READWRITE),
+                ]
+            });
             PROPERTIES.as_ref()
         }
 
@@ -73,15 +72,11 @@ mod imp {
         }
     }
 
-    impl WidgetImpl for ManuscriptProgress {
+    impl WidgetImpl for ManuscriptProgressIndicator {
         fn snapshot(&self, snapshot: &gtk::Snapshot) {
             let obj = self.obj();
-            let widget_bounds = gtk::graphene::Rect::new(
-                0.0,
-                0.0,
-                obj.width() as f32,
-                obj.height() as f32,
-            );
+            let widget_bounds =
+                gtk::graphene::Rect::new(0.0, 0.0, obj.width() as f32, obj.height() as f32);
 
             let mut color: RGBA = obj.style_context().color();
             color.set_alpha(0.8);
@@ -97,7 +92,12 @@ mod imp {
             // Create a cairo context
             let cr = snapshot.append_cairo(&widget_bounds);
             cr.move_to(pad_left.into(), baseline.into());
-            cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
+            cr.set_source_rgba(
+                color.red().into(),
+                color.green().into(),
+                color.blue().into(),
+                color.alpha().into(),
+            );
             cr.set_line_cap(gtk::cairo::LineCap::Round);
             cr.set_line_width(10.0);
             cr.line_to((target_len + pad_left).into(), baseline.into());
@@ -106,28 +106,33 @@ mod imp {
             if obj.show_label() {
                 cr.move_to(
                     (widget_bounds.width() - pad_right).into(),
-                    (baseline + 5.0).into()
+                    (baseline + 5.0).into(),
                 );
                 cr.set_font_size(16.0);
-                cr.select_font_face("Sans", gtk::cairo::FontSlant::Normal, gtk::cairo::FontWeight::Normal);
-                cr.show_text(format!("{}%", obj.progress() as u64).as_str()).expect("Failed to show progress text");
+                cr.select_font_face(
+                    "Sans",
+                    gtk::cairo::FontSlant::Normal,
+                    gtk::cairo::FontWeight::Normal,
+                );
+                cr.show_text(format!("{}%", obj.progress() as u64).as_str())
+                    .expect("Failed to show progress text");
             }
         }
     }
 }
 
 glib::wrapper! {
-    pub struct ManuscriptProgress(ObjectSubclass<imp::ManuscriptProgress>)
+    pub struct ManuscriptProgressIndicator(ObjectSubclass<imp::ManuscriptProgressIndicator>)
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
 }
 
-impl Default for ManuscriptProgress {
+impl Default for ManuscriptProgressIndicator {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ManuscriptProgress {
+impl ManuscriptProgressIndicator {
     pub fn new() -> Self {
         glib::Object::new(&[])
     }
