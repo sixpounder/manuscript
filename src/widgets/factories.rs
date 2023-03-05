@@ -1,9 +1,7 @@
 use crate::{
     models::{ChunkType, DocumentChunk},
-    services::i18n::i18n,
     widgets::ManuscriptChunkRow,
 };
-use adw::prelude::ActionRowExt;
 use gtk::prelude::*;
 
 /// Checks if `parent` contains an expander row for `chunk`'s category and, if not,
@@ -67,7 +65,7 @@ pub fn get_or_create_row_for_chunk(
         let maybe_data = unsafe { existing_child.data::<String>("chunk_id") };
         if let Some(inner_data) = maybe_data {
             let inner_data = unsafe { inner_data.as_ref() };
-            if *inner_data == chunk.id().to_string() {
+            if *inner_data == chunk.id() {
                 existing_row = Some(
                     existing_child
                         .downcast::<ManuscriptChunkRow>()

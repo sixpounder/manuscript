@@ -63,9 +63,9 @@ mod imp {
         fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             let obj = self.obj();
             match pspec.name() {
-                "value" => obj.set_value(value.get::<i32>().unwrap() as i32),
-                "min" => obj.set_minimum(value.get::<i32>().unwrap() as i32),
-                "max" => obj.set_maximum(value.get::<i32>().unwrap() as i32),
+                "value" => obj.set_value(value.get::<i32>().unwrap()),
+                "min" => obj.set_minimum(value.get::<i32>().unwrap()),
+                "max" => obj.set_maximum(value.get::<i32>().unwrap()),
                 "show-label" => obj.set_show_label(value.get::<bool>().unwrap()),
                 _ => unimplemented!(),
             }
@@ -83,26 +83,35 @@ mod imp {
 
             let baseline = widget_bounds.height() / 2.0;
             let pad_left = 10.0;
-            let pad_right = 60.0;
+            let pad_right = match obj.show_label() {
+                true => 60.0,
+                false => 10.0
+            };
 
             let available_space_w = widget_bounds.width() - pad_left - pad_right;
             let w_amount_percent = (available_space_w / 100.0) * obj.progress() as f32;
-            let target_len = (available_space_w / 100.0) * w_amount_percent as f32;
+            let target_len = (available_space_w / 100.0) * w_amount_percent;
 
             // Create a cairo context
             let cr = snapshot.append_cairo(&widget_bounds);
-            cr.move_to(pad_left.into(), baseline.into());
+
             cr.set_source_rgba(
                 color.red().into(),
                 color.green().into(),
                 color.blue().into(),
                 color.alpha().into(),
             );
+
+            // Set progress line properties
             cr.set_line_cap(gtk::cairo::LineCap::Round);
             cr.set_line_width(10.0);
+
+            // Move to the start of the left padding point, draw the line
+            cr.move_to(pad_left.into(), baseline.into());
             cr.line_to((target_len + pad_left).into(), baseline.into());
             cr.stroke().expect("Failed to draw progress");
 
+            // Draw the progress label if needed
             if obj.show_label() {
                 cr.move_to(
                     (widget_bounds.width() - pad_right).into(),

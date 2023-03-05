@@ -79,11 +79,11 @@ mod imp {
             }
         }
 
-        fn set_property(&self, _id: usize, _value: &glib::Value, pspec: &ParamSpec) {
-            let _obj = self.obj();
-            match pspec.name() {
-                _ => unimplemented!(),
-            }
+        fn set_property(&self, _id: usize, _value: &glib::Value, _pspec: &ParamSpec) {
+            // let _obj = self.obj();
+            // match pspec.name() {
+            //     _ => unimplemented!(),
+            // }
         }
     }
 
@@ -203,10 +203,6 @@ impl ManuscriptEditorViewShell {
 
     fn sender(&self) -> Option<Sender<DocumentAction>> {
         let channel = self.imp().channel.borrow();
-        if let Some(sender) = channel.as_ref() {
-            Some(sender.clone())
-        } else {
-            None
-        }
+        channel.as_ref().cloned()
     }
 }

@@ -60,7 +60,7 @@ impl DocumentChunk for DocumentManifest {
         Some(100)
     }
 
-    fn set_priority(&mut self, value: Option<u64>) {}
+    fn set_priority(&mut self, _value: Option<u64>) {}
 
     fn as_any(&self) -> &dyn std::any::Any {
         self

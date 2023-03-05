@@ -119,7 +119,6 @@ mod imp {
             obj.setup_widgets();
             obj.restore_window_state();
             obj.connect_events();
-            obj.update_widgets();
         }
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
@@ -193,15 +192,6 @@ impl ManuscriptWindow {
         self.set_default_size(settings.window_width(), settings.window_height());
     }
 
-    fn update_widgets(&self) {
-        let win = self.imp().instance();
-        if self.imp().style_manager.is_dark() {
-            win.style_context().add_class("dark");
-        } else {
-            win.style_context().remove_class("dark");
-        }
-    }
-
     fn connect_events(&self) {
         let dm = self.document_manager();
 
@@ -264,8 +254,20 @@ impl ManuscriptWindow {
     fn setup_widgets(&self) {
         let project_layout = self.imp().project_layout.get();
         project_layout.set_channel(self.document_manager().action_sender());
+
         let editor_view = self.editor_view();
         editor_view.set_channel(self.document_manager().action_sender());
+
+        self.update_widgets();
+    }
+
+    fn update_widgets(&self) {
+        let win = self.imp().instance();
+        if self.imp().style_manager.is_dark() {
+            win.style_context().add_class("dark");
+        } else {
+            win.style_context().remove_class("dark");
+        }
     }
 
     fn add_toast(&self, msg: String) {

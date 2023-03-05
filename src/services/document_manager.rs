@@ -191,7 +191,7 @@ impl DocumentManager {
     {
         if let Ok(lock) = self.document_guard().read() {
             if let Some(document) = lock.as_ref() {
-                f(&document)
+                f(document)
             } else {
                 Err(ManuscriptError::NoDocument)
             }
@@ -205,8 +205,8 @@ impl DocumentManager {
         F: FnOnce(&mut Document) -> Result<T, ManuscriptError>,
     {
         if let Ok(mut lock) = self.document_guard().write() {
-            if let Some(mut document) = lock.as_mut() {
-                f(&mut document)
+            if let Some(document) = lock.as_mut() {
+                f(document)
             } else {
                 Err(ManuscriptError::DocumentLock)
             }

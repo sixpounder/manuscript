@@ -1,16 +1,12 @@
-use crate::{config::G_LOG_DOMAIN, models::*, services::DocumentAction};
 use adw::subclass::prelude::*;
-use bytes::Bytes;
 use gtk::{
     gio, glib,
-    glib::{clone, Sender},
     prelude::*,
 };
-use std::cell::{Cell, RefCell};
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
+    use glib::ParamSpec;
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -39,19 +35,18 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
-            let obj = self.obj();
-            let imp = obj.imp();
-            match pspec.name() {
-                _ => unimplemented!(),
-            }
-        }
+        // fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        //     let obj = self.obj();
+        //     match pspec.name() {
+        //         _ => unimplemented!(),
+        //     }
+        // }
 
-        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
-            let _obj = self.obj();
-            match pspec.name() {
-                _ => unimplemented!(),
-            }
+        fn set_property(&self, _id: usize, _value: &glib::Value, _pspec: &ParamSpec) {
+            // let _obj = self.obj();
+            // match pspec.name() {
+            //     _ => unimplemented!(),
+            // }
         }
     }
 

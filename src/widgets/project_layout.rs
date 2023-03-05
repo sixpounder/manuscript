@@ -1,7 +1,7 @@
 use super::factories;
 use crate::{
     models::*,
-    services::{i18n::i18n, DocumentAction},
+    services::DocumentAction,
 };
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
@@ -178,7 +178,7 @@ impl ManuscriptProjectLayout {
         self.searchbar().set_search_mode(value);
     }
 
-    pub fn set_select(&self, value: bool) {
+    pub fn set_select(&self, _value: bool) {
         // TODO
     }
 
