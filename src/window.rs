@@ -1,42 +1,21 @@
-/* window.rs
- *
- * Copyright 2023 Andrea
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 use crate::{
-    config::{APPLICATION_G_PATH, G_LOG_DOMAIN},
-    consts::CHUNK_ID_DATA_KEY,
+    config::APPLICATION_G_PATH,
     libs::files::with_file_open_dialog,
     models::*,
-    services::{i18n::i18n, DocumentManager, ManuscriptSettings},
-    widgets::{
-        editors::{ManuscriptCharacterSheetEditor, ManuscriptTextEditor},
-        ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptWelcomeView,
-    },
+    services::{DocumentManager, ManuscriptSettings},
+    widgets::{ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptWelcomeView},
 };
 use adw::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::{gdk, gio, glib::closure_local};
-use std::{cell::Cell, ops::Deref, rc::Rc};
+use std::{cell::Cell, ops::Deref};
+
+const STYLE_CSS_FILENAME: &str = "style.css";
+const G_LOG_DOMAIN: &str = "ManuscriptWindow";
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
+    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean};
     use once_cell::sync::Lazy;
 
     #[derive(Debug, gtk::CompositeTemplate)]
@@ -69,7 +48,7 @@ mod imp {
 
         pub(super) settings: ManuscriptSettings,
 
-        pub(super) document_manager: Rc<DocumentManager>,
+        pub(super) document_manager: DocumentManager,
 
         pub(super) search_mode: Cell<bool>,
 
@@ -94,7 +73,7 @@ mod imp {
                 style_manager: adw::StyleManager::default(),
                 provider: gtk::CssProvider::default(),
                 settings: ManuscriptSettings::default(),
-                document_manager: Rc::new(DocumentManager::default()),
+                document_manager: DocumentManager::default(),
                 search_mode: Cell::default(),
                 select_mode: Cell::default(),
             }
@@ -183,39 +162,30 @@ glib::wrapper! {
         @implements gio::ActionGroup, gio::ActionMap;
 }
 
+// Public APIs
 impl ManuscriptWindow {
     pub fn new<P: glib::IsA<gtk::Application>>(application: &P) -> Self {
         glib::Object::new(&[("application", application)])
     }
 
-    pub fn document_manager(&self) -> Rc<DocumentManager> {
-        self.imp().document_manager.clone()
+    pub fn document_manager(&self) -> &DocumentManager {
+        &self.imp().document_manager
     }
 
     pub fn editor_view(&self) -> ManuscriptEditorViewShell {
         self.imp().editor_view.get()
     }
+}
 
-    fn add_toast(&self, msg: String) {
-        let toast = adw::Toast::new(&msg);
-        self.imp().toast_overlay.add_toast(&toast);
-    }
-
-    fn new_project(&self) {
-        self.set_document(Document::default());
-        self.imp().main_stack.set_visible_child_name("project-view");
-    }
-
-    fn open_project(&self) {
-        with_file_open_dialog(
-            glib::clone!(@strong self as win => move |document| {
-                win.imp().document_manager.set_document(document).expect("Could not set document");
-            }),
-            glib::clone!(@strong self as win => move |err| {
-                glib::g_critical!(G_LOG_DOMAIN, "{}", err);
-                win.add_toast(err);
-            }),
-        );
+// Private APIs
+impl ManuscriptWindow {
+    fn setup_provider(&self) {
+        let imp = self.imp();
+        imp.provider
+            .load_from_resource(format!("{}/{}", APPLICATION_G_PATH, STYLE_CSS_FILENAME).as_str());
+        if let Some(display) = gdk::Display::default() {
+            gtk::StyleContext::add_provider_for_display(&display, &imp.provider, 400);
+        }
     }
 
     fn restore_window_state(&self) {
@@ -233,7 +203,7 @@ impl ManuscriptWindow {
     }
 
     fn connect_events(&self) {
-        let dm = self.imp().document_manager.as_ref();
+        let dm = self.document_manager();
 
         dm.connect_closure(
             "document-loaded",
@@ -291,20 +261,33 @@ impl ManuscriptWindow {
         });
     }
 
-    fn setup_provider(&self) {
-        let imp = self.imp();
-        imp.provider
-            .load_from_resource(format!("{}/{}", APPLICATION_G_PATH, "style.css").as_str());
-        if let Some(display) = gdk::Display::default() {
-            gtk::StyleContext::add_provider_for_display(&display, &imp.provider, 400);
-        }
-    }
-
     fn setup_widgets(&self) {
         let project_layout = self.imp().project_layout.get();
         project_layout.set_channel(self.document_manager().action_sender());
         let editor_view = self.editor_view();
         editor_view.set_channel(self.document_manager().action_sender());
+    }
+
+    fn add_toast(&self, msg: String) {
+        let toast = adw::Toast::new(&msg);
+        self.imp().toast_overlay.add_toast(&toast);
+    }
+
+    fn new_project(&self) {
+        self.set_document(Document::default());
+        self.imp().main_stack.set_visible_child_name("project-view");
+    }
+
+    fn open_project(&self) {
+        with_file_open_dialog(
+            glib::clone!(@strong self as win => move |document| {
+                win.document_manager().set_document(document).expect("Could not set document");
+            }),
+            glib::clone!(@strong self as win => move |err| {
+                glib::g_critical!(G_LOG_DOMAIN, "{}", err);
+                win.add_toast(err);
+            }),
+        );
     }
 
     fn on_document_loaded(&self) {
@@ -326,7 +309,7 @@ impl ManuscriptWindow {
     }
 
     fn on_chunk_added(&self, id: String) {
-        if let Ok(lock) = self.imp().document_manager.document_ref() {
+        if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = lock.as_ref() {
                 let imp = self.imp();
                 let added_chunk = document.get_chunk_ref(id.as_str()).unwrap();
@@ -343,7 +326,7 @@ impl ManuscriptWindow {
     }
 
     fn on_chunk_removed(&self, id: String) {
-        if let Ok(lock) = self.imp().document_manager.document_ref() {
+        if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = &*lock {
                 let removed_chunk = document.get_chunk_ref(id.as_str()).unwrap();
                 self.imp().project_layout.remove_chunk(removed_chunk.id());
@@ -352,7 +335,7 @@ impl ManuscriptWindow {
     }
 
     fn on_chunk_selected(&self, id: String) {
-        if let Ok(lock) = self.imp().document_manager.document_ref() {
+        if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = &*lock {
                 let selected_chunk = document.get_chunk_ref(id.as_str()).unwrap();
                 self.editor_view().select_page(selected_chunk);
@@ -395,23 +378,18 @@ impl ManuscriptWindow {
     }
 
     fn set_document(&self, document: Document) {
-        self.imp()
-            .document_manager
+        self.document_manager()
             .set_document(document)
             .expect("Could not set document");
     }
 
     fn add_chapter(&self) {
         glib::g_debug!(G_LOG_DOMAIN, "Adding empty chapter sheet to the project");
-        self.imp().document_manager.add_chunk(Chapter::default());
+        self.document_manager().add_chunk(Chapter::default());
     }
 
     fn add_character_sheet(&self) {
         glib::g_debug!(G_LOG_DOMAIN, "Adding empty character sheet to the project");
-        self.imp()
-            .document_manager
-            .add_chunk(CharacterSheet::default());
+        self.document_manager().add_chunk(CharacterSheet::default());
     }
-
-    fn add_chunk_view(&self, chunk: &dyn DocumentChunk) {}
 }

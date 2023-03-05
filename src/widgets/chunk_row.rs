@@ -1,22 +1,14 @@
-use crate::{
-    config::G_LOG_DOMAIN,
-    consts::CHUNK_ID_DATA_KEY,
-    models::*,
-    services::{i18n::i18n, DocumentAction},
-};
+use crate::{models::*, services::i18n::i18n};
 use adw::prelude::{ActionRowExt, PreferencesRowExt};
 use adw::subclass::prelude::*;
-use bytes::Bytes;
-use gtk::{
-    gio, glib,
-    glib::{clone, Sender},
-    prelude::*,
-};
-use std::cell::{Cell, RefCell};
+use gtk::{gio, glib, prelude::*};
+use std::cell::RefCell;
+
+const G_LOG_DOMAIN: &str = "ManuscriptChunkRow";
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
+    use glib::ParamSpec;
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -51,8 +43,7 @@ mod imp {
         }
 
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
-            let obj = self.obj();
-            let imp = obj.imp();
+            let _obj = self.obj();
             match pspec.name() {
                 _ => unimplemented!(),
             }

@@ -1,6 +1,5 @@
 use super::factories;
 use crate::{
-    config::G_LOG_DOMAIN,
     models::*,
     services::{i18n::i18n, DocumentAction},
 };
@@ -11,6 +10,8 @@ use adw::{
 use glib::Sender;
 use gtk::{gio, prelude::*};
 use std::cell::RefCell;
+
+const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
 mod imp {
     use super::*;

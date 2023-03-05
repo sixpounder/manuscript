@@ -1,9 +1,6 @@
-use crate::{
-    config::G_LOG_DOMAIN,
-    models::{
-        Chapter, CharacterSheet, Document, DocumentChunk, ManuscriptError, ManuscriptResult,
-        MutableBufferChunk,
-    },
+use crate::models::{
+    Chapter, CharacterSheet, Document, DocumentChunk, ManuscriptError, ManuscriptResult,
+    MutableBufferChunk,
 };
 use adw::subclass::prelude::*;
 use bytes::Bytes;
@@ -12,6 +9,8 @@ use std::{
     cell::RefCell,
     sync::{LockResult, RwLock},
 };
+
+const G_LOG_DOMAIN: &str = "ManuscriptDocumentManager";
 
 #[derive(Debug, Clone)]
 pub enum DocumentAction {
@@ -150,7 +149,6 @@ impl DocumentManager {
                 if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(document) = lock.as_mut() {
                         if let Some(chunk) = document.get_chunk_mut(id.as_str()) {
-                            let id = chunk.id().to_string();
                             let as_any = Box::new(chunk.as_any_mut());
                             if let Some(mbc) = as_any.downcast_mut::<Box<dyn MutableBufferChunk>>()
                             {

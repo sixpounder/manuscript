@@ -1,19 +1,17 @@
-use crate::{
-    config::G_LOG_DOMAIN, consts::CHUNK_ID_DATA_KEY, models::*, services::DocumentAction,
-    services::DocumentManager, widgets::editors::*,
-};
+use crate::{consts::CHUNK_ID_DATA_KEY, models::*, services::DocumentAction, widgets::editors::*};
 use adw::subclass::prelude::*;
-use bytes::Bytes;
 use gtk::{
     gio, glib,
-    glib::{clone, closure_local, Sender},
+    glib::{clone, Sender},
     prelude::*,
 };
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
+
+const G_LOG_DOMAIN: &str = "ManuscriptEditorViewShell";
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
+    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -194,11 +192,7 @@ impl ManuscriptEditorViewShell {
         if let Some(page) = self.page_for_chunk(chunk) {
             self.editor_tab_view().set_selected_page(&page);
         } else {
-            glib::g_info!(
-                "ManuscriptEditorViewShell",
-                "No view found for {}",
-                chunk.id()
-            );
+            glib::g_info!(G_LOG_DOMAIN, "No view found for {}", chunk.id());
             // TODO: page should be created
         }
     }

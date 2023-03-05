@@ -1,0 +1,76 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: manuscript
+Upstream-Contact: Andrea Coronese
+Source: https://github.com/sixpounder/manuscript
+
+Files: .gitignore
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: Cargo.toml
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: Cargo.lock
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: README.md
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: io.sixpounder.Manuscript.json
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: data/io.sixpounder.Manuscript.appdata.xml.in
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: data/io.sixpounder.Manuscript.desktop.in.in
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: data/io.sixpounder.Manuscript.gschema.xml
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: data/screenshots/*.png
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: data/icons/hicolor/scalable/apps/io.sixpounder.Manuscript.*
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: data/icons/hicolor/symbolic/apps/io.sixpounder.Manuscript.*
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: *.svg
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: po/POTFILES.in po/LINGUAS
+Copyright: 2023  Andrea Coronese
+License: CC0-1.0
+
+Files: po/*.po
+Copyright: 2022  Translation authors
+License: GPL-3.0-or-later
+
+Files: src/manuscript.gresource.xml
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: src/**/*.ui
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: src/**/*.rs
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
+
+Files: src/styles/*.css
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later

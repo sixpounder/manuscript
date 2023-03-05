@@ -8,3 +8,5 @@ vendor
 # Generated source files
 src/config.rs
 
+# Local custom files
+*.local.*
