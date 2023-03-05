@@ -21,6 +21,9 @@ mod imp {
     #[template(resource = "/io/sixpounder/Manuscript/editors/text_editor.ui")]
     pub struct ManuscriptTextEditor {
         #[template_child]
+        pub(super) scroll_container: TemplateChild<gtk::ScrolledWindow>,
+
+        #[template_child]
         pub(super) text_view: TemplateChild<gtk::TextView>,
 
         #[template_child]
@@ -53,6 +56,11 @@ mod imp {
     }
 
     impl ObjectImpl for ManuscriptTextEditor {
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.obj().setup_widgets();
+        }
+
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
@@ -122,6 +130,19 @@ impl ManuscriptTextEditor {
 
         imp.chunk_id.replace(Some(chunk_id));
         self.set_buffer(buffer);
+    }
+
+    fn setup_widgets(&self) {
+        let imp = self.imp();
+        imp.scroll_container.vadjustment().connect_value_changed(
+            glib::clone!(@weak self as this => move |adjustment| {
+                let text_view_allocation = this.imp().text_view.allocation();
+                let progress_indicator = this.imp().progress_indicator.get();
+                progress_indicator.set_value(adjustment.value().floor() as i32);
+                progress_indicator.set_minimum(adjustment.lower().floor() as i32);
+                progress_indicator.set_maximum(adjustment.upper().floor() as i32 - text_view_allocation.height());
+            })
+        );
     }
 
     fn set_buffer(&self, value: Option<Bytes>) {

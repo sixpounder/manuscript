@@ -7,7 +7,7 @@
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkScrolledWindow">
+          <object class="GtkScrolledWindow" id="scroll_container">
             <property name="overlay-scrolling">true</property>
             <property name="kinetic-scrolling">true</property>
             <property name="hscrollbar-policy">automatic</property>
@@ -47,7 +47,7 @@
             </child>
             <child type="center">
               <object class="ManuscriptProgress" id="progress_indicator">
-                <property name="value">90</property>
+                <property name="value">0</property>
                 <property name="min">0</property>
                 <property name="max">100</property>
                 <property name="show-label">True</property>

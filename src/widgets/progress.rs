@@ -70,7 +70,6 @@ mod imp {
                 "show-label" => obj.set_show_label(value.get::<bool>().unwrap()),
                 _ => unimplemented!(),
             }
-            obj.queue_draw();
         }
     }
 
@@ -139,6 +138,7 @@ impl ManuscriptProgress {
 
     pub fn set_value(&self, value: i32) {
         self.imp().value.set(value);
+        self.queue_draw();
     }
 
     pub fn minimum(&self) -> i32 {
@@ -147,6 +147,7 @@ impl ManuscriptProgress {
 
     pub fn set_minimum(&self, value: i32) {
         self.imp().min.set(value);
+        self.queue_draw();
     }
 
     pub fn maximum(&self) -> i32 {
@@ -155,6 +156,7 @@ impl ManuscriptProgress {
 
     pub fn set_maximum(&self, value: i32) {
         self.imp().max.set(value);
+        self.queue_draw();
     }
 
     pub fn show_label(&self) -> bool {
@@ -163,6 +165,7 @@ impl ManuscriptProgress {
 
     pub fn set_show_label(&self, value: bool) {
         self.imp().show_label.set(value);
+        self.queue_draw();
     }
 
     pub fn progress(&self) -> i32 {
