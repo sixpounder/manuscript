@@ -37,3 +37,9 @@ pub fn bytes_to_text_buffer(source: Bytes) -> gtk::TextBuffer {
     text_buffer.set_text(String::from_utf8(source.to_vec()).unwrap().as_str());
     text_buffer
 }
+
+pub fn bytes_from_text_buffer(source: &gtk::TextBuffer) -> Bytes {
+    let start_iter = source.start_iter();
+    let end_iter = source.end_iter();
+    Bytes::from(source.text(&start_iter, &end_iter, true).to_string())
+}

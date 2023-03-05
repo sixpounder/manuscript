@@ -157,9 +157,33 @@ pub trait BufferChunk {
 
     /// Counts the words in the buffer
     fn words_count(&self) -> u64 {
+        self.buffer().words_count()
+    }
+
+    /// Estimates the reading time of this buffer
+    fn estimate_reading_time(&self) -> (u64, u64) {
+        self.buffer().estimate_reading_time()
+    }
+}
+
+pub trait MutableBufferChunk: BufferChunk {
+    fn set_buffer(&mut self, value: Bytes);
+}
+
+pub trait BufferAnalytics {
+    /// Counts the words in the buffer
+    fn words_count(&self) -> u64;
+
+    /// Estimates the reading time of this buffer
+    fn estimate_reading_time(&self) -> (u64, u64);
+}
+
+impl BufferAnalytics for Bytes {
+    /// Counts the words in the buffer
+    fn words_count(&self) -> u64 {
         let mut state = 0;
         let mut wc: u64 = 0;
-        let buffer = self.buffer();
+        let buffer = self;
         for i in 0..buffer.len() {
             let c = buffer[i];
             if c == b' ' || c == b'\n' || c == b'\t' || c == b'\r' {
@@ -182,9 +206,5 @@ pub trait BufferChunk {
 
         (minutes, seconds)
     }
-}
-
-pub trait MutableBufferChunk: BufferChunk {
-    fn set_buffer(&mut self, value: Bytes);
 }
 

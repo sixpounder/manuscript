@@ -1,4 +1,8 @@
-use crate::{config::G_LOG_DOMAIN, models::*, services::DocumentAction};
+use crate::{
+    models::*,
+    services::{DocumentAction, prelude::bytes_from_text_buffer},
+    widgets::ManuscriptProgress
+};
 use adw::subclass::prelude::*;
 use bytes::Bytes;
 use gtk::{
@@ -19,11 +23,17 @@ mod imp {
         #[template_child]
         pub(super) text_view: TemplateChild<gtk::TextView>,
 
+        #[template_child]
+        pub(super) progress_indicator: TemplateChild<ManuscriptProgress>,
+
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
         pub(super) chunk_id: RefCell<Option<String>>,
         pub(super) text_buffer: RefCell<Option<gtk::TextBuffer>>,
         pub(super) update_idle_resource_id: RefCell<Option<glib::SourceId>>,
         pub(super) locked: Cell<bool>,
+        pub(super) words_count: Cell<u64>,
+        pub(super) reading_time: Cell<(u64, u64)>,
+        pub(super) scroll_progress_percentage: Cell<u8>
     }
 
     #[glib::object_subclass]
@@ -117,14 +127,17 @@ impl ManuscriptTextEditor {
     fn set_buffer(&self, value: Option<Bytes>) {
         let imp = self.imp();
         let text_buffer = gtk::TextBuffer::new(None);
+        let bytes = value.unwrap_or(Bytes::new());
+        imp.words_count.set(bytes.words_count());
+        imp.reading_time.set(bytes.estimate_reading_time());
+
         text_buffer.set_text(
-            String::from_utf8(value.unwrap_or(Bytes::new()).slice(..).to_vec())
+            String::from_utf8(bytes.slice(..).to_vec())
                 .unwrap()
                 .as_str(),
         );
         imp.text_view.set_buffer(Some(&text_buffer));
         imp.text_buffer.replace(Some(text_buffer));
-
         self.connect_text_buffer();
     }
 
@@ -143,7 +156,6 @@ impl ManuscriptTextEditor {
     fn on_buffer_changed(&self, _buffer: &gtk::TextBuffer) {
         let chunk_id = self.imp().chunk_id.borrow();
         if let Some(_chunk_id) = chunk_id.as_ref() {
-
             // Cancel any closure registered before, obtain a debounce effect
             let mut source_id = self.imp().update_idle_resource_id.borrow_mut();
             if source_id.is_some() {
@@ -152,22 +164,28 @@ impl ManuscriptTextEditor {
             }
             drop(source_id);
 
-            let source_id = glib::source::timeout_add_local(
-                std::time::Duration::from_millis(500),
+            let source_id = glib::source::timeout_add_seconds_local(
+                1,
                 glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
                     if let Some(buf) = this.text_buffer().as_ref() {
-                        let chunk_id = this.imp().chunk_id.borrow();
+                        let imp = this.imp();
+
+                        let bytes = bytes_from_text_buffer(buf);
+                        imp.words_count.set(bytes.words_count());
+                        imp.reading_time.set(bytes.estimate_reading_time());
+
+                        let chunk_id = imp.chunk_id.borrow();
                         let chunk_id = chunk_id.as_ref().unwrap();
-                        let start_iter = buf.start_iter();
-                        let end_iter = buf.end_iter();
-                        let new_bytes = Bytes::from(buf.text(&start_iter, &end_iter, true).to_string());
-                        let tx = this.imp().sender.borrow();
+                        let tx = imp.sender.borrow();
                         let tx = tx.as_ref().expect("No channel sender found");
                         tx.send(DocumentAction::UpdateChunkBuffer(
                             chunk_id.to_string(),
-                            new_bytes,
+                            bytes,
                         )).expect("Could not send buffer updates");
-                        this.imp().update_idle_resource_id.replace(None);
+
+                        // TODO: instead of expecting this value, handle failures graphically
+
+                        imp.update_idle_resource_id.replace(None);
                     }
 
                     glib::Continue(false)
@@ -175,8 +193,7 @@ impl ManuscriptTextEditor {
             );
             self.imp().update_idle_resource_id.replace(Some(source_id));
         } else {
-            glib::warn!("No chunk id is set on this ManuscriptTextEditor");
-            // Err(ManuscriptError::ChunkUnavailable)
+            panic!("No chunk id is set on this ManuscriptTextEditor. This is suspicious so I am going to kill everything.");
         }
     }
 }

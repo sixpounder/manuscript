@@ -1,6 +1,6 @@
 mod document_manager;
 pub mod i18n;
-mod prelude;
+pub mod prelude;
 mod settings;
 
 pub use document_manager::*;
