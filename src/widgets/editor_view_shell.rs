@@ -134,7 +134,11 @@ impl ManuscriptEditorViewShell {
                 text_view.set_halign(gtk::Align::Fill);
                 text_view.set_valign(gtk::Align::Fill);
                 text_view.set_hexpand(true);
-                text_view.init(chunk.id().into(), None);
+                if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
+                    text_view.init(chunk.id().into(), Some(chapter.buffer().clone()));
+                } else {
+                    text_view.init(chunk.id().into(), None);
+                }
                 text_view.upcast::<gtk::Widget>()
             }
             ChunkType::CharacterSheet => {
@@ -192,8 +196,7 @@ impl ManuscriptEditorViewShell {
         if let Some(page) = self.page_for_chunk(chunk) {
             self.editor_tab_view().set_selected_page(&page);
         } else {
-            glib::g_info!(G_LOG_DOMAIN, "No view found for {}", chunk.id());
-            // TODO: page should be created
+            self.add_and_select_page(chunk);
         }
     }
 

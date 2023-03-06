@@ -8,6 +8,8 @@ use glib::{clone, MainContext, ObjectExt, Receiver, Sender};
 use std::{
     cell::RefCell,
     sync::{LockResult, RwLock},
+    fs::File,
+    io::prelude::*,
 };
 
 const G_LOG_DOMAIN: &str = "ManuscriptDocumentManager";
@@ -21,6 +23,18 @@ pub enum DocumentAction {
     UpdateChunkBuffer(String, Bytes),
 }
 
+impl std::fmt::Display for DocumentAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SetTitle(title) => write!(f, "DocumentAction::SetTitle({} bytes)", title.len()),
+            Self::AddChapter(item) => write!(f, "DocumentAction::AddChapter(#{})", item.id()),
+            Self::AddCharacterSheet(item) => write!(f, "DocumentAction::AddCharacterSheet(#{})", item.id()),
+            Self::SelectChunk(id) => write!(f, "DocumentAction::SelectChunk(#{})", id),
+            Self::UpdateChunkBuffer(id, bytes) => write!(f, "DocumentAction::UpdateChunkBuffer(#{} - {} bytes)", id, bytes.len()),
+        }
+    }
+}
+
 mod imp {
     use super::*;
     use glib::{
@@ -31,6 +45,7 @@ mod imp {
 
     pub struct ManuscriptDocumentManager {
         pub(super) document: RwLock<Option<Document>>,
+        pub(super) backend_path: RefCell<Option<String>>,
         pub(super) rx: RefCell<Option<Receiver<DocumentAction>>>,
         pub(super) tx: Sender<DocumentAction>,
     }
@@ -41,6 +56,7 @@ mod imp {
 
             Self {
                 document: RwLock::new(None),
+                backend_path: RefCell::new(None),
                 rx: RefCell::new(Some(rx)),
                 tx,
             }
@@ -106,7 +122,7 @@ impl DocumentManager {
     }
 
     fn process_action(&self, action: DocumentAction) {
-        // glib::g_debug!(G_LOG_DOMAIN, "DocumentManager::{:?}", action);
+        glib::g_debug!(G_LOG_DOMAIN, "DocumentManager::{}", action);
         match action {
             DocumentAction::SetTitle(new_title) => {
                 if let Ok(mut lock) = self.imp().document.write() {
@@ -149,15 +165,15 @@ impl DocumentManager {
                 if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(document) = lock.as_mut() {
                         if let Some(chunk) = document.get_chunk_mut(id.as_str()) {
-                            let as_any = Box::new(chunk.as_any_mut());
-                            if let Some(mbc) = as_any.downcast_mut::<Box<dyn MutableBufferChunk>>()
+                            let as_any = chunk.as_any_mut();
+                            if let Some(mbc) = as_any.downcast_mut::<Chapter>()
                             {
                                 mbc.set_buffer(bytes);
                             } else {
-                                glib::warn!("An UpdateChunkBuffer was requested on {:?}, but it doesnt implement MutableBufferChunk", as_any);
+                                glib::g_warning!(G_LOG_DOMAIN, "An UpdateChunkBuffer was requested on {:?}, but it doesnt implement MutableBufferChunk", as_any);
                             }
                         } else {
-                            glib::warn!("An UpdateChunkBuffer was requested on chunk with id {id}, but it was not found");
+                            glib::g_warning!(G_LOG_DOMAIN, "An UpdateChunkBuffer was requested on chunk with id {id}, but it was not found");
                         }
                     }
                 }
@@ -274,6 +290,38 @@ impl DocumentManager {
 
     pub fn action_sender(&self) -> Sender<DocumentAction> {
         self.imp().tx.clone()
+    }
+
+    pub fn sync(&self) -> ManuscriptResult<usize> {
+        if let Some(backend_file) = self.imp().backend_path.borrow().as_ref() {
+            self.with_document_mut(move |document| {
+                if let Ok(serialized) = document.serialize() {
+                    let mut f = File::create(backend_file.as_str()).expect("Unable to create file");
+                    if let Ok(_) = f.write_all(serialized.as_slice()) {
+                        Ok(serialized.len())
+                    } else {
+                        Err(ManuscriptError::Save)
+                    }
+
+                } else {
+                    Err(ManuscriptError::DocumentSerialize)
+                }
+            })
+        } else {
+            Err(ManuscriptError::NoBackend)
+        }
+    }
+
+    pub fn backend_path(&self) -> std::cell::Ref<Option<String>> {
+        self.imp().backend_path.borrow()
+    }
+
+    pub fn set_backend_path(&self, path: String) {
+        self.imp().backend_path.replace(Some(path));
+    }
+
+    pub fn has_backend(&self) -> bool {
+        self.backend_path().is_some()
     }
 }
 

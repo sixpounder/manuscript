@@ -90,6 +90,10 @@ mod imp {
                 win.open_project();
             });
 
+            klass.install_action("project.save", None, move |win, _, _| {
+                win.save_project();
+            });
+
             klass.install_action("win.toggle-command-palette", None, move |win, _, _| {
                 win.toggle_command_palette();
             });
@@ -290,6 +294,27 @@ impl ManuscriptWindow {
                 win.add_toast(err);
             }),
         );
+    }
+
+    fn save_project(&self) {
+        let dm = self.document_manager();
+        if dm.has_backend() {
+            match dm.sync() {
+                Ok(bytes_written) => {
+                    glib::g_info!(G_LOG_DOMAIN, "Project saved - {bytes_written} bytes written");
+                },
+                Err(error) => {
+                    glib::g_warning!(G_LOG_DOMAIN, "Problem when saving project - {:?}", error);
+                }
+            }
+        } else {
+            self.save_project_as("/home/sixpounder/test.mscript".into());
+        }
+    }
+
+    fn save_project_as(&self, path: String) {
+        self.document_manager().set_backend_path(path);
+        let _ = self.document_manager().sync();
     }
 
     fn on_document_loaded(&self) {

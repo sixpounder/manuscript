@@ -1,5 +1,5 @@
 use super::chunk::{Chapter, CharacterSheet, DocumentManifest};
-use super::prelude::{ChunkType, DocumentChunk, ManuscriptError};
+use super::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -169,6 +169,8 @@ impl From<Vec<u8>> for Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bytes::Bytes;
+
     fn make_test_document_1() -> Document {
         let mut doc: Document = Document::default();
         doc.add_chunk(Chapter::default());
@@ -195,7 +197,13 @@ mod tests {
 
     #[test]
     fn deserialize() {
-        let doc = make_test_document_1();
+        let mut doc = make_test_document_1();
+        let mut chapter_with_content = Chapter::default();
+        let chapter_with_content_id = chapter_with_content.id().to_string();
+        chapter_with_content.set_title("Test title");
+        chapter_with_content.set_buffer(Bytes::from(String::from("Test content")));
+        doc.add_chunk(chapter_with_content);
+
         let all_ids: Vec<&str> = doc.chunks().iter().map(|c| c.id()).collect();
         let serialized = doc.serialize();
         assert!(serialized.is_ok());
@@ -203,11 +211,21 @@ mod tests {
         let deserialized = Document::try_from(serialized.unwrap());
         assert!(deserialized.is_ok());
         let deserialized = deserialized.unwrap();
-        assert_eq!(deserialized.chunks().len(), 4);
+        assert_eq!(deserialized.chunks().len(), 5);
 
         // Check deserialization preserves ids
         for id in all_ids {
             assert!(deserialized.get_chunk_ref(id).is_some());
         }
+
+        let chap = deserialized.get_chunk_ref(chapter_with_content_id.as_str());
+        assert!(chap.is_some());
+        assert!(chap.unwrap().title().is_some());
+        assert!(chap.unwrap().title().unwrap().eq("Test title"));
+
+        let chap = chap.unwrap().as_any().downcast_ref::<Chapter>();
+        let expected_bytes = String::from("Test content").into_bytes();
+        let actual_bytes = chap.unwrap().buffer().to_vec();
+        assert_eq!(expected_bytes, actual_bytes);
     }
 }

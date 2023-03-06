@@ -33,6 +33,8 @@ impl std::fmt::Display for ChunkType {
 #[derive(Debug, Clone)]
 pub enum ManuscriptError {
     NoDocument,
+    NoBackend,
+    Save,
     DocumentLock,
     DocumentSerialize,
     DocumentDeserialize,
@@ -153,7 +155,7 @@ impl Clone for Box<dyn DocumentChunk> {
 
 pub trait SerializableChunk<'de>: DocumentChunk + Serialize + Deserialize<'de> {}
 
-pub trait BufferChunk {
+pub trait BufferChunk: DocumentChunk {
     fn buffer(&self) -> &Bytes;
 
     /// Counts the words in the buffer

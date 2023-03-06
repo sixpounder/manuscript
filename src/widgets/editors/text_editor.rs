@@ -217,8 +217,23 @@ impl ManuscriptTextEditor {
     }
 
     fn on_buffer_changed(&self, _buffer: &gtk::TextBuffer) {
-        let chunk_id = self.imp().chunk_id.borrow();
-        if let Some(_chunk_id) = chunk_id.as_ref() {
+        let imp = self.imp();
+        let chunk_id = imp.chunk_id.borrow();
+
+        if let Some(chunk_id) = chunk_id.as_ref() {
+            if let Some(buf) = self.text_buffer().as_ref() {
+                let bytes = bytes_from_text_buffer(buf);
+                let tx = imp.sender.borrow();
+                let tx = tx.as_ref().expect("No channel sender found");
+                tx.send(DocumentAction::UpdateChunkBuffer(
+                    chunk_id.to_string(),
+                    bytes,
+                )).expect("Could not send buffer updates");
+                // TODO: instead of expecting this value, handle failures graphically
+
+                self.notify("overflowing");
+            }
+
             // Cancel any closure registered before, obtain a debounce effect
             let mut source_id = self.imp().update_idle_resource_id.borrow_mut();
             if source_id.is_some() {
@@ -238,19 +253,6 @@ impl ManuscriptTextEditor {
                         let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
                         this.set_words_count(words_count);
                         this.set_reading_time((reading_time_minutes, reading_time_seconds));
-
-                        let chunk_id = imp.chunk_id.borrow();
-                        let chunk_id = chunk_id.as_ref().unwrap();
-                        let tx = imp.sender.borrow();
-                        let tx = tx.as_ref().expect("No channel sender found");
-                        tx.send(DocumentAction::UpdateChunkBuffer(
-                            chunk_id.to_string(),
-                            bytes,
-                        )).expect("Could not send buffer updates");
-                        // TODO: instead of expecting this value, handle failures graphically
-
-                        this.notify("overflowing");
-
                         imp.update_idle_resource_id.replace(None);
                     }
 
