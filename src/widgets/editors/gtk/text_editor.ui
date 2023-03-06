@@ -41,12 +41,23 @@
               <class name="flat" />
             </style>
             <child type="start">
-              <object class="GtkLabel">
-                <property name="label">0 words</property>
+              <object class="GtkLabel" id="words_count_label">
+                <property
+                  name="label"
+                  bind-source="ManuscriptTextEditor"
+                  bind-property="words-count-label-text"
+                  bind-flags="sync-create|default"
+                ></property>
               </object>
             </child>
             <child type="center">
               <object class="ManuscriptProgressIndicator" id="progress_indicator">
+                <property
+                  name="visible"
+                  bind-source="ManuscriptTextEditor"
+                  bind-property="overflowing"
+                  bind-flags="default"
+                ></property>
                 <property name="value">0</property>
                 <property name="min">0</property>
                 <property name="max">100</property>
@@ -54,8 +65,24 @@
               </object>
             </child>
             <child type="end">
-              <object class="GtkLabel">
-                <property name="label">0 minutes</property>
+              <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="spacing">8</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon-name">preferences-system-time-symbolic</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="reading_time_label">
+                    <property
+                      name="label"
+                      bind-source="ManuscriptTextEditor"
+                      bind-property="reading-time-label-text"
+                      bind-flags="sync-create|default"
+                    ></property>
+                  </object>
+                </child>
               </object>
             </child>
           </object>

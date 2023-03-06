@@ -1,6 +1,6 @@
 use crate::{
     models::*,
-    services::{prelude::bytes_from_text_buffer, DocumentAction},
+    services::{prelude::bytes_from_text_buffer, DocumentAction, i18n::i18n},
     widgets::ManuscriptProgressIndicator,
 };
 use adw::subclass::prelude::*;
@@ -28,6 +28,12 @@ mod imp {
 
         #[template_child]
         pub(super) progress_indicator: TemplateChild<ManuscriptProgressIndicator>,
+
+        #[template_child]
+        pub(super) words_count_label: TemplateChild<gtk::Label>,
+
+        #[template_child]
+        pub(super) reading_time_label: TemplateChild<gtk::Label>,
 
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
         pub(super) chunk_id: RefCell<Option<String>>,
@@ -64,7 +70,10 @@ mod imp {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
                     ParamSpecBoolean::new("locked", "", "", false, ParamFlags::READWRITE),
+                    ParamSpecBoolean::new("overflowing", "", "", false, ParamFlags::READABLE),
                     ParamSpecString::new("chunk-id", "", "", None, ParamFlags::READWRITE),
+                    ParamSpecString::new("words-count-label-text", "", "", None, ParamFlags::READABLE),
+                    ParamSpecString::new("reading-time-label-text", "", "", None, ParamFlags::READABLE),
                     ParamSpecObject::new(
                         "buffer",
                         "",
@@ -84,6 +93,18 @@ mod imp {
                 "locked" => imp.locked.get().to_value(),
                 "chunk-id" => imp.chunk_id.borrow().to_value(),
                 "buffer" => imp.text_buffer.borrow().to_value(),
+                "words-count-label-text" => {
+                    let words_count = imp.words_count.get();
+                    format!("{} {}", words_count, i18n("words")).to_value()
+                },
+                "reading-time-label-text" => {
+                    let reading_time = imp.reading_time.get();
+                    format!("{} {}", reading_time.0, i18n("minutes")).to_value()
+                },
+                "overflowing" => {
+                    let adjustment = imp.scroll_container.vadjustment();
+                    (adjustment.upper() > (adjustment.lower() + adjustment.page_size())).to_value()
+                },
                 _ => unimplemented!(),
             }
         }
@@ -162,6 +183,7 @@ impl ManuscriptTextEditor {
         imp.text_view.set_buffer(Some(&text_buffer));
         imp.text_buffer.replace(Some(text_buffer));
         self.connect_text_buffer();
+        self.notify("overflowing");
     }
 
     pub fn text_buffer(&self) -> std::cell::Ref<Option<gtk::TextBuffer>> {
@@ -174,6 +196,24 @@ impl ManuscriptTextEditor {
                 this.on_buffer_changed(buf);
             }));
         }
+    }
+
+    pub fn words_count(&self) -> u64 {
+        self.imp().words_count.get()
+    }
+
+    pub fn set_words_count(&self, value: u64) {
+        self.imp().words_count.set(value);
+        self.notify("words-count-label-text");
+    }
+
+    pub fn reading_time(&self) -> (u64, u64) {
+        self.imp().reading_time.get()
+    }
+
+    pub fn set_reading_time(&self, value: (u64, u64)) {
+        self.imp().reading_time.set(value);
+        self.notify("reading-time-label-text");
     }
 
     fn on_buffer_changed(&self, _buffer: &gtk::TextBuffer) {
@@ -194,8 +234,10 @@ impl ManuscriptTextEditor {
                         let imp = this.imp();
 
                         let bytes = bytes_from_text_buffer(buf);
-                        imp.words_count.set(bytes.words_count());
-                        imp.reading_time.set(bytes.estimate_reading_time());
+                        let words_count = bytes.words_count();
+                        let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
+                        this.set_words_count(words_count);
+                        this.set_reading_time((reading_time_minutes, reading_time_seconds));
 
                         let chunk_id = imp.chunk_id.borrow();
                         let chunk_id = chunk_id.as_ref().unwrap();
@@ -205,8 +247,9 @@ impl ManuscriptTextEditor {
                             chunk_id.to_string(),
                             bytes,
                         )).expect("Could not send buffer updates");
-
                         // TODO: instead of expecting this value, handle failures graphically
+
+                        this.notify("overflowing");
 
                         imp.update_idle_resource_id.replace(None);
                     }

@@ -106,7 +106,7 @@ impl DocumentManager {
     }
 
     fn process_action(&self, action: DocumentAction) {
-        glib::g_debug!(G_LOG_DOMAIN, "DocumentManager::{:?}", action);
+        // glib::g_debug!(G_LOG_DOMAIN, "DocumentManager::{:?}", action);
         match action {
             DocumentAction::SetTitle(new_title) => {
                 if let Ok(mut lock) = self.imp().document.write() {
@@ -276,3 +276,4 @@ impl DocumentManager {
         self.imp().tx.clone()
     }
 }
+
