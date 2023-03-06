@@ -1,6 +1,6 @@
 use crate::{
     models::*,
-    services::{prelude::bytes_from_text_buffer, DocumentAction, i18n::i18n},
+    services::{prelude::bytes_from_text_buffer, DocumentAction, BufferStats, i18n::i18n},
     widgets::ManuscriptProgressIndicator,
 };
 use adw::subclass::prelude::*;
@@ -164,6 +164,7 @@ impl ManuscriptTextEditor {
                 progress_indicator.set_value(adjustment.value().floor() as i32);
                 progress_indicator.set_minimum(adjustment.lower().floor() as i32);
                 progress_indicator.set_maximum(adjustment.upper().floor() as i32 - text_view_allocation.height());
+                this.notify("overflowing");
             })
         );
     }
@@ -253,6 +254,19 @@ impl ManuscriptTextEditor {
                         let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
                         this.set_words_count(words_count);
                         this.set_reading_time((reading_time_minutes, reading_time_seconds));
+
+                        let chunk_id = imp.chunk_id.borrow();
+                            if let Some(chunk_id) = chunk_id.as_ref() {
+                            let tx = imp.sender.borrow();
+                            let tx = tx.as_ref().expect("No channel sender found");
+
+                            // Ignore any error here, as this is non blocking and will result
+                            // in "only" a UI inconsistency
+                            let _ = tx.send(DocumentAction::UpdateChunkBufferStats(
+                                chunk_id.to_string(),
+                                BufferStats::new(words_count, (reading_time_minutes, reading_time_seconds))
+                            ));
+                        }
                         imp.update_idle_resource_id.replace(None);
                     }
 

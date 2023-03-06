@@ -3,16 +3,41 @@ use crate::models::{
     MutableBufferChunk,
 };
 use adw::subclass::prelude::*;
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut, Buf};
 use glib::{clone, MainContext, ObjectExt, Receiver, Sender};
 use std::{
     cell::RefCell,
     sync::{LockResult, RwLock},
     fs::File,
-    io::prelude::*,
+    io::{
+        BufReader,
+        Read,
+        prelude::*,
+    }
 };
 
 const G_LOG_DOMAIN: &str = "ManuscriptDocumentManager";
+
+#[derive(Debug, Clone)]
+pub struct BufferStats {
+    words_count: u64,
+    reading_time: (u64, u64)
+}
+
+impl BufferStats {
+    pub fn new(words_count: u64, reading_time: (u64, u64)) -> Self {
+        Self {
+            words_count,
+            reading_time
+        }
+    }
+}
+
+impl std::fmt::Display for BufferStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}, {}:{}", self.words_count, self.reading_time.0, self.reading_time.1)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum DocumentAction {
@@ -21,6 +46,7 @@ pub enum DocumentAction {
     AddCharacterSheet(CharacterSheet),
     SelectChunk(String),
     UpdateChunkBuffer(String, Bytes),
+    UpdateChunkBufferStats(String, BufferStats)
 }
 
 impl std::fmt::Display for DocumentAction {
@@ -31,6 +57,7 @@ impl std::fmt::Display for DocumentAction {
             Self::AddCharacterSheet(item) => write!(f, "DocumentAction::AddCharacterSheet(#{})", item.id()),
             Self::SelectChunk(id) => write!(f, "DocumentAction::SelectChunk(#{})", id),
             Self::UpdateChunkBuffer(id, bytes) => write!(f, "DocumentAction::UpdateChunkBuffer(#{} - {} bytes)", id, bytes.len()),
+            Self::UpdateChunkBufferStats(id, stats) => write!(f, "DocumentAction::UpdateChunkBufferStats(#{} - {})", id, stats),
         }
     }
 }
@@ -179,6 +206,9 @@ impl DocumentManager {
                 }
 
                 self.emit_by_name::<()>("chunk-updated", &[&id]);
+            },
+            DocumentAction::UpdateChunkBufferStats(id, stats) => {
+                self.emit_by_name::<()>("chunk-stats-updated", &[&id, &stats.words_count, &stats.reading_time.0, &stats.reading_time.1]);
             }
         }
     }
@@ -244,9 +274,11 @@ impl DocumentManager {
 
     pub fn unset_document(&self) -> ManuscriptResult<()> {
         if let Ok(mut lock) = self.document_guard().write() {
-            *lock = None;
-            drop(lock);
-            self.emit_by_name::<()>("document-unloaded", &[]);
+            if lock.is_some() {
+                *lock = None;
+                drop(lock);
+                self.emit_by_name::<()>("document-unloaded", &[]);
+            }
             Ok(())
         } else {
             Err(ManuscriptError::DocumentLock)
@@ -290,6 +322,29 @@ impl DocumentManager {
 
     pub fn action_sender(&self) -> Sender<DocumentAction> {
         self.imp().tx.clone()
+    }
+
+    pub fn load_document(&self, path: String) -> ManuscriptResult<()> {
+        if let Ok(_) = self.unset_document() {
+            let file = File::open(path.as_str()).expect("Unable to open file");
+            let mut buf: BytesMut = BytesMut::with_capacity(4096);
+            let mut reader = BufReader::new(file);
+            while let Ok(bytes_read) = reader.read(buf.as_mut()) {
+                if bytes_read == 0 {
+                    break;
+                } else {
+                    buf.advance(bytes_read);
+                }
+            }
+            if let Ok(document) = Document::try_from(buf.to_vec()) {
+                self.set_document(document).expect("Could not set document");
+                Ok(())
+            } else {
+                Err(ManuscriptError::DocumentDeserialize)
+            }
+        } else {
+            Err(ManuscriptError::Reason("Could not unload document"))
+        }
     }
 
     pub fn sync(&self) -> ManuscriptResult<usize> {

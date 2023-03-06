@@ -12,6 +12,7 @@ use std::{cell::Cell, ops::Deref};
 
 const STYLE_CSS_FILENAME: &str = "style.css";
 const G_LOG_DOMAIN: &str = "ManuscriptWindow";
+const PROJECT_VIEW_NAME: &str = "project-view";
 
 mod imp {
     use super::*;
@@ -231,6 +232,14 @@ impl ManuscriptWindow {
             }),
         );
 
+        dm.connect_closure(
+            "chunk-updated",
+            false,
+            closure_local!(@strong self as this => move |_obj: DocumentManager, id: String| {
+                this.on_chunk_updated(id);
+            }),
+        );
+
         self.imp().style_manager.connect_dark_notify(
             glib::clone!(@strong self as this => move |_sm| {
                 this.update_widgets();
@@ -281,13 +290,14 @@ impl ManuscriptWindow {
 
     fn new_project(&self) {
         self.set_document(Document::default());
-        self.imp().main_stack.set_visible_child_name("project-view");
+        self.imp().main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
     }
 
     fn open_project(&self) {
         with_file_open_dialog(
             glib::clone!(@strong self as win => move |document| {
                 win.document_manager().set_document(document).expect("Could not set document");
+                win.imp().main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
             }),
             glib::clone!(@strong self as win => move |err| {
                 glib::g_critical!(G_LOG_DOMAIN, "{}", err);
@@ -368,6 +378,10 @@ impl ManuscriptWindow {
                 self.editor_view().select_page(selected_chunk);
             }
         }
+    }
+
+    fn on_chunk_updated(&self, id: String) {
+        // TODO: implement this
     }
 
     fn search_mode(&self) -> bool {

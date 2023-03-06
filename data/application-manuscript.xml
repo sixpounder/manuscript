@@ -2,10 +2,9 @@
 <!-- Copyright 2022 Andrea Coronese <sixpounder@protonmail.com> -->
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
     <mime-type type="application/x-manuscript">
-      <subclass-of type="application/octet-stream" />
       <comment>Manuscript project</comment>
       <icon name="application-x-manuscript" />
-      <glob-deleteall/>
       <glob pattern="*.mscript"/>
     </mime-type>
 </mime-info>
+
