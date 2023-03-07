@@ -29,7 +29,7 @@
                 <property name="top-margin">24</property>
                 <property name="bottom-margin">24</property>
                 <property name="justification">GTK_JUSTIFY_FILL</property>
-                <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
+                <property name="wrap-mode">GTK_WRAP_WORD</property>
               </object>
             </child>
           </object>

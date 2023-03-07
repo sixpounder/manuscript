@@ -85,7 +85,7 @@ mod imp {
             let pad_left = 10.0;
             let pad_right = match obj.show_label() {
                 true => 60.0,
-                false => 10.0
+                false => 10.0,
             };
 
             let available_space_w = widget_bounds.width() - pad_left - pad_right;

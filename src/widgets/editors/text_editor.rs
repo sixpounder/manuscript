@@ -1,6 +1,6 @@
 use crate::{
     models::*,
-    services::{prelude::bytes_from_text_buffer, DocumentAction, BufferStats, i18n::i18n},
+    services::{i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction},
     widgets::ManuscriptProgressIndicator,
 };
 use adw::subclass::prelude::*;
@@ -72,8 +72,20 @@ mod imp {
                     ParamSpecBoolean::new("locked", "", "", false, ParamFlags::READWRITE),
                     ParamSpecBoolean::new("overflowing", "", "", false, ParamFlags::READABLE),
                     ParamSpecString::new("chunk-id", "", "", None, ParamFlags::READWRITE),
-                    ParamSpecString::new("words-count-label-text", "", "", None, ParamFlags::READABLE),
-                    ParamSpecString::new("reading-time-label-text", "", "", None, ParamFlags::READABLE),
+                    ParamSpecString::new(
+                        "words-count-label-text",
+                        "",
+                        "",
+                        None,
+                        ParamFlags::READABLE,
+                    ),
+                    ParamSpecString::new(
+                        "reading-time-label-text",
+                        "",
+                        "",
+                        None,
+                        ParamFlags::READABLE,
+                    ),
                     ParamSpecObject::new(
                         "buffer",
                         "",
@@ -96,15 +108,15 @@ mod imp {
                 "words-count-label-text" => {
                     let words_count = imp.words_count.get();
                     format!("{} {}", words_count, i18n("words")).to_value()
-                },
+                }
                 "reading-time-label-text" => {
                     let reading_time = imp.reading_time.get();
                     format!("{} {}", reading_time.0, i18n("minutes")).to_value()
-                },
+                }
                 "overflowing" => {
                     let adjustment = imp.scroll_container.vadjustment();
                     (adjustment.upper() > (adjustment.lower() + adjustment.page_size())).to_value()
-                },
+                }
                 _ => unimplemented!(),
             }
         }
@@ -124,6 +136,8 @@ mod imp {
                 _ => unimplemented!(),
             }
         }
+
+        fn dispose(&self) {}
     }
 
     impl WidgetImpl for ManuscriptTextEditor {}
@@ -229,7 +243,8 @@ impl ManuscriptTextEditor {
                 tx.send(DocumentAction::UpdateChunkBuffer(
                     chunk_id.to_string(),
                     bytes,
-                )).expect("Could not send buffer updates");
+                ))
+                .expect("Could not send buffer updates");
                 // TODO: instead of expecting this value, handle failures graphically
 
                 self.notify("overflowing");

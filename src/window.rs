@@ -95,6 +95,10 @@ mod imp {
                 win.save_project();
             });
 
+            klass.install_action("project.close", None, move |win, _, _| {
+                win.close_project();
+            });
+
             klass.install_action("win.toggle-command-palette", None, move |win, _, _| {
                 win.toggle_command_palette();
             });
@@ -290,7 +294,9 @@ impl ManuscriptWindow {
 
     fn new_project(&self) {
         self.set_document(Document::default());
-        self.imp().main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
+        self.imp()
+            .main_stack
+            .set_visible_child_name(PROJECT_VIEW_NAME);
     }
 
     fn open_project(&self) {
@@ -311,8 +317,11 @@ impl ManuscriptWindow {
         if dm.has_backend() {
             match dm.sync() {
                 Ok(bytes_written) => {
-                    glib::g_info!(G_LOG_DOMAIN, "Project saved - {bytes_written} bytes written");
-                },
+                    glib::g_info!(
+                        G_LOG_DOMAIN,
+                        "Project saved - {bytes_written} bytes written"
+                    );
+                }
                 Err(error) => {
                     glib::g_warning!(G_LOG_DOMAIN, "Problem when saving project - {:?}", error);
                 }
@@ -325,6 +334,13 @@ impl ManuscriptWindow {
     fn save_project_as(&self, path: String) {
         self.document_manager().set_backend_path(path);
         let _ = self.document_manager().sync();
+    }
+
+    fn close_project(&self) {
+        let dm = self.document_manager();
+        if dm.has_document() && dm.unset_document().is_ok() {
+            self.imp().main_stack.set_visible_child_name("welcome-view");
+        }
     }
 
     fn on_document_loaded(&self) {

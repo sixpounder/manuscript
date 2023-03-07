@@ -38,8 +38,12 @@ impl Document {
         }
     }
 
-    pub fn get_chunk_mut(&mut self, id: &str) -> Option<&mut Box<dyn DocumentChunk>> {
-        self.chunks.get_mut(id)
+    pub fn get_chunk_mut(&mut self, id: &str) -> Option<&mut dyn DocumentChunk> {
+        if let Some(chunk) = self.chunks.get_mut(id) {
+            Some(chunk.as_mut())
+        } else {
+            None
+        }
     }
 
     pub fn manifest(&self) -> &DocumentManifest {

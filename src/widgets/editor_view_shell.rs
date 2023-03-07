@@ -142,7 +142,7 @@ impl ManuscriptEditorViewShell {
                 text_view.upcast::<gtk::Widget>()
             }
             ChunkType::CharacterSheet => {
-                let editor = ManuscriptCharacterSheetEditor::new();
+                let editor = ManuscriptCharacterSheetEditor::new(chunk.id().into(), self.sender());
                 editor.set_halign(gtk::Align::Fill);
                 editor.set_valign(gtk::Align::Fill);
                 editor.set_hexpand(true);

@@ -4,8 +4,201 @@
   <requires lib="Adw" version="1.0"/>
   <template class="ManuscriptCharacterSheetEditor" parent="GtkWidget">
     <child>
-      <object class="GtkLabel">
-        <property name="label">Character sheet editor</property>
+      <object class="GtkScrolledWindow">
+        <property name="overlay-scrolling">true</property>
+        <property name="kinetic-scrolling">true</property>
+        <property name="hscrollbar-policy">automatic</property>
+        <property name="vscrollbar-policy">automatic</property>
+        <property name="propagate-natural-width">false</property>
+        <property name="propagate-natural-height">true</property>
+        <property name="halign">fill</property>
+        <property name="valign">fill</property>
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
+        <property name="margin-top">24</property>
+        <child>
+          <object class="AdwClamp">
+            <property name="maximum-size">800</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="spacing">24</property>
+                <child>
+                  <object class="AdwPreferencesGroup">
+                    <property name="title" translatable="yes">Base informations</property>
+                    <child>
+                      <object class="GtkListBox">
+                        <property name="selection-mode">none</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">true</property>
+                        <property name="vexpand">false</property>
+                        <style>
+                          <class name="boxed-list" />
+                        </style>
+                        <child>
+                          <object class="AdwEntryRow" id="character_name_entry">
+                            <property name="title" translatable="yes">Character name</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwEntryRow" id="character_role_entry">
+                            <property name="title" translatable="yes">Role</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwComboRow" id="character_gender_entry">
+                            <property name="title" translatable="yes">Gender</property>
+                            <property name="selected">0</property>
+                            <property name="model">
+                              <object class="GtkStringList">
+                                <items>
+                                  <item translatable="yes">Male</item>
+                                  <item translatable="yes">Female</item>
+                                  <item translatable="yes">Other</item>
+                                  <item translatable="yes">Unspecified</item>
+                                </items>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwPreferencesGroup">
+                    <property name="title" translatable="yes">Background and descriptions</property>
+                    <child>
+                      <object class="GtkListBox">
+                        <property name="selection-mode">none</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">true</property>
+                        <property name="vexpand">false</property>
+                        <style>
+                          <class name="boxed-list" />
+                        </style>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <style>
+                              <class name="header" />
+                            </style>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="can-focus">false</property>
+                                <property name="halign">start</property>
+                                <property name="valign">center</property>
+                                <property name="height-request">52</property>
+                                <property name="label">Background</property>
+                                <style>
+                                  <class name="title" />
+                                  <class name="dim-label" />
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTextView" id="background_text_view">
+                                <property name="buffer" bind-property="character-background" bind-source="ManuscriptCharacterSheetEditor" bind-flags="default|sync-create|bidirectional"></property>
+                                <property name="can-focus">true</property>
+                                <property name="monospace">true</property>
+                                <property name="pixels-below-lines">12</property>
+                                <property name="left-margin">12</property>
+                                <property name="right-margin">12</property>
+                                <property name="top-margin">24</property>
+                                <property name="bottom-margin">24</property>
+                                <property name="justification">GTK_JUSTIFY_FILL</property>
+                                <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
+                                <style>
+                                  <class name="transparent-bg" />
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <style>
+                              <class name="header" />
+                            </style>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="can-focus">false</property>
+                                <property name="halign">start</property>
+                                <property name="valign">center</property>
+                                <property name="height-request">52</property>
+                                <property name="label">Physical traits</property>
+                                <style>
+                                  <class name="title" />
+                                  <class name="dim-label" />
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTextView" id="physical_traits_text_view">
+                                <property name="buffer" bind-property="character-physical-traits" bind-source="ManuscriptCharacterSheetEditor" bind-flags="default|sync-create|bidirectional"></property>
+                                <property name="can-focus">true</property>
+                                <property name="monospace">true</property>
+                                <property name="pixels-below-lines">12</property>
+                                <property name="left-margin">12</property>
+                                <property name="right-margin">12</property>
+                                <property name="top-margin">24</property>
+                                <property name="bottom-margin">24</property>
+                                <property name="justification">GTK_JUSTIFY_FILL</property>
+                                <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
+                                <style>
+                                  <class name="transparent-bg" />
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <style>
+                              <class name="header" />
+                            </style>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="can-focus">false</property>
+                                <property name="halign">start</property>
+                                <property name="valign">center</property>
+                                <property name="height-request">52</property>
+                                <property name="label">Psycological traits</property>
+                                <style>
+                                  <class name="title" />
+                                  <class name="dim-label" />
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTextView" id="psycological_traits_text_view">
+                                <property name="buffer" bind-property="character-psycological-traits" bind-source="ManuscriptCharacterSheetEditor" bind-flags="default|sync-create|bidirectional"></property>
+                                <property name="can-focus">true</property>
+                                <property name="monospace">true</property>
+                                <property name="pixels-below-lines">12</property>
+                                <property name="left-margin">12</property>
+                                <property name="right-margin">12</property>
+                                <property name="top-margin">24</property>
+                                <property name="bottom-margin">24</property>
+                                <property name="justification">GTK_JUSTIFY_FILL</property>
+                                <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
+                                <style>
+                                  <class name="transparent-bg" />
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
       </object>
     </child>
   </template>

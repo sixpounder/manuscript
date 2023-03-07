@@ -97,8 +97,8 @@ impl ManuscriptChunkRow {
             } else if let Some(character_sheet) = chunk.as_any().downcast_ref::<CharacterSheet>() {
                 self.set_subtitle(
                     character_sheet
-                        .synopsis()
-                        .unwrap_or(&"Empty synopsis".into())
+                        .role()
+                        .unwrap_or(&i18n("No role"))
                         .as_str(),
                 );
             }

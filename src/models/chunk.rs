@@ -208,7 +208,8 @@ pub struct CharacterSheet {
     priority: u64,
     locked: bool,
     name: Option<String>,
-    synopsis: Option<String>,
+    gender: Gender,
+    role: Option<String>,
     physical_traits: Bytes,
     psycological_traits: Bytes,
     background: Bytes,
@@ -221,7 +222,8 @@ impl Default for CharacterSheet {
             priority: 0,
             locked: false,
             name: None,
-            synopsis: None,
+            gender: Gender::Unspecified,
+            role: None,
             physical_traits: Bytes::new(),
             psycological_traits: Bytes::new(),
             background: Bytes::new(),
@@ -234,8 +236,44 @@ impl CharacterSheet {
         self.name.as_ref()
     }
 
-    pub fn synopsis(&self) -> Option<&String> {
-        self.synopsis.as_ref()
+    pub fn set_name(&mut self, value: Option<String>) {
+        self.name = value;
+    }
+
+    pub fn role(&self) -> Option<&String> {
+        self.role.as_ref()
+    }
+
+    pub fn set_role(&mut self, value: Option<String>) {
+        self.role = value;
+    }
+
+    pub fn background(&self) -> &[u8] {
+        self.background.as_ref()
+    }
+
+    pub fn set_background(&mut self, value: &[u8]) {
+        self.background = Bytes::from(Vec::from(value));
+    }
+
+    pub fn set_background_bytes(&mut self, value: Bytes) {
+        self.background = value;
+    }
+
+    pub fn physical_traits(&self) -> &[u8] {
+        self.physical_traits.as_ref()
+    }
+
+    pub fn set_physical_traits(&mut self, value: &[u8]) {
+        self.physical_traits = Bytes::from(Vec::from(value))
+    }
+
+    pub fn psycological_traits(&self) -> &[u8] {
+        self.physical_traits.as_ref()
+    }
+
+    pub fn set_psycological_traits(&mut self, value: &[u8]) {
+        self.psycological_traits = Bytes::from(Vec::from(value))
     }
 }
 
@@ -285,6 +323,31 @@ impl DocumentChunk for CharacterSheet {
 
     fn set_locked(&mut self, value: bool) {
         self.locked = value;
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum Gender {
+    Male,
+    Female,
+    Other,
+    Unspecified,
+}
+
+impl From<u32> for Gender {
+    fn from(idx: u32) -> Self {
+        match idx {
+            0 => Self::Male,
+            1 => Self::Female,
+            2 => Self::Other,
+            _ => Self::Unspecified
+        }
+    }
+}
+
+impl Default for Gender {
+    fn default() -> Self {
+        Self::Unspecified
     }
 }
 

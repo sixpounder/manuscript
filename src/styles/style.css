@@ -17,6 +17,10 @@ entry.manuscript-title:hover {
   background-color: @purple_3;
 }
 
+.transparent-bg {
+  background-color: rgba(0, 0, 0, 0);
+}
+
 .default-bg {
   background-color: #fafafa;
 }

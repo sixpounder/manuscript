@@ -3,17 +3,13 @@ use crate::models::{
     MutableBufferChunk,
 };
 use adw::subclass::prelude::*;
-use bytes::{Bytes, BytesMut, Buf};
+use bytes::{Buf, Bytes, BytesMut};
 use glib::{clone, MainContext, ObjectExt, Receiver, Sender};
 use std::{
     cell::RefCell,
-    sync::{LockResult, RwLock},
     fs::File,
-    io::{
-        BufReader,
-        Read,
-        prelude::*,
-    }
+    io::{prelude::*, BufReader, Read},
+    sync::{LockResult, RwLock},
 };
 
 const G_LOG_DOMAIN: &str = "ManuscriptDocumentManager";
@@ -21,32 +17,39 @@ const G_LOG_DOMAIN: &str = "ManuscriptDocumentManager";
 #[derive(Debug, Clone)]
 pub struct BufferStats {
     words_count: u64,
-    reading_time: (u64, u64)
+    reading_time: (u64, u64),
 }
 
 impl BufferStats {
     pub fn new(words_count: u64, reading_time: (u64, u64)) -> Self {
         Self {
             words_count,
-            reading_time
+            reading_time,
         }
     }
 }
 
 impl std::fmt::Display for BufferStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}, {}:{}", self.words_count, self.reading_time.0, self.reading_time.1)
+        write!(
+            f,
+            "{}, {}:{}",
+            self.words_count, self.reading_time.0, self.reading_time.1
+        )
     }
 }
 
-#[derive(Debug, Clone)]
+type ChunkUpdateFunc = dyn FnOnce(&mut dyn DocumentChunk);
+
 pub enum DocumentAction {
     SetTitle(String),
     AddChapter(Chapter),
     AddCharacterSheet(CharacterSheet),
     SelectChunk(String),
     UpdateChunkBuffer(String, Bytes),
-    UpdateChunkBufferStats(String, BufferStats)
+    UpdateChunkBufferStats(String, BufferStats),
+    UpdateChunk(String),
+    UpdateChunkWith(String, Box<ChunkUpdateFunc>),
 }
 
 impl std::fmt::Display for DocumentAction {
@@ -54,10 +57,23 @@ impl std::fmt::Display for DocumentAction {
         match self {
             Self::SetTitle(title) => write!(f, "DocumentAction::SetTitle({} bytes)", title.len()),
             Self::AddChapter(item) => write!(f, "DocumentAction::AddChapter(#{})", item.id()),
-            Self::AddCharacterSheet(item) => write!(f, "DocumentAction::AddCharacterSheet(#{})", item.id()),
+            Self::AddCharacterSheet(item) => {
+                write!(f, "DocumentAction::AddCharacterSheet(#{})", item.id())
+            }
             Self::SelectChunk(id) => write!(f, "DocumentAction::SelectChunk(#{})", id),
-            Self::UpdateChunkBuffer(id, bytes) => write!(f, "DocumentAction::UpdateChunkBuffer(#{} - {} bytes)", id, bytes.len()),
-            Self::UpdateChunkBufferStats(id, stats) => write!(f, "DocumentAction::UpdateChunkBufferStats(#{} - {})", id, stats),
+            Self::UpdateChunkBuffer(id, bytes) => write!(
+                f,
+                "DocumentAction::UpdateChunkBuffer(#{} - {} bytes)",
+                id,
+                bytes.len()
+            ),
+            Self::UpdateChunkBufferStats(id, stats) => write!(
+                f,
+                "DocumentAction::UpdateChunkBufferStats(#{} - {})",
+                id, stats
+            ),
+            Self::UpdateChunk(id) => write!(f, "DocumentAction::UpdateChunk(#{id})"),
+            Self::UpdateChunkWith(id, _func) => write!(f, "DocumentAction::UpdateChunkWith(#{id}, function)")
         }
     }
 }
@@ -106,6 +122,7 @@ mod imp {
             static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
                 vec![
                     Signal::builder("document-loaded").build(),
+                    Signal::builder("document-unloaded").build(),
                     Signal::builder("title-set").build(),
                     Signal::builder("chunk-added")
                         .param_types([String::static_type()])
@@ -193,8 +210,7 @@ impl DocumentManager {
                     if let Some(document) = lock.as_mut() {
                         if let Some(chunk) = document.get_chunk_mut(id.as_str()) {
                             let as_any = chunk.as_any_mut();
-                            if let Some(mbc) = as_any.downcast_mut::<Chapter>()
-                            {
+                            if let Some(mbc) = as_any.downcast_mut::<Chapter>() {
                                 mbc.set_buffer(bytes);
                             } else {
                                 glib::g_warning!(G_LOG_DOMAIN, "An UpdateChunkBuffer was requested on {:?}, but it doesnt implement MutableBufferChunk", as_any);
@@ -206,9 +222,29 @@ impl DocumentManager {
                 }
 
                 self.emit_by_name::<()>("chunk-updated", &[&id]);
-            },
+            }
             DocumentAction::UpdateChunkBufferStats(id, stats) => {
-                self.emit_by_name::<()>("chunk-stats-updated", &[&id, &stats.words_count, &stats.reading_time.0, &stats.reading_time.1]);
+                self.emit_by_name::<()>(
+                    "chunk-stats-updated",
+                    &[
+                        &id,
+                        &stats.words_count,
+                        &stats.reading_time.0,
+                        &stats.reading_time.1,
+                    ],
+                );
+            }
+            DocumentAction::UpdateChunk(_id) => (),
+            DocumentAction::UpdateChunkWith(id, func) => {
+                if let Ok(mut lock) = self.imp().document.write() {
+                    if let Some(document) = lock.as_mut() {
+                        if let Some(chunk) = document.get_chunk_mut(id.as_str()) {
+                            func(chunk);
+                            drop(lock);
+                            self.emit_by_name::<()>("chunk-updated", &[&id]);
+                        }
+                    }
+                }
             }
         }
     }
@@ -325,7 +361,7 @@ impl DocumentManager {
     }
 
     pub fn load_document(&self, path: String) -> ManuscriptResult<()> {
-        if let Ok(_) = self.unset_document() {
+        if self.unset_document().is_ok() {
             let file = File::open(path.as_str()).expect("Unable to open file");
             let mut buf: BytesMut = BytesMut::with_capacity(4096);
             let mut reader = BufReader::new(file);
@@ -352,12 +388,11 @@ impl DocumentManager {
             self.with_document_mut(move |document| {
                 if let Ok(serialized) = document.serialize() {
                     let mut f = File::create(backend_file.as_str()).expect("Unable to create file");
-                    if let Ok(_) = f.write_all(serialized.as_slice()) {
+                    if f.write_all(serialized.as_slice()).is_ok() {
                         Ok(serialized.len())
                     } else {
                         Err(ManuscriptError::Save)
                     }
-
                 } else {
                     Err(ManuscriptError::DocumentSerialize)
                 }
@@ -379,4 +414,3 @@ impl DocumentManager {
         self.backend_path().is_some()
     }
 }
-

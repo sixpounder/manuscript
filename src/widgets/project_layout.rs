@@ -1,8 +1,5 @@
 use super::factories;
-use crate::{
-    models::*,
-    services::DocumentAction,
-};
+use crate::{models::*, services::DocumentAction};
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
     subclass::prelude::*,

@@ -157,6 +157,10 @@
         <attribute name="label" translatable="yes">_Save as</attribute>
         <attribute name="action">project.save-as</attribute>
       </item>
+      <item>
+        <attribute name="label" translatable="yes">_Close project</attribute>
+        <attribute name="action">project.close</attribute>
+      </item>
     </section>
     <section>
       <item>
