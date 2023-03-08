@@ -1,8 +1,8 @@
 use crate::{models::*, services::prelude::*, services::*};
-use adw::subclass::prelude::*;
+use adw::{prelude::*, subclass::prelude::*};
 use bytes::Bytes;
-use gtk::{gio, glib, glib::Sender, prelude::*};
-use std::cell::{Cell, Ref, RefCell};
+use gtk::{gio, glib, glib::Sender};
+use std::cell::RefCell;
 
 mod imp {
     use super::*;
@@ -18,13 +18,28 @@ mod imp {
         #[template_child]
         pub(super) character_role_entry: TemplateChild<adw::EntryRow>,
 
+        #[template_child]
+        pub(super) character_gender_entry: TemplateChild<adw::ComboRow>,
+
+        #[template_child]
+        pub(super) background_text_view: TemplateChild<gtk::TextView>,
+
+        #[template_child]
+        pub(super) physical_traits_text_view: TemplateChild<gtk::TextView>,
+
+        #[template_child]
+        pub(super) psycological_traits_text_view: TemplateChild<gtk::TextView>,
+
+        #[template_child]
+        pub(super) character_background_buffer: TemplateChild<gtk::TextBuffer>,
+
+        #[template_child]
+        pub(super) character_physical_traits_buffer: TemplateChild<gtk::TextBuffer>,
+
+        #[template_child]
+        pub(super) character_psycological_traits_buffer: TemplateChild<gtk::TextBuffer>,
+
         pub(super) chunk_id: RefCell<String>,
-        pub(super) character_name: RefCell<Option<String>>,
-        pub(super) character_role: RefCell<Option<String>>,
-        pub(super) character_gender: Cell<Gender>,
-        pub(super) character_background_buffer: RefCell<Option<gtk::TextBuffer>>,
-        pub(super) character_physical_traits_buffer: RefCell<Option<gtk::TextBuffer>>,
-        pub(super) character_psycological_traits_buffer: RefCell<Option<gtk::TextBuffer>>,
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
     }
 
@@ -47,7 +62,6 @@ mod imp {
     impl ObjectImpl for ManuscriptCharacterSheetEditor {
         fn constructed(&self) {
             self.parent_constructed();
-            self.obj().setup_widgets();
         }
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
@@ -60,21 +74,21 @@ mod imp {
                         "",
                         "",
                         None,
-                        ParamFlags::READWRITE,
+                        ParamFlags::READABLE,
                     ),
                     ParamSpecString::new(
                         "character-physical-traits-buffer",
                         "",
                         "",
                         None,
-                        ParamFlags::READWRITE,
+                        ParamFlags::READABLE,
                     ),
                     ParamSpecString::new(
                         "character-psycological-traits-buffer",
                         "",
                         "",
                         None,
-                        ParamFlags::READWRITE,
+                        ParamFlags::READABLE,
                     ),
                 ]
             });
@@ -106,16 +120,6 @@ mod imp {
                 "character-role" => {
                     obj.set_character_role(value.get::<Option<String>>().expect("Wrong value"))
                 }
-                "character-background-buffer" => obj.set_character_background_buffer(
-                    value.get::<Option<gtk::TextBuffer>>().expect("Wrong value"),
-                ),
-                "character-physical-traits-buffer" => obj.set_character_physical_traits_buffer(
-                    value.get::<Option<gtk::TextBuffer>>().expect("Wrong value"),
-                ),
-                "character-psycological-traits-buffer" => obj
-                    .set_character_psycological_traits_buffer(
-                        value.get::<Option<gtk::TextBuffer>>().expect("Wrong value"),
-                    ),
                 _ => unimplemented!(),
             }
         }
@@ -130,12 +134,51 @@ glib::wrapper! {
 }
 
 impl ManuscriptCharacterSheetEditor {
-    pub fn new(chunk_id: String, sender: Option<Sender<DocumentAction>>) -> Self {
+    pub fn new(source: &dyn DocumentChunk, sender: Option<Sender<DocumentAction>>) -> Self {
         let obj: Self = glib::Object::new(&[]);
-        obj.set_chunk_id(chunk_id);
+        obj.set_chunk_id(source.id().into());
         obj.set_sender(sender);
-
+        if let Some(source) = source.as_any().downcast_ref::<CharacterSheet>() {
+            obj.setup_widgets(source);
+            obj.connect_events();
+        }
         obj
+    }
+
+    fn setup_widgets(&self, source: &CharacterSheet) {
+        self.background_text_view()
+            .set_buffer(Some(&self.character_background_buffer()));
+        self.physical_traits_text_view()
+            .set_buffer(Some(&self.character_physical_traits_buffer()));
+        self.psycological_traits_text_view()
+            .set_buffer(Some(&self.character_physical_traits_buffer()));
+
+        self.character_name_entry()
+            .set_text(source.name().unwrap_or(&String::default()).as_str());
+
+        self.character_role_entry()
+            .set_text(source.role().unwrap_or(&String::default()).as_str());
+
+        self.character_gender_entry()
+            .set_selected(source.gender().into());
+
+        self.character_background_buffer().set_text(
+            String::from_utf8(source.background().to_vec())
+                .unwrap()
+                .as_str(),
+        );
+
+        self.character_physical_traits_buffer().set_text(
+            String::from_utf8(source.physical_traits().to_vec())
+                .unwrap()
+                .as_str(),
+        );
+
+        self.character_psycological_traits_buffer().set_text(
+            String::from_utf8(source.psycological_traits().to_vec())
+                .unwrap()
+                .as_str(),
+        );
     }
 
     fn set_chunk_id(&self, value: String) {
@@ -147,97 +190,126 @@ impl ManuscriptCharacterSheetEditor {
     }
 
     pub fn character_name(&self) -> Option<String> {
-        self.imp().character_name.borrow().clone()
+        Some(self.imp().character_name_entry.text().into())
     }
 
     pub fn set_character_name(&self, value: Option<String>) {
-        let update_value = value.clone();
-        *self.imp().character_name.borrow_mut() = value;
         self.send_update(move |chunk| {
             let obj = chunk
                 .as_any_mut()
                 .downcast_mut::<CharacterSheet>()
                 .expect("How?");
-            obj.set_name(update_value);
+            obj.set_name(value);
         });
     }
 
     pub fn character_gender(&self) -> Gender {
-        self.imp().character_gender.get()
+        let idx = self.character_gender_entry().selected();
+        Gender::from(idx)
     }
 
     pub fn set_character_gender(&self, value: Gender) {
-        self.imp().character_gender.set(value);
+        self.send_update(move |chunk| {
+            let obj = chunk
+                .as_any_mut()
+                .downcast_mut::<CharacterSheet>()
+                .expect("How?");
+            obj.set_gender(value);
+        });
     }
 
     pub fn character_role(&self) -> Option<String> {
-        self.imp().character_role.borrow().clone()
+        Some(self.imp().character_role_entry.text().into())
     }
 
     pub fn set_character_role(&self, value: Option<String>) {
-        self.imp().character_name.replace(value);
+        self.send_update(move |chunk| {
+            let obj = chunk
+                .as_any_mut()
+                .downcast_mut::<CharacterSheet>()
+                .expect("How?");
+            obj.set_role(value);
+        });
     }
 
-    pub fn character_background(&self) -> Option<Bytes> {
-        self.character_background_buffer().as_ref().map(bytes_from_text_buffer)
+    pub fn character_background(&self) -> Bytes {
+        bytes_from_text_buffer(&self.character_background_buffer())
     }
 
     pub fn set_character_background(&self, value: Option<Bytes>) {
+        self.send_update(move |chunk| {
+            let obj = chunk
+                .as_any_mut()
+                .downcast_mut::<CharacterSheet>()
+                .expect("How?");
+            obj.set_background_bytes(value.unwrap_or_default());
+        });
+    }
+
+    pub fn character_physical_traits(&self) -> Bytes {
+        bytes_from_text_buffer(&self.character_physical_traits_buffer())
+    }
+
+    pub fn set_character_physical_traits(&self, value: Option<Bytes>) {
+        self.send_update(move |chunk| {
+            let obj = chunk
+                .as_any_mut()
+                .downcast_mut::<CharacterSheet>()
+                .expect("How?");
+            obj.set_physical_traits_bytes(value.unwrap_or_default());
+        });
+    }
+
+    pub fn character_psycological_traits(&self) -> Bytes {
+        bytes_from_text_buffer(&self.character_psycological_traits_buffer())
+    }
+
+    pub fn set_character_psycological_traits(&self, value: Option<Bytes>) {
         let update_value = value.clone();
-        let text_buffer = value.map(bytes_to_text_buffer);
-        self.set_character_background_buffer(text_buffer);
 
         self.send_update(move |chunk| {
             let obj = chunk
                 .as_any_mut()
                 .downcast_mut::<CharacterSheet>()
                 .expect("How?");
-            obj.set_background_bytes(update_value.unwrap_or_default());
+            obj.set_psycological_traits_bytes(update_value.unwrap_or_default());
         });
     }
 
-    pub fn character_physical_traits(&self) -> Option<Bytes> {
-        self.character_physical_traits_buffer().as_ref().map(bytes_from_text_buffer)
+    fn character_name_entry(&self) -> adw::EntryRow {
+        self.imp().character_name_entry.get()
     }
 
-    pub fn set_character_physical_traits(&self, value: Option<Bytes>) {
-        self.set_character_physical_traits_buffer(value.map(bytes_to_text_buffer));
-        self.notify("character-physical-traits-buffer");
+    fn character_role_entry(&self) -> adw::EntryRow {
+        self.imp().character_role_entry.get()
     }
 
-    pub fn character_psycological_traits(&self) -> Option<Bytes> {
-        self.character_psycological_traits_buffer().as_ref().map(bytes_from_text_buffer)
+    fn character_gender_entry(&self) -> adw::ComboRow {
+        self.imp().character_gender_entry.get()
     }
 
-    pub fn set_character_psycological_traits(&self, value: Option<Bytes>) {
-        self.set_character_psycological_traits_buffer(value.map(bytes_to_text_buffer));
-        self.notify("character-psycological-traits-buffer");
+    fn background_text_view(&self) -> gtk::TextView {
+        self.imp().background_text_view.get()
     }
 
-    fn character_background_buffer(&self) -> Ref<Option<gtk::TextBuffer>> {
-        self.imp().character_background_buffer.borrow()
+    fn physical_traits_text_view(&self) -> gtk::TextView {
+        self.imp().physical_traits_text_view.get()
     }
 
-    fn set_character_background_buffer(&self, value: Option<gtk::TextBuffer>) {
-        self.imp().character_background_buffer.replace(value);
+    fn psycological_traits_text_view(&self) -> gtk::TextView {
+        self.imp().psycological_traits_text_view.get()
     }
 
-    fn character_physical_traits_buffer(&self) -> Ref<Option<gtk::TextBuffer>> {
-        self.imp().character_physical_traits_buffer.borrow()
+    fn character_background_buffer(&self) -> gtk::TextBuffer {
+        self.imp().character_background_buffer.get()
     }
 
-    fn set_character_physical_traits_buffer(&self, value: Option<gtk::TextBuffer>) {
-        self.imp().character_physical_traits_buffer.replace(value);
+    fn character_physical_traits_buffer(&self) -> gtk::TextBuffer {
+        self.imp().character_physical_traits_buffer.get()
     }
 
-    fn character_psycological_traits_buffer(&self) -> Ref<Option<gtk::TextBuffer>> {
-        self.imp().character_psycological_traits_buffer.borrow()
-    }
-
-    fn set_character_psycological_traits_buffer(&self, value: Option<gtk::TextBuffer>) {
-        self.imp()
-            .character_psycological_traits_buffer
-            .replace(value);
+    fn character_psycological_traits_buffer(&self) -> gtk::TextBuffer {
+        self.imp().character_psycological_traits_buffer.get()
     }
 
     fn send_update<F>(&self, f: F)
@@ -255,7 +327,7 @@ impl ManuscriptCharacterSheetEditor {
         .expect("Failed to send character sheet update");
     }
 
-    fn setup_widgets(&self) {
+    fn connect_events(&self) {
         let imp = self.imp();
 
         imp.character_name_entry
@@ -270,25 +342,31 @@ impl ManuscriptCharacterSheetEditor {
                 this.set_character_role(Some(imp.character_role_entry.text().into()))
             }));
 
-        if let Some(character_background_buffer) = imp.character_background_buffer.borrow().as_ref() {
-            character_background_buffer
-                .connect_changed(glib::clone!(@weak self as this => move |buf| {
-                    this.set_character_background(Some(bytes_from_text_buffer(buf)))
-                }));
-        }
+        imp.character_gender_entry.connect_notify_local(
+            Some("selected-item"),
+            glib::clone!(@weak self as this => move |entry, _idx| {
+                let idx = entry.selected();
+                let gender = Gender::from(idx);
+                this.set_character_gender(gender);
+            }),
+        );
 
-        if let Some(character_physical_traits_buffer) = imp.character_physical_traits_buffer.borrow().as_ref() {
-            character_physical_traits_buffer
-                .connect_changed(glib::clone!(@weak self as this => move |buf| {
-                    this.set_character_physical_traits(Some(bytes_from_text_buffer(buf)))
-                }));
-        }
+        self.character_background_buffer().connect_changed(
+            glib::clone!(@weak self as this => move |buf| {
+                this.set_character_background(Some(bytes_from_text_buffer(buf)))
+            }),
+        );
 
-        if let Some(character_psycological_traits_buffer) = imp.character_psycological_traits_buffer.borrow().as_ref() {
-            character_psycological_traits_buffer
-                .connect_changed(glib::clone!(@weak self as this => move |buf| {
-                    this.set_character_psycological_traits(Some(bytes_from_text_buffer(buf)))
-                }));
-        }
+        self.character_physical_traits_buffer().connect_changed(
+            glib::clone!(@weak self as this => move |buf| {
+                this.set_character_physical_traits(Some(bytes_from_text_buffer(buf)))
+            }),
+        );
+
+        self.character_psycological_traits_buffer().connect_changed(
+            glib::clone!(@weak self as this => move |buf| {
+                this.set_character_psycological_traits(Some(bytes_from_text_buffer(buf)))
+            }),
+        );
     }
 }

@@ -95,12 +95,7 @@ impl ManuscriptChunkRow {
             if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
                 self.set_subtitle(format!("{} {}", chapter.words_count(), i18n("words")).as_str());
             } else if let Some(character_sheet) = chunk.as_any().downcast_ref::<CharacterSheet>() {
-                self.set_subtitle(
-                    character_sheet
-                        .role()
-                        .unwrap_or(&i18n("No role"))
-                        .as_str(),
-                );
+                self.set_subtitle(character_sheet.role().unwrap_or(&i18n("No role")).as_str());
             }
         } else {
             *self.imp().chunk_id.borrow_mut() = "".into();

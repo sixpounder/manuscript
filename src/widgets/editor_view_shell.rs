@@ -142,7 +142,7 @@ impl ManuscriptEditorViewShell {
                 text_view.upcast::<gtk::Widget>()
             }
             ChunkType::CharacterSheet => {
-                let editor = ManuscriptCharacterSheetEditor::new(chunk.id().into(), self.sender());
+                let editor = ManuscriptCharacterSheetEditor::new(chunk, self.sender());
                 editor.set_halign(gtk::Align::Fill);
                 editor.set_valign(gtk::Align::Fill);
                 editor.set_hexpand(true);
@@ -178,7 +178,6 @@ impl ManuscriptEditorViewShell {
         let view_child = self.editor_view_widget_for_chunk(chunk);
         let view = self.editor_tab_view();
         let page = view.append(&view_child);
-
         page.set_title(chunk.safe_title());
         unsafe { page.set_data(CHUNK_ID_DATA_KEY, chunk.id().to_string()) };
 
@@ -198,6 +197,20 @@ impl ManuscriptEditorViewShell {
         } else {
             self.add_and_select_page(chunk);
         }
+    }
+
+    pub fn clear(&self) {
+        let editor_view = self.editor_tab_view();
+        let page_list_iterator = editor_view.pages();
+        let page_list_iterator = page_list_iterator
+            .iter::<adw::TabPage>()
+            .expect("No iterator for view pages");
+        let pages = page_list_iterator
+            .map(|p| p.expect("Failed to retrieve TabPage for closing"))
+            .collect::<Vec<adw::TabPage>>();
+        pages.iter().for_each(|p| {
+            editor_view.close_page(p);
+        });
     }
 
     pub fn set_channel(&self, sender: Sender<DocumentAction>) {

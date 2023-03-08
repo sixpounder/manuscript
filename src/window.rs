@@ -183,6 +183,10 @@ impl ManuscriptWindow {
     pub fn editor_view(&self) -> ManuscriptEditorViewShell {
         self.imp().editor_view.get()
     }
+
+    pub fn project_layout(&self) -> ManuscriptProjectLayout {
+        self.imp().project_layout.get()
+    }
 }
 
 // Private APIs
@@ -302,8 +306,17 @@ impl ManuscriptWindow {
     fn open_project(&self) {
         with_file_open_dialog(
             glib::clone!(@strong self as win => move |document| {
+                let imp = win.imp();
                 win.document_manager().set_document(document).expect("Could not set document");
-                win.imp().main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
+                imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
+
+                // Update last opened document
+                let settings = &imp.settings;
+                if imp.document_manager.has_backend() {
+                    let backend_path = imp.document_manager.backend_path().as_ref().unwrap().clone();
+                    settings.set_last_opened_document(&backend_path);
+                    glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
+                }
             }),
             glib::clone!(@strong self as win => move |err| {
                 glib::g_critical!(G_LOG_DOMAIN, "{}", err);
@@ -339,23 +352,24 @@ impl ManuscriptWindow {
     fn close_project(&self) {
         let dm = self.document_manager();
         if dm.has_document() && dm.unset_document().is_ok() {
+            self.editor_view().clear();
+            self.project_layout().clear();
             self.imp().main_stack.set_visible_child_name("welcome-view");
         }
     }
 
     fn on_document_loaded(&self) {
-        // Get a reference to the new document
         glib::idle_add_local(
             glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
-                let new_document = this
-                    .imp()
+                let imp = this.imp();
+                let new_document = imp
                     .document_manager
                     .document_ref()
                     .expect("Could not lock document");
                 let new_document = new_document.deref();
 
                 // Update project layout
-                this.imp().project_layout.load_document(new_document.as_ref());
+                imp.project_layout.load_document(new_document.as_ref());
                 glib::Continue(false)
             }),
         );
@@ -396,8 +410,8 @@ impl ManuscriptWindow {
         }
     }
 
-    fn on_chunk_updated(&self, id: String) {
-        // TODO: implement this
+    fn on_chunk_updated(&self, _id: String) {
+        // TODO: maybe tick for autosave here?
     }
 
     fn search_mode(&self) -> bool {

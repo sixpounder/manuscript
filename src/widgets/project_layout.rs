@@ -119,7 +119,7 @@ impl ManuscriptProjectLayout {
         }
     }
 
-    fn clear(&self) {
+    pub fn clear(&self) {
         let layout = self.imp().layout.get();
         let mut child = layout.first_child();
         while child.is_some() {

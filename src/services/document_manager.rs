@@ -73,7 +73,9 @@ impl std::fmt::Display for DocumentAction {
                 id, stats
             ),
             Self::UpdateChunk(id) => write!(f, "DocumentAction::UpdateChunk(#{id})"),
-            Self::UpdateChunkWith(id, _func) => write!(f, "DocumentAction::UpdateChunkWith(#{id}, function)")
+            Self::UpdateChunkWith(id, _func) => {
+                write!(f, "DocumentAction::UpdateChunkWith(#{id}, function)")
+            }
         }
     }
 }
@@ -135,6 +137,14 @@ mod imp {
                         .build(),
                     Signal::builder("chunk-updated")
                         .param_types([String::static_type()])
+                        .build(),
+                    Signal::builder("chunk-stats-updated")
+                        .param_types([
+                            String::static_type(),
+                            u64::static_type(),
+                            u64::static_type(),
+                            u64::static_type(),
+                        ])
                         .build(),
                 ]
             });

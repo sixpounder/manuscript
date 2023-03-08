@@ -248,6 +248,14 @@ impl CharacterSheet {
         self.role = value;
     }
 
+    pub fn gender(&self) -> Gender {
+        self.gender
+    }
+
+    pub fn set_gender(&mut self, value: Gender) {
+        self.gender = value;
+    }
+
     pub fn background(&self) -> &[u8] {
         self.background.as_ref()
     }
@@ -268,12 +276,20 @@ impl CharacterSheet {
         self.physical_traits = Bytes::from(Vec::from(value))
     }
 
+    pub fn set_physical_traits_bytes(&mut self, value: Bytes) {
+        self.physical_traits = value;
+    }
+
     pub fn psycological_traits(&self) -> &[u8] {
         self.physical_traits.as_ref()
     }
 
     pub fn set_psycological_traits(&mut self, value: &[u8]) {
         self.psycological_traits = Bytes::from(Vec::from(value))
+    }
+
+    pub fn set_psycological_traits_bytes(&mut self, value: Bytes) {
+        self.psycological_traits = value;
     }
 }
 
@@ -334,13 +350,41 @@ pub enum Gender {
     Unspecified,
 }
 
-impl From<u32> for Gender {
-    fn from(idx: u32) -> Self {
+impl From<u64> for Gender {
+    fn from(idx: u64) -> Self {
         match idx {
             0 => Self::Male,
             1 => Self::Female,
             2 => Self::Other,
-            _ => Self::Unspecified
+            _ => Self::Unspecified,
+        }
+    }
+}
+
+impl From<u32> for Gender {
+    fn from(idx: u32) -> Self {
+        Self::from(idx as u64)
+    }
+}
+
+impl From<Gender> for u64 {
+    fn from(source: Gender) -> Self {
+        match source {
+            Gender::Male => 0,
+            Gender::Female => 1,
+            Gender::Other => 2,
+            Gender::Unspecified => 10,
+        }
+    }
+}
+
+impl From<Gender> for u32 {
+    fn from(source: Gender) -> Self {
+        match source {
+            Gender::Male => 0,
+            Gender::Female => 1,
+            Gender::Other => 2,
+            Gender::Unspecified => 10,
         }
     }
 }

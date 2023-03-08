@@ -36,6 +36,16 @@ impl ManuscriptSettings {
             .expect("Could not store window width");
     }
 
+    pub fn last_opened_document(&self) -> String {
+        self.inner.string("last-opened-document").into()
+    }
+
+    pub fn set_last_opened_document(&self, value: &str) {
+        self.inner
+            .set_string("last-opened-document", value)
+            .expect("Could not store last opened document");
+    }
+
     pub fn connect_changed<F>(&self, key: &str, f: F)
     where
         F: Fn(&gtk::gio::Settings, &str) + 'static,

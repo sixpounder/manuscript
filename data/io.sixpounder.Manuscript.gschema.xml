@@ -7,5 +7,15 @@
 	  <key name="window-height" type="i">
 	    <default>600</default>
 	  </key>
+	  <key name="last-opened-document" type="s">
+        <default>""</default>
+        <summary>The last opened document</summary>
+        <description>The absolute path to the last opened document</description>
+    </key>
+	  <key name="text-scale-factor" type="d">
+        <default>1.0</default>
+        <summary>Text scale factor</summary>
+        <description>The percentage value representing the text scaling on text editors with respect to your desktop default</description>
+    </key>
 	</schema>
 </schemalist>

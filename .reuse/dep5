@@ -74,3 +74,7 @@ License: GPL-3.0-or-later
 Files: src/styles/*.css
 Copyright: 2023  Andrea Coronese
 License: GPL-3.0-or-later
+
+Files: **/*.build
+Copyright: 2023  Andrea Coronese
+License: GPL-3.0-or-later
