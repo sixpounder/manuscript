@@ -17,7 +17,7 @@
         <summary>Text scale factor</summary>
         <description>The percentage value representing the text scaling on text editors with respect to your desktop default</description>
     </key>
-	  <key name="text-scale-factor" type="i">
+	  <key name="text-analysis-delay" type="i">
         <default>500</default>
         <summary>Text analysis delay</summary>
         <description>The delay - in milliseconds - that the application will debounce each text word count and reading time analysis</description>

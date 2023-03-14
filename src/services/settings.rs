@@ -46,6 +46,16 @@ impl ManuscriptSettings {
             .expect("Could not store last opened document");
     }
 
+    pub fn text_analysis_delay(&self) -> i32 {
+        self.inner.int("text-analysis-delay").into()
+    }
+
+    pub fn set_text_analysis_delay(&self, value: i32) {
+        self.inner
+            .set_int("text-analysis-delay", value)
+            .expect("Could not store text analysis delay");
+    }
+
     pub fn connect_changed<F>(&self, key: &str, f: F)
     where
         F: Fn(&gtk::gio::Settings, &str) + 'static,

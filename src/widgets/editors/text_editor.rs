@@ -3,7 +3,7 @@ use crate::{
     models::*,
     services::{
         i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction, MarkupHandler,
-        TEXT_ANALYZER,
+        TEXT_ANALYZER, ManuscriptSettings
     },
     widgets::ManuscriptProgressIndicator,
 };
@@ -47,6 +47,7 @@ mod imp {
         pub(super) show_status_bar: Cell<bool>,
         pub(super) words_count: Cell<u64>,
         pub(super) reading_time: Cell<(u64, u64)>,
+        pub(super) settings: ManuscriptSettings
     }
 
     impl Default for ManuscriptTextEditor {
@@ -66,6 +67,7 @@ mod imp {
                 locked: Cell::new(false),
                 words_count: Cell::new(0),
                 reading_time: Cell::new((0, 0)),
+                settings: ManuscriptSettings::default()
             }
         }
     }
@@ -257,6 +259,10 @@ impl ManuscriptTextEditor {
         self.imp().text_view.get()
     }
 
+    pub fn settings(&self) -> &ManuscriptSettings {
+        &self.imp().settings
+    }
+
     fn connect_text_buffer(&self) {
         if let Some(buffer) = self.text_buffer().as_ref() {
             buffer.connect_changed(clone!(@strong self as this => move |buf| {
@@ -327,8 +333,9 @@ impl ManuscriptTextEditor {
             }
             drop(source_id);
 
-            let source_id = glib::source::timeout_add_seconds_local(
-                1,
+            let delay = std::time::Duration::from_millis(self.settings().text_analysis_delay().abs() as u64);
+            let source_id = glib::source::timeout_add_local(
+                delay,
                 glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
                     if let Some(buf) = this.text_buffer().as_ref() {
                         let imp = this.imp();
