@@ -36,6 +36,12 @@
         </child>
         <child>
           <object class="GtkActionBar">
+            <property
+              name="visible"
+              bind-source="ManuscriptTextEditor"
+              bind-property="show-status-bar"
+              bind-flags="default|sync-create"
+            ></property>
             <property name="height-request">50</property>
             <style>
               <class name="flat" />

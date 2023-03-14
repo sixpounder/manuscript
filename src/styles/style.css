@@ -33,3 +33,8 @@ entry.manuscript-title:hover {
   filter: opacity(60%);
   font-size: 1.5rem;
 }
+
+textview.view {
+  font-family: iA Writer Duospace;
+  font-size: 1.2rem;
+}

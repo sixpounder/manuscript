@@ -62,3 +62,25 @@ install_data(
 )
 
 subdir('icons')
+
+message('Installing default font')
+install_data(
+    join_paths('fonts', 'iAWriterDuospace-Regular.otf'),
+    install_dir: join_paths(get_option('datadir'), 'fonts')
+)
+
+install_data(
+    join_paths('fonts', 'iAWriterDuospace-Bold.otf'),
+    install_dir: join_paths(get_option('datadir'), 'fonts')
+)
+
+install_data(
+    join_paths('fonts', 'iAWriterDuospace-BoldItalic.otf'),
+    install_dir: join_paths(get_option('datadir'), 'fonts')
+)
+
+install_data(
+    join_paths('fonts', 'iAWriterDuospace-Italic.otf'),
+    install_dir: join_paths(get_option('datadir'), 'fonts')
+)
+message('Default font installed')

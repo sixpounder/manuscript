@@ -1,12 +1,12 @@
 use super::factories;
-use crate::{models::*, services::DocumentAction};
+use crate::{models::*, services::DocumentAction, widgets::ManuscriptChunkRow};
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
     subclass::prelude::*,
 };
 use glib::Sender;
 use gtk::{gio, prelude::*};
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::HashMap, ptr::NonNull};
 
 const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
@@ -34,6 +34,8 @@ mod imp {
         pub searchentry: TemplateChild<gtk::SearchEntry>,
 
         pub(super) channel: RefCell<Option<Sender<DocumentAction>>>,
+
+        pub(super) children_map: RefCell<HashMap<String, ManuscriptChunkRow>>,
     }
 
     #[glib::object_subclass]
@@ -129,17 +131,17 @@ impl ManuscriptProjectLayout {
         }
     }
 
-    // fn get_expanders(&self) -> Vec<gtk::Widget> {
-    //     let layout = self.imp().layout.get();
-    //     let mut children = vec![];
-    //     let mut child = layout.first_child();
-    //     while child.is_some() {
-    //         let existing_child = child.unwrap();
-    //         child = existing_child.next_sibling();
-    //         children.push(existing_child);
-    //     }
-    //     children
-    // }
+    fn expanders(&self) -> Vec<gtk::Widget> {
+        let layout = self.imp().layout.get();
+        let mut children = vec![];
+        let mut child = layout.first_child();
+        while child.is_some() {
+            let existing_child = child.unwrap();
+            child = existing_child.next_sibling();
+            children.push(existing_child);
+        }
+        children
+    }
 
     pub fn add_chunk(&self, chunk: &dyn DocumentChunk) {
         glib::g_debug!(
@@ -156,6 +158,10 @@ impl ManuscriptProjectLayout {
         row.connect_activated(glib::clone!(@weak self as this => move |row| {
             this.send_action(DocumentAction::SelectChunk(row.chunk_id()));
         }));
+
+        let mut map = self.imp().children_map.borrow_mut();
+        map.insert(chunk.id().to_string(), row.clone());
+
         expander_row.add_row(&row);
     }
 
@@ -165,6 +171,14 @@ impl ManuscriptProjectLayout {
             "Removing chunk with id {} from project layout",
             chunk_id.to_string()
         );
+
+        let mut map = self.imp().children_map.borrow_mut();
+        map.remove(&chunk_id.to_string());
+    }
+
+    pub fn chunk_row(&self, chunk: &dyn DocumentChunk) -> Option<ManuscriptChunkRow> {
+        let widget_ref = self.imp().children_map.borrow();
+        widget_ref.get(&chunk.id().to_string()).cloned()
     }
 
     pub fn searchbar(&self) -> gtk::SearchBar {

@@ -1,6 +1,10 @@
+use super::ManuscriptBuffer;
 use crate::{
     models::*,
-    services::{i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction},
+    services::{
+        i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction, MarkupHandler,
+        TEXT_ANALYZER,
+    },
     widgets::ManuscriptProgressIndicator,
 };
 use adw::subclass::prelude::*;
@@ -17,7 +21,7 @@ mod imp {
     use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
     use once_cell::sync::Lazy;
 
-    #[derive(Default, gtk::CompositeTemplate)]
+    #[derive(gtk::CompositeTemplate)]
     #[template(resource = "/io/sixpounder/Manuscript/editors/text_editor.ui")]
     pub struct ManuscriptTextEditor {
         #[template_child]
@@ -37,11 +41,33 @@ mod imp {
 
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
         pub(super) chunk_id: RefCell<Option<String>>,
-        pub(super) text_buffer: RefCell<Option<gtk::TextBuffer>>,
-        pub(super) update_idle_resource_id: RefCell<Option<glib::SourceId>>,
+        pub(super) text_buffer: RefCell<Option<ManuscriptBuffer>>,
+        pub(super) analysis_idle_resource_id: RefCell<Option<glib::SourceId>>,
         pub(super) locked: Cell<bool>,
+        pub(super) show_status_bar: Cell<bool>,
         pub(super) words_count: Cell<u64>,
         pub(super) reading_time: Cell<(u64, u64)>,
+    }
+
+    impl Default for ManuscriptTextEditor {
+        fn default() -> Self {
+            Self {
+                scroll_container: TemplateChild::default(),
+                text_view: TemplateChild::default(),
+                progress_indicator: TemplateChild::default(),
+                words_count_label: TemplateChild::default(),
+                reading_time_label: TemplateChild::default(),
+                sender: RefCell::default(),
+                text_buffer: RefCell::default(),
+                analysis_idle_resource_id: RefCell::default(),
+
+                chunk_id: RefCell::new(None),
+                show_status_bar: Cell::new(true),
+                locked: Cell::new(false),
+                words_count: Cell::new(0),
+                reading_time: Cell::new((0, 0)),
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -69,6 +95,7 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
+                    ParamSpecBoolean::new("show-status-bar", "", "", true, ParamFlags::READWRITE),
                     ParamSpecBoolean::new("locked", "", "", false, ParamFlags::READWRITE),
                     ParamSpecBoolean::new("overflowing", "", "", false, ParamFlags::READABLE),
                     ParamSpecString::new("chunk-id", "", "", None, ParamFlags::READWRITE),
@@ -102,6 +129,7 @@ mod imp {
             let obj = self.obj();
             let imp = obj.imp();
             match pspec.name() {
+                "show-status-bar" => imp.show_status_bar.get().to_value(),
                 "locked" => imp.locked.get().to_value(),
                 "chunk-id" => imp.chunk_id.borrow().to_value(),
                 "buffer" => imp.text_buffer.borrow().to_value(),
@@ -124,6 +152,7 @@ mod imp {
         fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             let _obj = self.obj();
             match pspec.name() {
+                "show-status-bar" => self.show_status_bar.set(value.get::<bool>().unwrap()),
                 "locked" => self.locked.set(value.get::<bool>().unwrap()),
                 "chunk-id" => {
                     self.chunk_id
@@ -131,13 +160,11 @@ mod imp {
                 }
                 "buffer" => {
                     self.text_buffer
-                        .replace(value.get::<Option<gtk::TextBuffer>>().unwrap());
+                        .replace(value.get::<Option<ManuscriptBuffer>>().unwrap());
                 }
                 _ => unimplemented!(),
             }
         }
-
-        fn dispose(&self) {}
     }
 
     impl WidgetImpl for ManuscriptTextEditor {}
@@ -166,11 +193,17 @@ impl ManuscriptTextEditor {
         let imp = self.imp();
 
         imp.chunk_id.replace(Some(chunk_id));
-        self.set_buffer(buffer);
+        self.set_buffer_irreversible(buffer);
+    }
+
+    pub fn chunk_id(&self) -> Option<String> {
+        let chunk_id = self.imp().chunk_id.borrow();
+        chunk_id.as_ref().map(|c| c.to_string())
     }
 
     fn setup_widgets(&self) {
         let imp = self.imp();
+
         imp.scroll_container.vadjustment().connect_value_changed(
             glib::clone!(@weak self as this => move |adjustment| {
                 let text_view_allocation = this.imp().text_view.allocation();
@@ -183,26 +216,45 @@ impl ManuscriptTextEditor {
         );
     }
 
-    fn set_buffer(&self, value: Option<Bytes>) {
+    fn set_buffer_irreversible(&self, value: Option<Bytes>) {
+        self.set_buffer(value, true);
+    }
+
+    fn set_buffer(&self, value: Option<Bytes>, irreversible: bool) {
         let imp = self.imp();
-        let text_buffer = gtk::TextBuffer::new(None);
+
+        let text_buffer = ManuscriptBuffer::new(None);
         let bytes = value.unwrap_or(Bytes::new());
         imp.words_count.set(bytes.words_count());
         imp.reading_time.set(bytes.estimate_reading_time());
 
-        text_buffer.set_text(
-            String::from_utf8(bytes.slice(..).to_vec())
-                .unwrap()
-                .as_str(),
-        );
+        if irreversible {
+            text_buffer.begin_irreversible_action();
+            text_buffer.set_text(
+                String::from_utf8(bytes.slice(..).to_vec())
+                    .unwrap()
+                    .as_str(),
+            );
+            text_buffer.end_irreversible_action();
+        } else {
+            text_buffer.set_text(
+                String::from_utf8(bytes.slice(..).to_vec())
+                    .unwrap()
+                    .as_str(),
+            );
+        }
         imp.text_view.set_buffer(Some(&text_buffer));
         imp.text_buffer.replace(Some(text_buffer));
         self.connect_text_buffer();
         self.notify("overflowing");
     }
 
-    pub fn text_buffer(&self) -> std::cell::Ref<Option<gtk::TextBuffer>> {
+    pub fn text_buffer(&self) -> std::cell::Ref<Option<ManuscriptBuffer>> {
         self.imp().text_buffer.borrow()
+    }
+
+    pub fn text_view(&self) -> gtk::TextView {
+        self.imp().text_view.get()
     }
 
     fn connect_text_buffer(&self) {
@@ -231,13 +283,25 @@ impl ManuscriptTextEditor {
         self.notify("reading-time-label-text");
     }
 
-    fn on_buffer_changed(&self, _buffer: &gtk::TextBuffer) {
+    pub fn locked(&self) -> bool {
+        self.imp().locked.get()
+    }
+
+    pub fn set_locked(&self, value: bool) {
+        let imp = self.imp();
+        imp.locked.set(value);
+        self.send_update(move |chunk| {
+            chunk.set_locked(value);
+        });
+    }
+
+    fn on_buffer_changed(&self, _buffer: &ManuscriptBuffer) {
         let imp = self.imp();
         let chunk_id = imp.chunk_id.borrow();
 
         if let Some(chunk_id) = chunk_id.as_ref() {
             if let Some(buf) = self.text_buffer().as_ref() {
-                let bytes = bytes_from_text_buffer(buf);
+                let bytes = bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>());
                 let tx = imp.sender.borrow();
                 let tx = tx.as_ref().expect("No channel sender found");
                 tx.send(DocumentAction::UpdateChunkBuffer(
@@ -247,11 +311,16 @@ impl ManuscriptTextEditor {
                 .expect("Could not send buffer updates");
                 // TODO: instead of expecting this value, handle failures graphically
 
+                glib::source::idle_add_local_once(glib::clone!(@strong self as this => move || {
+                    if let Some(buf) = this.text_buffer().as_ref() {
+                        TEXT_ANALYZER.analyze_buffer(buf.upcast_ref::<gtk::TextBuffer>());
+                    }
+                }));
                 self.notify("overflowing");
             }
 
             // Cancel any closure registered before, obtain a debounce effect
-            let mut source_id = self.imp().update_idle_resource_id.borrow_mut();
+            let mut source_id = self.imp().analysis_idle_resource_id.borrow_mut();
             if source_id.is_some() {
                 let source_id = source_id.take().unwrap();
                 source_id.remove();
@@ -264,7 +333,7 @@ impl ManuscriptTextEditor {
                     if let Some(buf) = this.text_buffer().as_ref() {
                         let imp = this.imp();
 
-                        let bytes = bytes_from_text_buffer(buf);
+                        let bytes = bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>());
                         let words_count = bytes.words_count();
                         let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
                         this.set_words_count(words_count);
@@ -282,15 +351,36 @@ impl ManuscriptTextEditor {
                                 BufferStats::new(words_count, (reading_time_minutes, reading_time_seconds))
                             ));
                         }
-                        imp.update_idle_resource_id.replace(None);
+                        imp.analysis_idle_resource_id.replace(None);
                     }
 
                     glib::Continue(false)
                 }),
             );
-            self.imp().update_idle_resource_id.replace(Some(source_id));
+            self.imp()
+                .analysis_idle_resource_id
+                .replace(Some(source_id));
         } else {
-            panic!("No chunk id is set on this ManuscriptTextEditor. This is suspicious so I am going to kill everything.");
+            panic!("No chunk id is set on this ManuscriptTextEditor. This is suspicious so I am going to kill everything 🤷‍♂️️.");
         }
+    }
+
+    fn send_update<F>(&self, f: F)
+    where
+        F: FnOnce(&mut dyn DocumentChunk) + 'static,
+    {
+        let imp = self.imp();
+        let chunk_id = self.chunk_id().expect("No chunk id");
+        self.sender()
+            .send(DocumentAction::UpdateChunkWith(
+                chunk_id.clone(),
+                Box::new(f),
+            ))
+            .expect("Failed to send character sheet update");
+    }
+
+    fn sender(&self) -> Sender<DocumentAction> {
+        let tx = self.imp().sender.borrow();
+        tx.as_ref().expect("No channel sender found").clone()
     }
 }

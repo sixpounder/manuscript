@@ -1,6 +1,6 @@
 use crate::{
     config::APPLICATION_G_PATH,
-    libs::files::with_file_open_dialog,
+    libs::files::{with_file_open_dialog, with_file_save_dialog},
     models::*,
     services::{DocumentManager, ManuscriptSettings},
     widgets::{ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptWelcomeView},
@@ -248,6 +248,14 @@ impl ManuscriptWindow {
             }),
         );
 
+        dm.connect_closure(
+            "chunk-stats-updated",
+            false,
+            closure_local!(@strong self as this => move |dm: DocumentManager, id: String, words_count: u64, reading_minutes: u64, reading_seconds: u64| {
+                this.on_chunk_stats_updated(id, words_count, (reading_minutes, reading_seconds));
+            })
+        );
+
         self.imp().style_manager.connect_dark_notify(
             glib::clone!(@strong self as this => move |_sm| {
                 this.update_widgets();
@@ -340,7 +348,23 @@ impl ManuscriptWindow {
                 }
             }
         } else {
-            self.save_project_as("/home/sixpounder/test.mscript".into());
+            let document = dm
+                .document_ref()
+                .expect("Could not get a handle to the document");
+            if let Some(document) = document.as_ref() {
+                with_file_save_dialog(
+                    document,
+                    glib::clone!(@strong self as win => move |_document| {
+
+                    }),
+                    glib::clone!(@strong self as win => move |err| {
+                        glib::g_critical!(G_LOG_DOMAIN, "{}", err);
+                        win.add_toast(err);
+                    }),
+                );
+            } else {
+                glib::g_warning!(G_LOG_DOMAIN, "Could not acquire document for saving");
+            }
         }
     }
 
@@ -410,8 +434,13 @@ impl ManuscriptWindow {
         }
     }
 
-    fn on_chunk_updated(&self, _id: String) {
+    fn on_chunk_updated(&self, id: String) {
+        self.update_layout_chunk_row(id);
         // TODO: maybe tick for autosave here?
+    }
+
+    fn on_chunk_stats_updated(&self, id: String, words_count: u64, reading_time: (u64, u64)) {
+        self.update_layout_chunk_row_reading_stats(id, words_count, reading_time);
     }
 
     fn search_mode(&self) -> bool {
@@ -455,12 +484,77 @@ impl ManuscriptWindow {
     }
 
     fn add_chapter(&self) {
-        glib::g_debug!(G_LOG_DOMAIN, "Adding empty chapter sheet to the project");
+        glib::g_debug!(G_LOG_DOMAIN, "Adding empty chapter to the project");
         self.document_manager().add_chunk(Chapter::default());
     }
 
     fn add_character_sheet(&self) {
         glib::g_debug!(G_LOG_DOMAIN, "Adding empty character sheet to the project");
         self.document_manager().add_chunk(CharacterSheet::default());
+    }
+
+    fn update_layout_chunk_row(&self, id: String) {
+        if let Ok(lock) = self.document_manager().document_ref() {
+            if let Some(document) = &*lock {
+                if let Some(chunk) = document.get_chunk_ref(&id) {
+                    if let Some(row) = self.project_layout().chunk_row(chunk) {
+                        let the_chunk = Some(chunk);
+                        row.update_chunk(the_chunk);
+                    } else {
+                        glib::g_warning!(
+                            G_LOG_DOMAIN,
+                            "Could not find chunk row to update for id {id}, skipping"
+                        );
+                    }
+                } else {
+                    glib::g_warning!(
+                        G_LOG_DOMAIN,
+                        "Chunk {id} was notified to be updated, but then was not found in document"
+                    );
+                }
+            } else {
+                glib::g_warning!(G_LOG_DOMAIN, "Could not lock document");
+            }
+        } else {
+            glib::g_warning!(
+                G_LOG_DOMAIN,
+                "Chunk {id} was notified to be updated, but then was not found in document"
+            );
+        }
+    }
+
+    fn update_layout_chunk_row_reading_stats(
+        &self,
+        id: String,
+        words_count: u64,
+        reading_time: (u64, u64),
+    ) {
+        if let Ok(lock) = self.document_manager().document_ref() {
+            if let Some(document) = &*lock {
+                if let Some(chunk) = document.get_chunk_ref(&id) {
+                    if let Some(row) = self.project_layout().chunk_row(chunk) {
+                        let the_chunk = Some(chunk);
+                        row.update_chunk_reading_stats(the_chunk, words_count);
+                    } else {
+                        glib::g_warning!(
+                            G_LOG_DOMAIN,
+                            "Could not find chunk row to update for id {id}, skipping"
+                        );
+                    }
+                } else {
+                    glib::g_warning!(
+                        G_LOG_DOMAIN,
+                        "Chunk {id} was notified to be updated, but then was not found in document"
+                    );
+                }
+            } else {
+                glib::g_warning!(G_LOG_DOMAIN, "Could not lock document");
+            }
+        } else {
+            glib::g_warning!(
+                G_LOG_DOMAIN,
+                "Chunk {id} was notified to be updated, but then was not found in document"
+            );
+        }
     }
 }

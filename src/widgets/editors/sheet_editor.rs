@@ -146,12 +146,12 @@ impl ManuscriptCharacterSheetEditor {
     }
 
     fn setup_widgets(&self, source: &CharacterSheet) {
-        self.background_text_view()
-            .set_buffer(Some(&self.character_background_buffer()));
-        self.physical_traits_text_view()
-            .set_buffer(Some(&self.character_physical_traits_buffer()));
-        self.psycological_traits_text_view()
-            .set_buffer(Some(&self.character_physical_traits_buffer()));
+        // self.background_text_view()
+        //     .set_buffer(Some(&self.character_background_buffer()));
+        // self.physical_traits_text_view()
+        //     .set_buffer(Some(&self.character_physical_traits_buffer()));
+        // self.psycological_traits_text_view()
+        //     .set_buffer(Some(&self.character_physical_traits_buffer()));
 
         self.character_name_entry()
             .set_text(source.name().unwrap_or(&String::default()).as_str());
