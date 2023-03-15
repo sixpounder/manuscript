@@ -251,7 +251,7 @@ impl ManuscriptWindow {
         dm.connect_closure(
             "chunk-stats-updated",
             false,
-            closure_local!(@strong self as this => move |dm: DocumentManager, id: String, words_count: u64, reading_minutes: u64, reading_seconds: u64| {
+            closure_local!(@strong self as this => move |_dm: DocumentManager, id: String, words_count: u64, reading_minutes: u64, reading_seconds: u64| {
                 this.on_chunk_stats_updated(id, words_count, (reading_minutes, reading_seconds));
             })
         );
@@ -527,7 +527,7 @@ impl ManuscriptWindow {
         &self,
         id: String,
         words_count: u64,
-        reading_time: (u64, u64),
+        _reading_time: (u64, u64),
     ) {
         if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = &*lock {

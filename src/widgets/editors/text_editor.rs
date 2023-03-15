@@ -2,8 +2,8 @@ use super::ManuscriptBuffer;
 use crate::{
     models::*,
     services::{
-        i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction, MarkupHandler,
-        TEXT_ANALYZER, ManuscriptSettings
+        i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction,
+        ManuscriptSettings,
     },
     widgets::ManuscriptProgressIndicator,
 };
@@ -42,12 +42,13 @@ mod imp {
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
         pub(super) chunk_id: RefCell<Option<String>>,
         pub(super) text_buffer: RefCell<Option<ManuscriptBuffer>>,
+        pub(super) metrics_idle_resource_id: RefCell<Option<glib::SourceId>>,
         pub(super) analysis_idle_resource_id: RefCell<Option<glib::SourceId>>,
         pub(super) locked: Cell<bool>,
         pub(super) show_status_bar: Cell<bool>,
         pub(super) words_count: Cell<u64>,
         pub(super) reading_time: Cell<(u64, u64)>,
-        pub(super) settings: ManuscriptSettings
+        pub(super) settings: ManuscriptSettings,
     }
 
     impl Default for ManuscriptTextEditor {
@@ -60,6 +61,7 @@ mod imp {
                 reading_time_label: TemplateChild::default(),
                 sender: RefCell::default(),
                 text_buffer: RefCell::default(),
+                metrics_idle_resource_id: RefCell::default(),
                 analysis_idle_resource_id: RefCell::default(),
 
                 chunk_id: RefCell::new(None),
@@ -67,7 +69,7 @@ mod imp {
                 locked: Cell::new(false),
                 words_count: Cell::new(0),
                 reading_time: Cell::new((0, 0)),
-                settings: ManuscriptSettings::default()
+                settings: ManuscriptSettings::default(),
             }
         }
     }
@@ -141,7 +143,7 @@ mod imp {
                 }
                 "reading-time-label-text" => {
                     let reading_time = imp.reading_time.get();
-                    format!("{} {}", reading_time.0, i18n("minutes")).to_value()
+                    format!("~ {} {}", reading_time.0, i18n("minutes")).to_value()
                 }
                 "overflowing" => {
                     let adjustment = imp.scroll_container.vadjustment();
@@ -208,8 +210,9 @@ impl ManuscriptTextEditor {
 
         imp.scroll_container.vadjustment().connect_value_changed(
             glib::clone!(@weak self as this => move |adjustment| {
-                let text_view_allocation = this.imp().text_view.allocation();
-                let progress_indicator = this.imp().progress_indicator.get();
+                let imp = this.imp();
+                let text_view_allocation = imp.text_view.allocation();
+                let progress_indicator = imp.progress_indicator.get();
                 progress_indicator.set_value(adjustment.value().floor() as i32);
                 progress_indicator.set_minimum(adjustment.lower().floor() as i32);
                 progress_indicator.set_maximum(adjustment.upper().floor() as i32 - text_view_allocation.height());
@@ -223,10 +226,9 @@ impl ManuscriptTextEditor {
     }
 
     fn set_buffer(&self, value: Option<Bytes>, irreversible: bool) {
-        let imp = self.imp();
-
         let text_buffer = ManuscriptBuffer::new(None);
         let bytes = value.unwrap_or(Bytes::new());
+        let imp = self.imp();
         imp.words_count.set(bytes.words_count());
         imp.reading_time.set(bytes.estimate_reading_time());
 
@@ -253,6 +255,10 @@ impl ManuscriptTextEditor {
 
     pub fn text_buffer(&self) -> std::cell::Ref<Option<ManuscriptBuffer>> {
         self.imp().text_buffer.borrow()
+    }
+
+    pub fn text_buffer_mut(&self) -> std::cell::RefMut<Option<ManuscriptBuffer>> {
+        self.imp().text_buffer.borrow_mut()
     }
 
     pub fn text_view(&self) -> gtk::TextView {
@@ -317,29 +323,43 @@ impl ManuscriptTextEditor {
                 .expect("Could not send buffer updates");
                 // TODO: instead of expecting this value, handle failures graphically
 
-                glib::source::idle_add_local_once(glib::clone!(@strong self as this => move || {
-                    if let Some(buf) = this.text_buffer().as_ref() {
-                        TEXT_ANALYZER.analyze_buffer(buf.upcast_ref::<gtk::TextBuffer>());
-                    }
-                }));
+                let mut source_id = self.imp().analysis_idle_resource_id.borrow_mut();
+                if source_id.is_some() {
+                    let source_id = source_id.take().unwrap();
+                    source_id.remove();
+                }
+                drop(source_id);
+
+                let source_id = glib::source::idle_add_local_once(
+                    glib::clone!(@strong self as this => move || {
+                        let imp = this.imp();
+                        if let Some(buf) = this.text_buffer_mut().as_mut() {
+                            buf.format_for(&this.text_view());
+                        }
+                        *imp.analysis_idle_resource_id.borrow_mut() = None;
+                    }),
+                );
+                *self.imp().analysis_idle_resource_id.borrow_mut() = Some(source_id);
+
                 self.notify("overflowing");
             }
 
             // Cancel any closure registered before, obtain a debounce effect
-            let mut source_id = self.imp().analysis_idle_resource_id.borrow_mut();
+            let mut source_id = self.imp().metrics_idle_resource_id.borrow_mut();
             if source_id.is_some() {
                 let source_id = source_id.take().unwrap();
                 source_id.remove();
             }
             drop(source_id);
 
-            let delay = std::time::Duration::from_millis(self.settings().text_analysis_delay().abs() as u64);
+            let delay = std::time::Duration::from_millis(
+                self.settings().text_analysis_delay().abs() as u64,
+            );
             let source_id = glib::source::timeout_add_local(
                 delay,
                 glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
+                    let imp = this.imp();
                     if let Some(buf) = this.text_buffer().as_ref() {
-                        let imp = this.imp();
-
                         let bytes = bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>());
                         let words_count = bytes.words_count();
                         let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
@@ -358,15 +378,13 @@ impl ManuscriptTextEditor {
                                 BufferStats::new(words_count, (reading_time_minutes, reading_time_seconds))
                             ));
                         }
-                        imp.analysis_idle_resource_id.replace(None);
                     }
 
+                    *imp.metrics_idle_resource_id.borrow_mut() = None;
                     glib::Continue(false)
                 }),
             );
-            self.imp()
-                .analysis_idle_resource_id
-                .replace(Some(source_id));
+            *self.imp().metrics_idle_resource_id.borrow_mut() = Some(source_id);
         } else {
             panic!("No chunk id is set on this ManuscriptTextEditor. This is suspicious so I am going to kill everything 🤷‍♂️️.");
         }
@@ -376,7 +394,6 @@ impl ManuscriptTextEditor {
     where
         F: FnOnce(&mut dyn DocumentChunk) + 'static,
     {
-        let imp = self.imp();
         let chunk_id = self.chunk_id().expect("No chunk id");
         self.sender()
             .send(DocumentAction::UpdateChunkWith(

@@ -6,7 +6,7 @@ use adw::{
 };
 use glib::Sender;
 use gtk::{gio, prelude::*};
-use std::{cell::RefCell, collections::HashMap, ptr::NonNull};
+use std::{cell::RefCell, collections::HashMap};
 
 const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 

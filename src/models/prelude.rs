@@ -189,7 +189,7 @@ impl BufferAnalytics for Bytes {
         let buffer = self;
         for i in 0..buffer.len() {
             let c = buffer[i];
-            if c == b' ' || c == b'\n' || c == b'\t' || c == b'\r' {
+            if c == b' ' || c == b'\n' || c == b'\t' || c == b'\r' || c == b'#' {
                 state = 0;
             } else if state == 0 {
                 state = 1;

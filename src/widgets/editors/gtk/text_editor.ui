@@ -23,9 +23,8 @@
                 <!-- <property name="buffer" bind-property="buffer" bind-source="ManuscriptTextEditor" bind-flags="default|sync-create"></property> -->
                 <property name="monospace">true</property>
                 <property name="pixels-below-lines">12</property>
-                <property name="indent">12</property>
-                <property name="left-margin">12</property>
-                <property name="right-margin">12</property>
+                <property name="left-margin">120</property>
+                <property name="right-margin">120</property>
                 <property name="top-margin">24</property>
                 <property name="bottom-margin">24</property>
                 <property name="justification">GTK_JUSTIFY_FILL</property>
