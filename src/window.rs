@@ -431,6 +431,10 @@ impl ManuscriptWindow {
             if let Some(document) = &*lock {
                 let selected_chunk = document.get_chunk_ref(id.as_str()).unwrap();
                 self.editor_view().select_page(selected_chunk);
+                let flap = self.imp().flap.get();
+                if flap.is_folded() {
+                    flap.set_reveal_flap(false);
+                }
             }
         }
     }

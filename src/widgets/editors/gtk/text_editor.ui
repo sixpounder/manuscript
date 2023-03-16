@@ -47,6 +47,7 @@
             </style>
             <child type="start">
               <object class="GtkLabel" id="words_count_label">
+                <property name="margin-start">24</property>
                 <property
                   name="label"
                   bind-source="ManuscriptTextEditor"
@@ -73,6 +74,7 @@
               <object class="GtkBox">
                 <property name="orientation">horizontal</property>
                 <property name="spacing">8</property>
+                <property name="margin-end">24</property>
                 <child>
                   <object class="GtkImage">
                     <property name="icon-name">preferences-system-time-symbolic</property>

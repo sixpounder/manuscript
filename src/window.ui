@@ -123,6 +123,7 @@
                             <!-- Content -->
                             <child>
                               <object class="ManuscriptEditorViewShell" id="editor_view">
+                                <property name="width-request">812</property>
                                 <property name="vexpand">true</property>
                               </object>
                             </child>

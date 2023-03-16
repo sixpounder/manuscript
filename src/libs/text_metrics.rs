@@ -28,3 +28,11 @@ pub fn get_char_width(text_view: &gtk::TextView) -> i32 {
             .approximate_char_width(),
     ) as i32
 }
+
+pub fn get_char_height(text_view: &gtk::TextView) -> i32 {
+    gtk::pango::units_to_double(text_view.pango_context().metrics(None, None).height()) as i32
+}
+
+pub fn get_font_size(text_view: &gtk::TextView) -> i32 {
+    gtk::pango::units_to_double(text_view.pango_context().font_description().unwrap().size()) as i32
+}

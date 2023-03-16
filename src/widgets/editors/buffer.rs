@@ -1,20 +1,20 @@
 use crate::{
-    libs::consts::*,
+    libs::{consts::*, text_metrics::get_font_size},
     services::analyst::{MarkupHandler, RegexMatch, TagLookup, TEXT_ANALYZER},
 };
-use gtk::{glib, pango, prelude::*, subclass::prelude::*};
-use std::cell::{RefCell, Ref};
+use gtk::{glib, glib::ToValue, pango, prelude::*, subclass::prelude::*};
+use std::cell::RefCell;
 
 const G_LOG_DOMAIN: &str = "ManuscriptBuffer";
 
 mod imp {
     use super::*;
-    use glib::{ParamSpec, ParamSpecObject, ParamFlags};
+    use glib::{ParamFlags, ParamSpec, ParamSpecObject};
     use once_cell::sync::Lazy;
 
     #[derive(Default)]
     pub struct ManuscriptBuffer {
-        pub(super) parent_view: RefCell<Option<gtk::TextView>>
+        pub(super) parent_view: RefCell<Option<gtk::TextView>>,
     }
 
     #[glib::object_subclass]
@@ -27,13 +27,18 @@ mod imp {
     impl ObjectImpl for ManuscriptBuffer {
         fn constructed(&self) {
             self.parent_constructed();
-            self.obj().bind_default_tags();
         }
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| vec![
-                ParamSpecObject::new("parent-view", "", "", Option::<gtk::TextView>::static_type(), ParamFlags::READWRITE)
-            ]);
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![ParamSpecObject::new(
+                    "parent-view",
+                    "",
+                    "",
+                    Option::<gtk::TextView>::static_type(),
+                    ParamFlags::READWRITE,
+                )]
+            });
             PROPERTIES.as_ref()
         }
 
@@ -68,10 +73,11 @@ impl Default for ManuscriptBuffer {
 
 impl ManuscriptBuffer {
     pub fn new(tag_table: Option<gtk::TextTagTable>, parent_view: Option<gtk::TextView>) -> Self {
-        glib::Object::new(&[
-            ("tag-table", &tag_table),
-            ("parent-view", &parent_view),
-        ])
+        let obj: Self =
+            glib::Object::new(&[("tag-table", &tag_table), ("parent-view", &parent_view)]);
+
+        obj.bind_default_tags();
+        obj
     }
 
     pub fn parent_view(&self) -> Option<gtk::TextView> {
@@ -84,7 +90,15 @@ impl ManuscriptBuffer {
 
     pub fn format_for(&self, view: &gtk::TextView) {
         let tags = TEXT_ANALYZER.analyze_buffer(self.upcast_ref::<gtk::TextBuffer>(), view);
+        self.clear_tags();
         self.apply(tags, view);
+    }
+
+    fn clear_tags(&self) {
+        let start_iter = self.start_iter();
+        let end_iter = self.end_iter();
+        self.tag_table()
+            .foreach(|tag| self.remove_tag(tag, &start_iter, &end_iter));
     }
 
     fn apply(&self, tags: Vec<TagLookup>, view: &gtk::TextView) {
@@ -158,8 +172,8 @@ impl ManuscriptBuffer {
                 Some(TAG_NAME_WRAP_NONE),
                 &[
                     ("wrap-mode", &gtk::WrapMode::None),
-                    ("pixels-above-lines", &0),
-                    ("pixels-below-lines", &0),
+                    ("pixels-above-lines", &0i32),
+                    ("pixels-below-lines", &0i32),
                 ],
             )
             .unwrap();
@@ -216,6 +230,33 @@ impl ManuscriptBuffer {
                     ("weight", &PANGO_WEIGHT_NORMAL),
                     ("style", &pango::Style::Normal),
                     ("strikethrough", &false),
+                ],
+            )
+            .unwrap();
+
+        let small_font_size = match self.parent_view().as_ref() {
+            Some(view) => (get_font_size(view) as f64 * 0.4).ceil() as i32 * pango::SCALE,
+            None => 1000i32,
+        };
+
+        buffer
+            .create_tag(
+                Some(TAG_NAME_SUBSCRIPT),
+                &[
+                    ("weight", &PANGO_WEIGHT_LIGHT),
+                    ("style", &pango::Style::Normal),
+                    ("size", &small_font_size), // ("rise", &(pango::units_to_double(-10) as i32)),
+                ],
+            )
+            .unwrap();
+
+        buffer
+            .create_tag(
+                Some(TAG_NAME_SUPERSCRIPT),
+                &[
+                    ("weight", &PANGO_WEIGHT_LIGHT),
+                    ("style", &pango::Style::Normal),
+                    ("size", &small_font_size), // ("rise", &(pango::units_to_double(-1000) as i32)),
                 ],
             )
             .unwrap();

@@ -223,6 +223,7 @@ impl ManuscriptTextEditor {
 
     fn set_buffer_irreversible(&self, value: Option<Bytes>) {
         self.set_buffer(value, true);
+        self.debounce_analyze();
     }
 
     fn set_buffer(&self, value: Option<Bytes>, irreversible: bool) {

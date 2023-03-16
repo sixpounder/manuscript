@@ -190,6 +190,19 @@ impl RegexRuleCollection {
 
         Self::create_regex(
             &mut regexes,
+            "BOLD",
+            r"(\*\*|__)[^\s*](?P<text>.*?\S.*?)(\*\*|__)",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_BOLD,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
+        );
+
+        Self::create_regex(
+            &mut regexes,
             "ITALIC_ASTERISK",
             r"\*[^\s\*](?P<text>.*?\S?.*?)\*",
             |matched: &RegexMatch, _view: &gtk::TextView| {
@@ -217,7 +230,7 @@ impl RegexRuleCollection {
         Self::create_regex(
             &mut regexes,
             "BOLD_ITALIC",
-            r"(\*\*|__)[^\s*](?P<text>.*?\S.*?)(\*\*|__)",
+            r"(\*\*\*|___)[^\s*](?P<text>.*?\S.*?)(\*\*\*|___)",
             |matched: &RegexMatch, _view: &gtk::TextView| {
                 vec![TagLookup::ByName(
                     TAG_NAME_BOLD_ITALIC,
@@ -288,7 +301,8 @@ impl RegexRuleCollection {
         Self::create_regex(
             &mut regexes,
             "FOOTNOTE_ID",
-            r"[^\s]+\[\^(?P<id>(?P<text>[^\s]+))\]",
+            r"\[\^(?P<id>(?P<text>[^\s]+))\]",
+            // r"[^\s]+\[\^(?P<id>(?P<text>[^\s]+))\]", <- This version to include preceding word
             |matched: &RegexMatch, _view: &gtk::TextView| {
                 vec![TagLookup::ByName(
                     TAG_NAME_LINK_COLOR_TEXT,
@@ -298,13 +312,55 @@ impl RegexRuleCollection {
             },
         );
 
+        // This version of footnote only matches one liners. The commented version below matches
+        // multilines, but it's currently limited by having a final newline since
+        // the regex crate doesnt support look around. We can do better.
         Self::create_regex(
             &mut regexes,
             "FOOTNOTE",
-            r"(?:^\n*|\n\n)\[\^(?P<id>[^\s]+)\]:\s?(?P<first_line>(?:[^\n]+)?)(?P<line>(?:\s{4,}[^\n]+|\n+)+)",
+            r"(?:^\n*|\n\n)\[\^(?P<id>[^\s]+)\]:\s?(?P<content>(?:[^\n]+)?)",
             |matched: &RegexMatch, _view: &gtk::TextView| {
                 vec![TagLookup::ByName(
                     TAG_NAME_GRAY_TEXT,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
+        );
+
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "FOOTNOTE",
+        //     r"(?:^\n*|\n\n)\[\^(?P<id>[^\s]+)\]:\s?(?P<first_line>(?:[^\n]+)?)(?P<line>(?:\s{4,}[^\n]+|\n+)+)",
+        //     |matched: &RegexMatch, _view: &gtk::TextView| {
+        //         vec![TagLookup::ByName(
+        //             TAG_NAME_GRAY_TEXT,
+        //             matched.start(),
+        //             matched.end(),
+        //         )]
+        //     },
+        // );
+
+        Self::create_regex(
+            &mut regexes,
+            "SUBSCRIPT",
+            r"~[^\n*].*~",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_SUBSCRIPT,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
+        );
+
+        Self::create_regex(
+            &mut regexes,
+            "SUPERSCRIPT",
+            r"\^[^\n*].*\^",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_SUPERSCRIPT,
                     matched.start(),
                     matched.end(),
                 )]
