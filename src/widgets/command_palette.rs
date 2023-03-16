@@ -32,18 +32,18 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        // fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
-        //     let _obj = self.obj();
-        //     match pspec.name() {
-        //         _ => unimplemented!(),
-        //     }
-        // }
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            let _obj = self.obj();
+            match pspec.name() {
+                _ => unimplemented!(),
+            }
+        }
 
-        fn set_property(&self, _id: usize, _value: &glib::Value, _pspec: &ParamSpec) {
-            // let _obj = self.obj();
-            // match pspec.name() {
-            //     _ => unimplemented!(),
-            // }
+        fn set_property(&self, _id: usize, _value: &glib::Value, pspec: &ParamSpec) {
+            let _obj = self.obj();
+            match pspec.name() {
+                _ => unimplemented!(),
+            }
         }
     }
 

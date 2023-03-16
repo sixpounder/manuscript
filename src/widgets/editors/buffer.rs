@@ -3,14 +3,19 @@ use crate::{
     services::analyst::{MarkupHandler, RegexMatch, TagLookup, TEXT_ANALYZER},
 };
 use gtk::{glib, pango, prelude::*, subclass::prelude::*};
+use std::cell::{RefCell, Ref};
 
 const G_LOG_DOMAIN: &str = "ManuscriptBuffer";
 
 mod imp {
     use super::*;
+    use glib::{ParamSpec, ParamSpecObject, ParamFlags};
+    use once_cell::sync::Lazy;
 
     #[derive(Default)]
-    pub struct ManuscriptBuffer {}
+    pub struct ManuscriptBuffer {
+        pub(super) parent_view: RefCell<Option<gtk::TextView>>
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for ManuscriptBuffer {
@@ -24,6 +29,29 @@ mod imp {
             self.parent_constructed();
             self.obj().bind_default_tags();
         }
+
+        fn properties() -> &'static [gtk::glib::ParamSpec] {
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| vec![
+                ParamSpecObject::new("parent-view", "", "", Option::<gtk::TextView>::static_type(), ParamFlags::READWRITE)
+            ]);
+            PROPERTIES.as_ref()
+        }
+
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            let obj = self.obj();
+            match pspec.name() {
+                "parent-view" => obj.parent_view().to_value(),
+                _ => unimplemented!(),
+            }
+        }
+
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
+            let obj = self.obj();
+            match pspec.name() {
+                "parent-view" => obj.set_parent_view(value.get::<Option<gtk::TextView>>().unwrap()),
+                _ => unimplemented!(),
+            }
+        }
     }
     impl TextBufferImpl for ManuscriptBuffer {}
 }
@@ -34,13 +62,24 @@ glib::wrapper! {
 
 impl Default for ManuscriptBuffer {
     fn default() -> Self {
-        Self::new(None)
+        Self::new(None, None)
     }
 }
 
 impl ManuscriptBuffer {
-    pub fn new(tag_table: Option<gtk::TextTagTable>) -> Self {
-        glib::Object::new(&[("tag-table", &tag_table)])
+    pub fn new(tag_table: Option<gtk::TextTagTable>, parent_view: Option<gtk::TextView>) -> Self {
+        glib::Object::new(&[
+            ("tag-table", &tag_table),
+            ("parent-view", &parent_view),
+        ])
+    }
+
+    pub fn parent_view(&self) -> Option<gtk::TextView> {
+        self.imp().parent_view.borrow().clone()
+    }
+
+    pub fn set_parent_view(&self, value: Option<gtk::TextView>) {
+        *self.imp().parent_view.borrow_mut() = value;
     }
 
     pub fn format_for(&self, view: &gtk::TextView) {

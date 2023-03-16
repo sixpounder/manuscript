@@ -226,7 +226,7 @@ impl ManuscriptTextEditor {
     }
 
     fn set_buffer(&self, value: Option<Bytes>, irreversible: bool) {
-        let text_buffer = ManuscriptBuffer::new(None);
+        let text_buffer = ManuscriptBuffer::new(None, Some(self.text_view()));
         let bytes = value.unwrap_or(Bytes::new());
         let imp = self.imp();
         imp.words_count.set(bytes.words_count());
