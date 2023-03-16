@@ -8,7 +8,7 @@ A text editor specifically designed for book writers, authors and storytellers.
 
 The easieast way to install is from Flathub.
 
-<a href="https://flathub.org/apps/details/io.sixpounder.GameOfLife"><img src="https://flathub.org/assets/badges/flathub-badge-en.png" width="200"/></a>
+<a href="https://flathub.org/apps/details/io.sixpounder.Manuscript"><img src="https://flathub.org/assets/badges/flathub-badge-en.png" width="200"/></a>
 
 ### Using Gnome Builder
 

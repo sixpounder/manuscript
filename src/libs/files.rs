@@ -19,7 +19,7 @@ fn window() -> gtk::Window {
 
 pub fn with_file_open_dialog<F, E>(on_success: F, on_error: E)
 where
-    F: Fn(Document) + 'static,
+    F: Fn(String, Document) + 'static,
     E: Fn(String) + 'static,
 {
     let win = window();
@@ -62,7 +62,7 @@ where
 
                             match Document::try_from(buffer.as_slice()) {
                                 Ok(document) => {
-                                    on_success(document);
+                                    on_success(file_name.into(), document);
                                 },
                                 Err(_error) => {
                                     on_error(i18n("Unreadable file"));
@@ -87,7 +87,7 @@ where
 
 pub fn with_file_save_dialog<F, E>(document: &Document, on_success: F, on_error: E)
 where
-    F: Fn(usize) + 'static,
+    F: Fn(String, usize) + 'static,
     E: Fn(String) + 'static,
 {
     let win = window();
@@ -131,7 +131,7 @@ where
                         match write_result {
                             Ok((bytes_written, _)) => {
                                 glib::info!("Written {} bytes", bytes_written);
-                                on_success(bytes_written);
+                                on_success(file.path().unwrap().to_str().unwrap().into(), bytes_written);
                             },
                             Err(error) => {
                                 glib::g_critical!(G_LOG_DOMAIN, "Unable to write to file: {}", error);

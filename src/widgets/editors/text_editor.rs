@@ -43,7 +43,7 @@ mod imp {
         pub(super) chunk_id: RefCell<Option<String>>,
         pub(super) text_buffer: RefCell<Option<ManuscriptBuffer>>,
         pub(super) metrics_idle_resource_id: RefCell<Option<glib::SourceId>>,
-        pub(super) analysis_idle_resource_id: RefCell<Option<glib::SourceId>>,
+        pub(super) format_idle_resource_id: RefCell<Option<glib::SourceId>>,
         pub(super) locked: Cell<bool>,
         pub(super) show_status_bar: Cell<bool>,
         pub(super) words_count: Cell<u64>,
@@ -62,7 +62,7 @@ mod imp {
                 sender: RefCell::default(),
                 text_buffer: RefCell::default(),
                 metrics_idle_resource_id: RefCell::default(),
-                analysis_idle_resource_id: RefCell::default(),
+                format_idle_resource_id: RefCell::default(),
 
                 chunk_id: RefCell::new(None),
                 show_status_bar: Cell::new(true),
@@ -250,6 +250,7 @@ impl ManuscriptTextEditor {
         imp.text_view.set_buffer(Some(&text_buffer));
         imp.text_buffer.replace(Some(text_buffer));
         self.connect_text_buffer();
+        self.idle_format();
         self.notify("overflowing");
     }
 
@@ -323,71 +324,77 @@ impl ManuscriptTextEditor {
                 .expect("Could not send buffer updates");
                 // TODO: instead of expecting this value, handle failures graphically
 
-                let mut source_id = self.imp().analysis_idle_resource_id.borrow_mut();
-                if source_id.is_some() {
-                    let source_id = source_id.take().unwrap();
-                    source_id.remove();
-                }
-                drop(source_id);
-
-                let source_id = glib::source::idle_add_local_once(
-                    glib::clone!(@strong self as this => move || {
-                        let imp = this.imp();
-                        if let Some(buf) = this.text_buffer_mut().as_mut() {
-                            buf.format_for(&this.text_view());
-                        }
-                        *imp.analysis_idle_resource_id.borrow_mut() = None;
-                    }),
-                );
-                *self.imp().analysis_idle_resource_id.borrow_mut() = Some(source_id);
+                self.idle_format();
 
                 self.notify("overflowing");
             }
 
-            // Cancel any closure registered before, obtain a debounce effect
-            let mut source_id = self.imp().metrics_idle_resource_id.borrow_mut();
-            if source_id.is_some() {
-                let source_id = source_id.take().unwrap();
-                source_id.remove();
-            }
-            drop(source_id);
-
-            let delay = std::time::Duration::from_millis(
-                self.settings().text_analysis_delay().abs() as u64,
-            );
-            let source_id = glib::source::timeout_add_local(
-                delay,
-                glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
-                    let imp = this.imp();
-                    if let Some(buf) = this.text_buffer().as_ref() {
-                        let bytes = bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>());
-                        let words_count = bytes.words_count();
-                        let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
-                        this.set_words_count(words_count);
-                        this.set_reading_time((reading_time_minutes, reading_time_seconds));
-
-                        let chunk_id = imp.chunk_id.borrow();
-                            if let Some(chunk_id) = chunk_id.as_ref() {
-                            let tx = imp.sender.borrow();
-                            let tx = tx.as_ref().expect("No channel sender found");
-
-                            // Ignore any error here, as this is non blocking and will result
-                            // in "only" a UI inconsistency
-                            let _ = tx.send(DocumentAction::UpdateChunkBufferStats(
-                                chunk_id.to_string(),
-                                BufferStats::new(words_count, (reading_time_minutes, reading_time_seconds))
-                            ));
-                        }
-                    }
-
-                    *imp.metrics_idle_resource_id.borrow_mut() = None;
-                    glib::Continue(false)
-                }),
-            );
-            *self.imp().metrics_idle_resource_id.borrow_mut() = Some(source_id);
+            self.debounce_analyze();
         } else {
             panic!("No chunk id is set on this ManuscriptTextEditor. This is suspicious so I am going to kill everything 🤷‍♂️️.");
         }
+    }
+
+    fn debounce_analyze(&self) {
+        // Cancel any closure registered before, obtain a debounce effect
+        let mut source_id = self.imp().metrics_idle_resource_id.borrow_mut();
+        if source_id.is_some() {
+            let source_id = source_id.take().unwrap();
+            source_id.remove();
+        }
+        drop(source_id);
+
+        let delay =
+            std::time::Duration::from_millis(self.settings().text_analysis_delay().abs() as u64);
+        let source_id = glib::source::timeout_add_local(
+            delay,
+            glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
+                let imp = this.imp();
+                if let Some(buf) = this.text_buffer().as_ref() {
+                    let bytes = bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>());
+                    let words_count = bytes.words_count();
+                    let (reading_time_minutes, reading_time_seconds) = bytes.estimate_reading_time();
+                    this.set_words_count(words_count);
+                    this.set_reading_time((reading_time_minutes, reading_time_seconds));
+
+                    let chunk_id = imp.chunk_id.borrow();
+                        if let Some(chunk_id) = chunk_id.as_ref() {
+                        let tx = imp.sender.borrow();
+                        let tx = tx.as_ref().expect("No channel sender found");
+
+                        // Ignore any error here, as this is non blocking and will result
+                        // in "only" a UI inconsistency
+                        let _ = tx.send(DocumentAction::UpdateChunkBufferStats(
+                            chunk_id.to_string(),
+                            BufferStats::new(words_count, (reading_time_minutes, reading_time_seconds))
+                        ));
+                    }
+                }
+
+                *imp.metrics_idle_resource_id.borrow_mut() = None;
+                glib::Continue(false)
+            }),
+        );
+        *self.imp().metrics_idle_resource_id.borrow_mut() = Some(source_id);
+    }
+
+    fn idle_format(&self) {
+        let mut source_id = self.imp().format_idle_resource_id.borrow_mut();
+        if source_id.is_some() {
+            let source_id = source_id.take().unwrap();
+            source_id.remove();
+        }
+        drop(source_id);
+
+        let source_id =
+            glib::source::idle_add_local_once(glib::clone!(@strong self as this => move || {
+                let imp = this.imp();
+                if let Some(buf) = this.text_buffer().as_ref() {
+                    buf.format_for(&this.text_view());
+                }
+                *imp.format_idle_resource_id.borrow_mut() = None;
+            }));
+        *self.imp().format_idle_resource_id.borrow_mut() = Some(source_id);
     }
 
     fn send_update<F>(&self, f: F)

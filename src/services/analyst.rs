@@ -39,17 +39,17 @@ lazy_static! {
 }
 
 pub struct TextAnalyzer {
-    markup_regex: MarkupRegex,
+    markup_regex: RegexRuleCollection,
 }
 
 impl TextAnalyzer {
     pub fn new() -> Self {
         Self {
-            markup_regex: MarkupRegex::new(),
+            markup_regex: RegexRuleCollection::new(),
         }
     }
 
-    pub fn analyze_buffer(&self, buffer: &gtk::TextBuffer, _view: &gtk::TextView) -> Vec<TagMatch> {
+    pub fn analyze_buffer(&self, buffer: &gtk::TextBuffer, view: &gtk::TextView) -> Vec<TagLookup> {
         let text = bytes_from_text_buffer(buffer).to_vec();
         let text: &str = std::str::from_utf8(&text).unwrap();
         let mut results = vec![];
@@ -61,30 +61,8 @@ impl TextAnalyzer {
             let matches = re.find_iter(text);
             for matched in matches {
                 match_count += 1;
-                match tag_name {
-                    "HEADER" => {
-                        let capture = re.captures(matched.as_str()).unwrap();
-                        let level = &capture["level"];
-                        let margin = (level.len() as i32 * -1) - 1;
-                        results.push(TagMatch::new(
-                            tag_rule.as_str(),
-                            tag_name,
-                            matched.start(),
-                            matched.end(),
-                            TAG_NAME_MARGIN_INDENT,
-                            Some((margin, 0)),
-                        ));
-                        results.push(TagMatch::new(
-                            tag_rule.as_str(),
-                            tag_name,
-                            matched.start(),
-                            matched.end(),
-                            TAG_NAME_BOLD,
-                            None,
-                        ));
-                    }
-                    _ => (),
-                }
+                let mut new_values = rule.map(&RegexMatch::new(re, matched, tag_name), view);
+                results.append(&mut new_values);
             }
         }
         glib::g_debug!(
@@ -99,76 +77,80 @@ impl TextAnalyzer {
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub struct TagMatch<'a> {
-    tag_rule: &'a str,
+pub struct RegexMatch<'a> {
+    regex: &'a Regex,
+    re_match: regex::Match<'a>,
     tag_name: &'a str,
-    start: usize,
-    end: usize,
-    target_tag_name: &'a str,
-    args: Option<(i32, i32)>,
 }
 
 #[allow(dead_code)]
-impl<'a> TagMatch<'a> {
-    pub fn new(
-        tag_rule: &'a str,
-        tag_name: &'a str,
-        start: usize,
-        end: usize,
-        target_tag_name: &'a str,
-        args: Option<(i32, i32)>,
-    ) -> Self {
+impl<'a> RegexMatch<'a> {
+    pub fn new(regex: &'a Regex, re_match: regex::Match<'a>, tag_name: &'a str) -> Self {
         Self {
-            tag_rule,
+            regex,
+            re_match,
             tag_name,
-            start,
-            end,
-            target_tag_name,
-            args,
         }
     }
 
-    pub fn tag_rule(&self) -> &str {
-        self.tag_rule
+    pub fn regex(&self) -> &'a Regex {
+        self.regex
+    }
+
+    pub fn matched(&self) -> &regex::Match {
+        &self.re_match
     }
 
     pub fn tag_name(&self) -> &str {
         self.tag_name
     }
 
-    pub fn start(&self) -> usize {
-        self.start
+    pub fn start(&self) -> i32 {
+        self.matched().start().try_into().unwrap()
     }
 
-    pub fn end(&self) -> usize {
-        self.end
-    }
-
-    pub fn target_tag_name(&self) -> &str {
-        self.target_tag_name
-    }
-
-    pub fn args(&self) -> Option<(i32, i32)> {
-        self.args
+    pub fn end(&self) -> i32 {
+        self.matched().end().try_into().unwrap()
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct MarkupRegex {
-    rules: Vec<TagRule>,
+pub struct ApplyTag {
+    pub start: i32,
+    pub end: i32,
+    pub tag: TagLookup,
 }
 
-impl Default for MarkupRegex {
+impl ApplyTag {
+    pub fn new(start: i32, end: i32, tag: TagLookup) -> Self {
+        Self { start, end, tag }
+    }
+}
+
+#[derive(Debug)]
+pub enum TagLookup {
+    ByName(&'static str, i32, i32),
+    ByValue(gtk::TextTag, i32, i32),
+}
+
+#[derive(Debug)]
+pub struct RegexRuleCollection {
+    rules: Vec<RegexRule>,
+}
+
+impl Default for RegexRuleCollection {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl MarkupRegex {
-    fn create_regex(collection: &mut Vec<TagRule>, name: &str, re_content: &str) {
+impl RegexRuleCollection {
+    fn create_regex<F>(collection: &mut Vec<RegexRule>, name: &str, re_content: &str, map: F)
+    where
+        F: Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static,
+    {
         match Regex::new(re_content) {
             Ok(regex) => {
-                collection.push(TagRule::new(String::from(name), regex));
+                collection.push(RegexRule::new(String::from(name), regex, map));
             }
             Err(err) => {
                 glib::g_warning!(
@@ -186,82 +168,186 @@ impl MarkupRegex {
 
         Self::create_regex(
             &mut regexes,
+            "HEADER",
+            r"(?m)^ {0,3}(?P<level>#{1,6}) (?P<text>[^\n]+)$",
+            |matched: &RegexMatch, view: &gtk::TextView| {
+                let capture = matched
+                    .regex()
+                    .captures(matched.matched().as_str())
+                    .unwrap();
+                let level = &capture["level"];
+                let margin = (level.len() as i32 * -1) - 1;
+                vec![
+                    TagLookup::ByValue(
+                        view.margin_indent_tag(margin, 0),
+                        matched.start(),
+                        matched.end(),
+                    ),
+                    TagLookup::ByName(TAG_NAME_BOLD, matched.start(), matched.end()),
+                ]
+            },
+        );
+
+        Self::create_regex(
+            &mut regexes,
             "ITALIC_ASTERISK",
             r"\*[^\s\*](?P<text>.*?\S?.*?)\*",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_ITALIC,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
+
         Self::create_regex(
             &mut regexes,
             "ITALIC_UNDERSCORE",
             r"_[^\s_](?P<text>.*?\S?.*?)_",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_ITALIC,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
+
         Self::create_regex(
             &mut regexes,
             "BOLD_ITALIC",
             r"(\*\*|__)[^\s*](?P<text>.*?\S.*?)(\*\*|__)",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_BOLD_ITALIC,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
-        Self::create_regex(&mut regexes, "STRIKETHROUGH", r"~~(?P<text>.*?\S.*?)~~");
+
         Self::create_regex(
             &mut regexes,
-            "CODE",
-            r"(?P<ticks_start>`+)(?P<content>.+?)(?P<ticks_end>`+)",
+            "STRIKETHROUGH",
+            r"~~(?P<text>.*?\S.*?)~~",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_STRIKETHROUGH,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
+
         Self::create_regex(
             &mut regexes,
             "LINK",
             r#"\[(?P<text>.*?)\]\((?P<url>.+?)(?: "(?P<title>.+)")?\)"#,
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_LINK_COLOR_TEXT,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
+
         Self::create_regex(
             &mut regexes,
-            "LINK_ALT",
-            r"<(?P<text>(?P<url>[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\x00-\x20]*|(?:[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)))>",
+            "HEADER_UNDER",
+            r"(?m)(?:^\n*|\n\n)(?P<text>[^\s].+)\n {0,3}[=\-]+(?: +?\n|$)",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_BOLD,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
-        Self::create_regex(
-            &mut regexes,
-            "IMAGE",
-            r#"!\[(?P<text>.*)\]\((?P<url>.+?)(?: "(?P<title>.+)")?\)"#,
-        );
+
         Self::create_regex(
             &mut regexes,
             "HORIZONTAL_RULE",
             r"(?:^|\n{2,})(?P<symbols> {0,3}[*\-_]{3,} *)(?:\n{2,}|$)",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                let capture = matched
+                    .regex()
+                    .captures(matched.matched().as_str())
+                    .unwrap();
+                let symbols = &capture["symbols"];
+
+                vec![TagLookup::ByName(
+                    TAG_NAME_CENTER,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
-        Self::create_regex(
-            &mut regexes,
-            "LIST",
-            r"(?:^|\n)(?P<content>(?P<indent>(?:\t| {4})*)(?P<symbol>(?:[\-*+])) (?:\t| {4})*(?P<text>.+(?:\n+)*)?)",
-        );
-        Self::create_regex(
-            &mut regexes,
-            "ORDERED_LIST",
-            r"(?:^|\n)(?P<content>(?P<indent>(?:\t| {4})*)(?P<prefix>(?:(?P<number>\d)|(?:[a-z]))+(?P<delimiter>[.)]))(?:\t| {4}| )(?P<text>.+(?:\n+)*)?)",
-        );
-        Self::create_regex(&mut regexes, "BLOCK_QUOTE", r"^ {0,3}(?:> ?)+(?P<text>.+)");
-        Self::create_regex(
-            &mut regexes,
-            "HEADER",
-            r"(?m)^ {0,3}(?P<level>#{1,6}) (?P<text>[^\n]+)$",
-        );
-        Self::create_regex(
-            &mut regexes,
-            "HEADER_UNDER",
-            r"(?:^\n*|\n\n)(?P<text>[^\s].+)\n {0,3}[=\-]+(?: +?\n|$)",
-        );
-        Self::create_regex(
-            &mut regexes,
-            "TABLE",
-            r"^[\-+]{5,}\n(?P<text>.+?)\n[\-+]{5,}\n",
-        );
+
         Self::create_regex(
             &mut regexes,
             "FOOTNOTE_ID",
             r"[^\s]+\[\^(?P<id>(?P<text>[^\s]+))\]",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_LINK_COLOR_TEXT,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
+
         Self::create_regex(
             &mut regexes,
             "FOOTNOTE",
             r"(?:^\n*|\n\n)\[\^(?P<id>[^\s]+)\]:\s?(?P<first_line>(?:[^\n]+)?)(?P<line>(?:\s{4,}[^\n]+|\n+)+)",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                vec![TagLookup::ByName(
+                    TAG_NAME_GRAY_TEXT,
+                    matched.start(),
+                    matched.end(),
+                )]
+            },
         );
-        Self::create_regex(&mut regexes, "MENTION", r"@(?P<content>.+?)@");
+
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "CODE",
+        //     r"(?P<ticks_start>`+)(?P<content>.+?)(?P<ticks_end>`+)",
+        // );
+
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "LINK_ALT",
+        //     r"<(?P<text>(?P<url>[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\x00-\x20]*|(?:[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)))>",
+        // );
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "IMAGE",
+        //     r#"!\[(?P<text>.*)\]\((?P<url>.+?)(?: "(?P<title>.+)")?\)"#,
+        // );
+
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "LIST",
+        //     r"(?:^|\n)(?P<content>(?P<indent>(?:\t| {4})*)(?P<symbol>(?:[\-*+])) (?:\t| {4})*(?P<text>.+(?:\n+)*)?)",
+        // );
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "ORDERED_LIST",
+        //     r"(?:^|\n)(?P<content>(?P<indent>(?:\t| {4})*)(?P<prefix>(?:(?P<number>\d)|(?:[a-z]))+(?P<delimiter>[.)]))(?:\t| {4}| )(?P<text>.+(?:\n+)*)?)",
+        // );
+
+        // Self::create_regex(&mut regexes, "BLOCK_QUOTE", r"^ {0,3}(?:> ?)+(?P<text>.+)");
+
+        // Self::create_regex(
+        //     &mut regexes,
+        //     "TABLE",
+        //     r"^[\-+]{5,}\n(?P<text>.+?)\n[\-+]{5,}\n",
+        // );
+
+        // Self::create_regex(&mut regexes, "MENTION", r"@(?P<content>.+?)@");
 
         // regexes.push(MarkupMatch::new(
         //     "CODE_BLOCK",
@@ -277,27 +363,43 @@ impl MarkupRegex {
         Self { rules: regexes }
     }
 
-    pub fn rules(&self) -> &Vec<TagRule> {
+    pub fn rules(&self) -> &Vec<RegexRule> {
         self.rules.as_ref()
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct TagRule {
+pub struct RegexRule {
     name: String,
     regex: Regex,
+    map_fn: Box<dyn Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static>,
 }
 
-impl TagRule {
-    pub fn new(name: String, regex: Regex) -> Self {
-        Self { name, regex }
+impl std::fmt::Debug for RegexRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "name: {}, regex: {}", self.name(), self.regex())
+    }
+}
+
+unsafe impl Send for RegexRule {}
+unsafe impl Sync for RegexRule {}
+
+impl RegexRule {
+    pub fn new<F>(name: String, regex: Regex, map: F) -> Self
+    where
+        F: Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static,
+    {
+        Self {
+            name,
+            regex,
+            map_fn: Box::new(map),
+        }
     }
 
-    pub fn new_from_slice(name: &'static str, regex: Regex) -> Self {
-        Self {
-            name: String::from(name),
-            regex,
-        }
+    pub fn new_from_slice<F>(name: &'static str, regex: Regex, map: F) -> Self
+    where
+        F: Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static,
+    {
+        Self::new(name.into(), regex, map)
     }
 
     pub fn name(&self) -> &str {
@@ -306,5 +408,9 @@ impl TagRule {
 
     pub fn regex(&self) -> &Regex {
         &self.regex
+    }
+
+    pub fn map(&self, matched: &RegexMatch, view: &gtk::TextView) -> Vec<TagLookup> {
+        (self.map_fn)(matched, view)
     }
 }

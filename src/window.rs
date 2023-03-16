@@ -313,9 +313,10 @@ impl ManuscriptWindow {
 
     fn open_project(&self) {
         with_file_open_dialog(
-            glib::clone!(@strong self as win => move |document| {
+            glib::clone!(@strong self as win => move |path, document| {
                 let imp = win.imp();
                 win.document_manager().set_document(document).expect("Could not set document");
+                win.document_manager().set_backend_path(path);
                 imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
 
                 // Update last opened document
@@ -354,8 +355,8 @@ impl ManuscriptWindow {
             if let Some(document) = document.as_ref() {
                 with_file_save_dialog(
                     document,
-                    glib::clone!(@strong self as win => move |_document| {
-
+                    glib::clone!(@strong self as win => move |path, bytes| {
+                        win.document_manager().set_backend_path(path);
                     }),
                     glib::clone!(@strong self as win => move |err| {
                         glib::g_critical!(G_LOG_DOMAIN, "{}", err);

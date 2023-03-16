@@ -1,6 +1,6 @@
 use crate::{
     libs::consts::*,
-    services::analyst::{MarkupHandler, TagMatch, TEXT_ANALYZER},
+    services::analyst::{MarkupHandler, RegexMatch, TagLookup, TEXT_ANALYZER},
 };
 use gtk::{glib, pango, prelude::*, subclass::prelude::*};
 
@@ -43,31 +43,29 @@ impl ManuscriptBuffer {
         glib::Object::new(&[("tag-table", &tag_table)])
     }
 
-    pub fn format_for(&mut self, view: &gtk::TextView) {
+    pub fn format_for(&self, view: &gtk::TextView) {
         let tags = TEXT_ANALYZER.analyze_buffer(self.upcast_ref::<gtk::TextBuffer>(), view);
         self.apply(tags, view);
     }
 
-    fn apply(&mut self, tags: Vec<TagMatch>, view: &gtk::TextView) {
+    fn apply(&self, tags: Vec<TagLookup>, view: &gtk::TextView) {
         for tag in tags {
             glib::g_debug!(G_LOG_DOMAIN, "Apply tag {:?}", tag);
-            let target_tag = tag.target_tag_name();
-            if let Some(view_tag) = self.tag_table().lookup(target_tag) {
-                self.apply_tag(
-                    &view_tag,
-                    &self.iter_at_offset(tag.start().try_into().unwrap()),
-                    &self.iter_at_offset(tag.end().try_into().unwrap()),
-                );
-            } else if target_tag == TAG_NAME_MARGIN_INDENT {
-                let args = tag.args().unwrap();
-                let mi_tag = view.margin_indent_tag(args.0, args.1);
-                self.apply_tag(
-                    &mi_tag,
-                    &self.iter_at_offset(tag.start().try_into().unwrap()),
-                    &self.iter_at_offset(tag.end().try_into().unwrap()),
-                );
-            } else {
-                glib::g_warning!(G_LOG_DOMAIN, "Tag not supported: {}", tag.target_tag_name());
+            match tag {
+                TagLookup::ByName(target_tag, start, end) => {
+                    if let Some(view_tag) = self.tag_table().lookup(target_tag) {
+                        self.apply_tag(
+                            &view_tag,
+                            &self.iter_at_offset(start),
+                            &self.iter_at_offset(end),
+                        );
+                    } else {
+                        glib::g_warning!(G_LOG_DOMAIN, "Tag not supported: {}", target_tag);
+                    }
+                }
+                TagLookup::ByValue(tag, start, end) => {
+                    self.apply_tag(&tag, &self.iter_at_offset(start), &self.iter_at_offset(end));
+                }
             }
         }
     }
