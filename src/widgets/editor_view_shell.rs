@@ -213,6 +213,12 @@ impl ManuscriptEditorViewShell {
         });
     }
 
+    pub fn update_page(&self, chunk: &dyn DocumentChunk) {
+        if let Some(page) = self.page_for_chunk(chunk) {
+            page.set_title(chunk.safe_title());
+        }
+    }
+
     pub fn set_channel(&self, sender: Sender<DocumentAction>) {
         self.imp().channel.replace(Some(sender));
     }

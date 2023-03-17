@@ -323,6 +323,7 @@ impl DocumentManager {
             if lock.is_some() {
                 *lock = None;
                 drop(lock);
+                *self.backend_path_mut() = None;
                 self.emit_by_name::<()>("document-unloaded", &[]);
             }
             Ok(())
@@ -394,7 +395,7 @@ impl DocumentManager {
     }
 
     pub fn sync(&self) -> ManuscriptResult<usize> {
-        if let Some(backend_file) = self.imp().backend_path.borrow().as_ref() {
+        if let Some(backend_file) = self.backend_path().as_ref() {
             self.with_document_mut(move |document| {
                 if let Ok(serialized) = document.serialize() {
                     let mut f = File::create(backend_file.as_str()).expect("Unable to create file");
@@ -414,6 +415,10 @@ impl DocumentManager {
 
     pub fn backend_path(&self) -> std::cell::Ref<Option<String>> {
         self.imp().backend_path.borrow()
+    }
+
+    pub fn backend_path_mut(&self) -> std::cell::RefMut<Option<String>> {
+        self.imp().backend_path.borrow_mut()
     }
 
     pub fn set_backend_path(&self, path: String) {

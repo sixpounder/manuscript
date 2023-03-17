@@ -49,7 +49,11 @@ impl TextAnalyzer {
         }
     }
 
-    pub fn analyze_buffer(&self, buffer: &gtk::TextBuffer, view: &gtk::TextView) -> Vec<TagLookup> {
+    pub fn analyze_buffer(
+        &self,
+        buffer: &gtk::TextBuffer,
+        view: &gtk::TextView,
+    ) -> Vec<TagApplyRules> {
         let text = bytes_from_text_buffer(buffer).to_vec();
         let text: &str = std::str::from_utf8(&text).unwrap();
         let mut results = vec![];
@@ -62,15 +66,16 @@ impl TextAnalyzer {
             for matched in matches {
                 match_count += 1;
                 let mut new_values = rule.map(&RegexMatch::new(re, matched, tag_name), view);
-                results.append(&mut new_values);
+                results.push(new_values);
             }
         }
         glib::g_debug!(
             G_LOG_DOMAIN,
-            "{} matches by regex -> {} tags emitted by text analysis",
+            "{} matches by regex -> {} rules emitted by text analysis",
             match_count,
             results.len()
         );
+
         results
     }
 }
@@ -126,7 +131,42 @@ impl ApplyTag {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct TagApplyRules {
+    header_candidate: Option<String>,
+    lookups: Vec<TagLookup>,
+}
+
+impl TagApplyRules {
+    pub fn new(lookups: Vec<TagLookup>) -> Self {
+        Self {
+            header_candidate: None,
+            lookups,
+        }
+    }
+
+    pub fn rules(&self) -> &Vec<TagLookup> {
+        self.lookups.as_ref()
+    }
+
+    pub fn rules_mut(&mut self) -> &mut Vec<TagLookup> {
+        self.lookups.as_mut()
+    }
+
+    pub fn is_header(&self) -> bool {
+        self.header_candidate.is_some()
+    }
+
+    pub fn header_candidate(&self) -> Option<&String> {
+        self.header_candidate.as_ref()
+    }
+
+    pub fn set_header_candidate(&mut self, value: Option<String>) {
+        self.header_candidate = value;
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum TagLookup {
     ByName(&'static str, i32, i32),
     ByValue(gtk::TextTag, i32, i32),
@@ -146,7 +186,7 @@ impl Default for RegexRuleCollection {
 impl RegexRuleCollection {
     fn create_regex<F>(collection: &mut Vec<RegexRule>, name: &str, re_content: &str, map: F)
     where
-        F: Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static,
+        F: Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static,
     {
         match Regex::new(re_content) {
             Ok(regex) => {
@@ -177,14 +217,20 @@ impl RegexRuleCollection {
                     .unwrap();
                 let level = &capture["level"];
                 let margin = (level.len() as i32 * -1) - 1;
-                vec![
+                let mut rules = TagApplyRules::new(vec![
                     TagLookup::ByValue(
                         view.margin_indent_tag(margin, 0),
                         matched.start(),
                         matched.end(),
                     ),
                     TagLookup::ByName(TAG_NAME_BOLD, matched.start(), matched.end()),
-                ]
+                ]);
+
+                if let Some(content) = &capture.get(2) {
+                    rules.set_header_candidate(Some(content.as_str().into()));
+                }
+
+                rules
             },
         );
 
@@ -193,11 +239,11 @@ impl RegexRuleCollection {
             "BOLD",
             r"(\*\*|__)[^\s*](?P<text>.*?\S.*?)(\*\*|__)",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_BOLD,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -206,11 +252,11 @@ impl RegexRuleCollection {
             "ITALIC_ASTERISK",
             r"\*[^\s\*](?P<text>.*?\S?.*?)\*",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_ITALIC,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -219,11 +265,11 @@ impl RegexRuleCollection {
             "ITALIC_UNDERSCORE",
             r"_[^\s_](?P<text>.*?\S?.*?)_",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_ITALIC,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -232,11 +278,11 @@ impl RegexRuleCollection {
             "BOLD_ITALIC",
             r"(\*\*\*|___)[^\s*](?P<text>.*?\S.*?)(\*\*\*|___)",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_BOLD_ITALIC,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -245,11 +291,11 @@ impl RegexRuleCollection {
             "STRIKETHROUGH",
             r"~~(?P<text>.*?\S.*?)~~",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_STRIKETHROUGH,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -258,11 +304,11 @@ impl RegexRuleCollection {
             "LINK",
             r#"\[(?P<text>.*?)\]\((?P<url>.+?)(?: "(?P<title>.+)")?\)"#,
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_LINK_COLOR_TEXT,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -271,11 +317,11 @@ impl RegexRuleCollection {
             "HEADER_UNDER",
             r"(?m)(?:^\n*|\n\n)(?P<text>[^\s].+)\n {0,3}[=\-]+(?: +?\n|$)",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_BOLD,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -290,11 +336,11 @@ impl RegexRuleCollection {
                     .unwrap();
                 let symbols = &capture["symbols"];
 
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_CENTER,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -304,11 +350,11 @@ impl RegexRuleCollection {
             r"\[\^(?P<id>(?P<text>[^\s]+))\]",
             // r"[^\s]+\[\^(?P<id>(?P<text>[^\s]+))\]", <- This version to include preceding word
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_LINK_COLOR_TEXT,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -320,11 +366,11 @@ impl RegexRuleCollection {
             "FOOTNOTE",
             r"(?:^\n*|\n\n)\[\^(?P<id>[^\s]+)\]:\s?(?P<content>(?:[^\n]+)?)",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_GRAY_TEXT,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -346,11 +392,11 @@ impl RegexRuleCollection {
             "SUBSCRIPT",
             r"~[^\n*].*~",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_SUBSCRIPT,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -359,11 +405,11 @@ impl RegexRuleCollection {
             "SUPERSCRIPT",
             r"\^[^\n*].*\^",
             |matched: &RegexMatch, _view: &gtk::TextView| {
-                vec![TagLookup::ByName(
+                TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_SUPERSCRIPT,
                     matched.start(),
                     matched.end(),
-                )]
+                )])
             },
         );
 
@@ -427,7 +473,7 @@ impl RegexRuleCollection {
 pub struct RegexRule {
     name: String,
     regex: Regex,
-    map_fn: Box<dyn Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static>,
+    map_fn: Box<dyn Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static>,
 }
 
 impl std::fmt::Debug for RegexRule {
@@ -442,7 +488,7 @@ unsafe impl Sync for RegexRule {}
 impl RegexRule {
     pub fn new<F>(name: String, regex: Regex, map: F) -> Self
     where
-        F: Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static,
+        F: Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static,
     {
         Self {
             name,
@@ -453,7 +499,7 @@ impl RegexRule {
 
     pub fn new_from_slice<F>(name: &'static str, regex: Regex, map: F) -> Self
     where
-        F: Fn(&RegexMatch, &gtk::TextView) -> Vec<TagLookup> + 'static,
+        F: Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static,
     {
         Self::new(name.into(), regex, map)
     }
@@ -466,7 +512,7 @@ impl RegexRule {
         &self.regex
     }
 
-    pub fn map(&self, matched: &RegexMatch, view: &gtk::TextView) -> Vec<TagLookup> {
+    pub fn map(&self, matched: &RegexMatch, view: &gtk::TextView) -> TagApplyRules {
         (self.map_fn)(matched, view)
     }
 }

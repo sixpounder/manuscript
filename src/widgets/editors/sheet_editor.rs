@@ -1,3 +1,4 @@
+use super::ManuscriptBuffer;
 use crate::{models::*, services::prelude::*, services::*};
 use adw::{prelude::*, subclass::prelude::*};
 use bytes::Bytes;
@@ -22,6 +23,9 @@ mod imp {
         pub(super) character_gender_entry: TemplateChild<adw::ComboRow>,
 
         #[template_child]
+        pub(super) character_age_adjustment: TemplateChild<gtk::Adjustment>,
+
+        #[template_child]
         pub(super) background_text_view: TemplateChild<gtk::TextView>,
 
         #[template_child]
@@ -31,13 +35,13 @@ mod imp {
         pub(super) psycological_traits_text_view: TemplateChild<gtk::TextView>,
 
         #[template_child]
-        pub(super) character_background_buffer: TemplateChild<gtk::TextBuffer>,
+        pub(super) character_background_buffer: TemplateChild<ManuscriptBuffer>,
 
         #[template_child]
-        pub(super) character_physical_traits_buffer: TemplateChild<gtk::TextBuffer>,
+        pub(super) character_physical_traits_buffer: TemplateChild<ManuscriptBuffer>,
 
         #[template_child]
-        pub(super) character_psycological_traits_buffer: TemplateChild<gtk::TextBuffer>,
+        pub(super) character_psycological_traits_buffer: TemplateChild<ManuscriptBuffer>,
 
         pub(super) chunk_id: RefCell<String>,
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
@@ -162,6 +166,9 @@ impl ManuscriptCharacterSheetEditor {
         self.character_gender_entry()
             .set_selected(source.gender().into());
 
+        self.character_age_adjustment()
+            .set_value(source.age().unwrap_or(0) as f64);
+
         self.character_background_buffer().set_text(
             String::from_utf8(source.background().to_vec())
                 .unwrap()
@@ -218,6 +225,16 @@ impl ManuscriptCharacterSheetEditor {
         });
     }
 
+    pub fn set_character_age(&self, value: u32) {
+        self.send_update(move |chunk| {
+            let obj = chunk
+                .as_any_mut()
+                .downcast_mut::<CharacterSheet>()
+                .expect("How?");
+            obj.set_age(Some(value));
+        })
+    }
+
     pub fn character_role(&self) -> Option<String> {
         Some(self.imp().character_role_entry.text().into())
     }
@@ -233,7 +250,11 @@ impl ManuscriptCharacterSheetEditor {
     }
 
     pub fn character_background(&self) -> Bytes {
-        bytes_from_text_buffer(&self.character_background_buffer())
+        bytes_from_text_buffer(
+            &self
+                .character_background_buffer()
+                .upcast::<gtk::TextBuffer>(),
+        )
     }
 
     pub fn set_character_background(&self, value: Option<Bytes>) {
@@ -247,7 +268,11 @@ impl ManuscriptCharacterSheetEditor {
     }
 
     pub fn character_physical_traits(&self) -> Bytes {
-        bytes_from_text_buffer(&self.character_physical_traits_buffer())
+        bytes_from_text_buffer(
+            &self
+                .character_physical_traits_buffer()
+                .upcast::<gtk::TextBuffer>(),
+        )
     }
 
     pub fn set_character_physical_traits(&self, value: Option<Bytes>) {
@@ -261,7 +286,11 @@ impl ManuscriptCharacterSheetEditor {
     }
 
     pub fn character_psycological_traits(&self) -> Bytes {
-        bytes_from_text_buffer(&self.character_psycological_traits_buffer())
+        bytes_from_text_buffer(
+            &self
+                .character_psycological_traits_buffer()
+                .upcast::<gtk::TextBuffer>(),
+        )
     }
 
     pub fn set_character_psycological_traits(&self, value: Option<Bytes>) {
@@ -288,6 +317,10 @@ impl ManuscriptCharacterSheetEditor {
         self.imp().character_gender_entry.get()
     }
 
+    fn character_age_adjustment(&self) -> gtk::Adjustment {
+        self.imp().character_age_adjustment.get()
+    }
+
     fn background_text_view(&self) -> gtk::TextView {
         self.imp().background_text_view.get()
     }
@@ -300,15 +333,15 @@ impl ManuscriptCharacterSheetEditor {
         self.imp().psycological_traits_text_view.get()
     }
 
-    fn character_background_buffer(&self) -> gtk::TextBuffer {
+    fn character_background_buffer(&self) -> ManuscriptBuffer {
         self.imp().character_background_buffer.get()
     }
 
-    fn character_physical_traits_buffer(&self) -> gtk::TextBuffer {
+    fn character_physical_traits_buffer(&self) -> ManuscriptBuffer {
         self.imp().character_physical_traits_buffer.get()
     }
 
-    fn character_psycological_traits_buffer(&self) -> gtk::TextBuffer {
+    fn character_psycological_traits_buffer(&self) -> ManuscriptBuffer {
         self.imp().character_psycological_traits_buffer.get()
     }
 
@@ -329,6 +362,12 @@ impl ManuscriptCharacterSheetEditor {
 
     fn connect_events(&self) {
         let imp = self.imp();
+
+        imp.character_age_adjustment.connect_value_changed(
+            glib::clone!(@weak self as this => move |adjustment| {
+                this.set_character_age(adjustment.value() as u32);
+            }),
+        );
 
         imp.character_name_entry
             .connect_changed(glib::clone!(@weak self as this => move |_| {
@@ -353,19 +392,19 @@ impl ManuscriptCharacterSheetEditor {
 
         self.character_background_buffer().connect_changed(
             glib::clone!(@weak self as this => move |buf| {
-                this.set_character_background(Some(bytes_from_text_buffer(buf)))
+                this.set_character_background(Some(bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>())))
             }),
         );
 
         self.character_physical_traits_buffer().connect_changed(
             glib::clone!(@weak self as this => move |buf| {
-                this.set_character_physical_traits(Some(bytes_from_text_buffer(buf)))
+                this.set_character_physical_traits(Some(bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>())))
             }),
         );
 
         self.character_psycological_traits_buffer().connect_changed(
             glib::clone!(@weak self as this => move |buf| {
-                this.set_character_psycological_traits(Some(bytes_from_text_buffer(buf)))
+                this.set_character_psycological_traits(Some(bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>())))
             }),
         );
     }

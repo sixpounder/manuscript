@@ -11,14 +11,14 @@ use adw::subclass::prelude::*;
 use bytes::Bytes;
 use gtk::{
     gio, glib,
-    glib::{clone, Sender},
+    glib::{clone, closure_local, ParamSpec, Sender},
     prelude::*,
 };
 use std::cell::{Cell, RefCell};
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
+    use glib::{ParamFlags, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(gtk::CompositeTemplate)]
@@ -276,6 +276,14 @@ impl ManuscriptTextEditor {
             buffer.connect_changed(clone!(@strong self as this => move |buf| {
                 this.on_buffer_changed(buf);
             }));
+
+            buffer.connect_closure(
+                "parse-first-header",
+                false,
+                closure_local!(@strong self as this => move |_buf: ManuscriptBuffer, spec: String| {
+                    this.on_parse_first_header(spec);
+                }),
+            );
         }
     }
 
@@ -334,6 +342,14 @@ impl ManuscriptTextEditor {
         } else {
             panic!("No chunk id is set on this ManuscriptTextEditor. This is suspicious so I am going to kill everything 🤷‍♂️️.");
         }
+    }
+
+    fn on_parse_first_header(&self, value: String) {
+        self.send_update(move |chunk| {
+            if let Some(chapter) = chunk.as_any_mut().downcast_mut::<Chapter>() {
+                chapter.set_title(value.as_str());
+            }
+        });
     }
 
     fn debounce_analyze(&self) {

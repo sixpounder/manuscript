@@ -315,14 +315,20 @@ impl ManuscriptWindow {
         with_file_open_dialog(
             glib::clone!(@strong self as win => move |path, document| {
                 let imp = win.imp();
-                win.document_manager().set_document(document).expect("Could not set document");
-                win.document_manager().set_backend_path(path);
+                let dm = win.document_manager();
+
+                if dm.has_document() && dm.unset_document().is_ok() {
+                    win.editor_view().clear();
+                    win.project_layout().clear();
+                }
+                dm.set_document(document).expect("Could not set document");
+                dm.set_backend_path(path);
                 imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
 
                 // Update last opened document
                 let settings = &imp.settings;
-                if imp.document_manager.has_backend() {
-                    let backend_path = imp.document_manager.backend_path().as_ref().unwrap().clone();
+                if dm.has_backend() {
+                    let backend_path = dm.backend_path().as_ref().unwrap().clone();
                     settings.set_last_opened_document(&backend_path);
                     glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
                 }
@@ -409,7 +415,7 @@ impl ManuscriptWindow {
                 imp.project_layout.add_chunk(added_chunk);
 
                 // Ensure flap closes and editor view gets revealed if in folded mode
-                let flap = imp.flap.get();
+                let flap = self.flap();
                 if flap.is_folded() {
                     flap.set_reveal_flap(false);
                 }
@@ -431,7 +437,9 @@ impl ManuscriptWindow {
             if let Some(document) = &*lock {
                 let selected_chunk = document.get_chunk_ref(id.as_str()).unwrap();
                 self.editor_view().select_page(selected_chunk);
-                let flap = self.imp().flap.get();
+
+                // Ensure flap closes and editor view gets revealed if in folded mode
+                let flap = self.flap();
                 if flap.is_folded() {
                     flap.set_reveal_flap(false);
                 }
@@ -440,7 +448,8 @@ impl ManuscriptWindow {
     }
 
     fn on_chunk_updated(&self, id: String) {
-        self.update_layout_chunk_row(id);
+        self.update_layout_chunk_row(id.clone());
+        self.update_editor_view_shell(id);
         // TODO: maybe tick for autosave here?
     }
 
@@ -561,5 +570,31 @@ impl ManuscriptWindow {
                 "Chunk {id} was notified to be updated, but then was not found in document"
             );
         }
+    }
+
+    fn update_editor_view_shell(&self, id: String) {
+        if let Ok(lock) = self.document_manager().document_ref() {
+            if let Some(document) = &*lock {
+                if let Some(chunk) = document.get_chunk_ref(&id) {
+                    self.editor_view().update_page(chunk);
+                } else {
+                    glib::g_warning!(
+                        G_LOG_DOMAIN,
+                        "Chunk {id} was notified to be updated, but then was not found in document"
+                    );
+                }
+            } else {
+                glib::g_warning!(G_LOG_DOMAIN, "Could not lock document");
+            }
+        } else {
+            glib::g_warning!(
+                G_LOG_DOMAIN,
+                "Chunk {id} was notified to be updated, but then was not found in document"
+            );
+        }
+    }
+
+    pub fn flap(&self) -> adw::Flap {
+        self.imp().flap.get()
     }
 }

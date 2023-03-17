@@ -97,7 +97,13 @@ impl DocumentChunk for Chapter {
 
     fn title(&self) -> Option<&str> {
         match self.title.as_ref() {
-            Some(title) => Some(title.as_str()),
+            Some(title) => {
+                if title.is_empty() {
+                    None
+                } else {
+                    Some(title.as_str())
+                }
+            }
             None => None,
         }
     }
@@ -209,6 +215,7 @@ pub struct CharacterSheet {
     locked: bool,
     name: Option<String>,
     gender: Gender,
+    age: Option<u32>,
     role: Option<String>,
     physical_traits: Bytes,
     psycological_traits: Bytes,
@@ -223,6 +230,7 @@ impl Default for CharacterSheet {
             locked: false,
             name: None,
             gender: Gender::Unspecified,
+            age: None,
             role: None,
             physical_traits: Bytes::new(),
             psycological_traits: Bytes::new(),
@@ -254,6 +262,14 @@ impl CharacterSheet {
 
     pub fn set_gender(&mut self, value: Gender) {
         self.gender = value;
+    }
+
+    pub fn age(&self) -> Option<u32> {
+        self.age
+    }
+
+    pub fn set_age(&mut self, value: Option<u32>) {
+        self.age = value;
     }
 
     pub fn background(&self) -> &[u8] {
@@ -300,7 +316,13 @@ impl DocumentChunk for CharacterSheet {
 
     fn title(&self) -> Option<&str> {
         match self.name.as_ref() {
-            Some(title) => Some(title.as_str()),
+            Some(title) => {
+                if title.is_empty() {
+                    None
+                } else {
+                    Some(title.as_str())
+                }
+            }
             None => None,
         }
     }

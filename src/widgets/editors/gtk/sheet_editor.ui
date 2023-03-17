@@ -18,7 +18,8 @@
         <property name="margin-top">24</property>
         <child>
           <object class="AdwClamp">
-            <property name="maximum-size">800</property>
+            <property name="tightening-threshold">612</property>
+            <property name="maximum-size">1024</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
@@ -59,6 +60,21 @@
                                 </items>
                               </object>
                             </property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Age</property>
+                            <property name="title-selectable">false</property>
+                            <property name="subtitle" translatable="yes">Leave this at zero to specify no age</property>
+                            <property name="activatable">true</property>
+                            <property name="activatable-widget">character_age_spin_button</property>
+                            <child>
+                              <object class="GtkSpinButton" id="character_age_spin_button">
+                                <property name="valign">center</property>
+                                <property name="adjustment">character_age_adjustment</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
@@ -108,7 +124,9 @@
                                 <property name="justification">GTK_JUSTIFY_FILL</property>
                                 <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
                                 <property name="buffer">
-                                  <object class="GtkTextBuffer" id="character_background_buffer">
+                                  <object class="ManuscriptBuffer" id="character_background_buffer">
+                                    <property name="parent-view">background_text_view</property>
+                                    <property name="autoformat">True</property>
                                   </object>
                                 </property>
                                 <style>
@@ -149,7 +167,9 @@
                                 <property name="justification">GTK_JUSTIFY_FILL</property>
                                 <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
                                 <property name="buffer">
-                                  <object class="GtkTextBuffer" id="character_physical_traits_buffer">
+                                  <object class="ManuscriptBuffer" id="character_physical_traits_buffer">
+                                    <property name="parent-view">physical_traits_text_view</property>
+                                    <property name="autoformat">True</property>
                                   </object>
                                 </property>
                                 <style>
@@ -190,7 +210,9 @@
                                 <property name="justification">GTK_JUSTIFY_FILL</property>
                                 <property name="wrap-mode">GTK_WRAP_WORD_CHAR</property>
                                 <property name="buffer">
-                                  <object class="GtkTextBuffer" id="character_psycological_traits_buffer">
+                                  <object class="ManuscriptBuffer" id="character_psycological_traits_buffer">
+                                    <property name="parent-view">psycological_traits_text_view</property>
+                                    <property name="autoformat">True</property>
                                   </object>
                                 </property>
                                 <style>
@@ -211,5 +233,10 @@
       </object>
     </child>
   </template>
+  <object class="GtkAdjustment" id="character_age_adjustment">
+    <property name="lower">0</property>
+    <property name="upper">10000</property>
+    <property name="step-increment">1</property>
+  </object>
 </interface>
 
