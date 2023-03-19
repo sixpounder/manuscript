@@ -22,7 +22,7 @@ impl MarkupHandler for gtk::TextView {
         if let Some(tag) = self.tag(tag_name.as_str()) {
             tag
         } else {
-            let (margin, indent) = get_margin_indent(&self, margin_level, indent_level, None, None);
+            let (margin, indent) = get_margin_indent(self, margin_level, indent_level, None, None);
             self.buffer()
                 .create_tag(
                     Some(tag_name.as_str()),
@@ -59,13 +59,13 @@ impl TextAnalyzer {
         let mut results = vec![];
         let mut match_count = 0;
         for rule in self.markup_regex.rules() {
-            let tag_rule = rule.regex();
+            // let tag_rule = rule.regex();
             let tag_name = rule.name();
             let re = rule.regex();
             let matches = re.find_iter(text);
             for matched in matches {
                 match_count += 1;
-                let mut new_values = rule.map(&RegexMatch::new(re, matched, tag_name), view);
+                let new_values = rule.map(&RegexMatch::new(re, matched, tag_name), view);
                 results.push(new_values);
             }
         }
@@ -116,18 +116,6 @@ impl<'a> RegexMatch<'a> {
 
     pub fn end(&self) -> i32 {
         self.matched().end().try_into().unwrap()
-    }
-}
-
-pub struct ApplyTag {
-    pub start: i32,
-    pub end: i32,
-    pub tag: TagLookup,
-}
-
-impl ApplyTag {
-    pub fn new(start: i32, end: i32, tag: TagLookup) -> Self {
-        Self { start, end, tag }
     }
 }
 
@@ -216,7 +204,7 @@ impl RegexRuleCollection {
                     .captures(matched.matched().as_str())
                     .unwrap();
                 let level = &capture["level"];
-                let margin = (level.len() as i32 * -1) - 1;
+                let margin = -(level.len() as i32) - 1;
                 let mut rules = TagApplyRules::new(vec![
                     TagLookup::ByValue(
                         view.margin_indent_tag(margin, 0),
@@ -334,7 +322,7 @@ impl RegexRuleCollection {
                     .regex()
                     .captures(matched.matched().as_str())
                     .unwrap();
-                let symbols = &capture["symbols"];
+                let _symbols = &capture["symbols"];
 
                 TagApplyRules::new(vec![TagLookup::ByName(
                     TAG_NAME_CENTER,
@@ -413,6 +401,22 @@ impl RegexRuleCollection {
             },
         );
 
+        Self::create_regex(
+            &mut regexes,
+            "CODE_BLOCK",
+            r"(?ms)^ {0,3}(?P<block>([`~]{3})(?P<text>.+?)`{3})(?:\s+?$|$)",
+            |matched: &RegexMatch, view: &gtk::TextView| {
+                TagApplyRules::new(vec![
+                    TagLookup::ByName(TAG_NAME_CODE_BLOCK, matched.start(), matched.end()),
+                    TagLookup::ByValue(
+                        view.margin_indent_tag(0, 1),
+                        matched.start(),
+                        matched.end(),
+                    ),
+                ])
+            },
+        );
+
         // Self::create_regex(
         //     &mut regexes,
         //     "CODE",
@@ -451,12 +455,6 @@ impl RegexRuleCollection {
 
         // Self::create_regex(&mut regexes, "MENTION", r"@(?P<content>.+?)@");
 
-        // regexes.push(MarkupMatch::new(
-        //     "CODE_BLOCK",
-        //     Regex::new(r"^ {0,3}(?P<block>([`~]{3})(?P<text>.+?)(?<! ) {0,3}\2)(?:\s+?$|$)")
-        //         .unwrap(),
-        // ));
-
         // regexes.push(MatchableTag::new(
         //     "MATH",
         //     Regex::new(r"([$]{1,2})(?P<text>[^`\\ ]{1,2}|[^` ].+?[^`\\ ])\1").unwrap(),
@@ -470,10 +468,12 @@ impl RegexRuleCollection {
     }
 }
 
+type RegexRuleMapFn = Box<dyn Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static>;
+
 pub struct RegexRule {
     name: String,
     regex: Regex,
-    map_fn: Box<dyn Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static>,
+    map_fn: RegexRuleMapFn,
 }
 
 impl std::fmt::Debug for RegexRule {
@@ -497,6 +497,7 @@ impl RegexRule {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_from_slice<F>(name: &'static str, regex: Regex, map: F) -> Self
     where
         F: Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static,

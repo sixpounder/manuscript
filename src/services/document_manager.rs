@@ -1,6 +1,6 @@
 use crate::models::{
-    Chapter, CharacterSheet, Document, DocumentChunk, ManuscriptError, ManuscriptResult,
-    MutableBufferChunk,
+    Chapter, CharacterSheet, Document, DocumentChunk, DocumentSettings, ManuscriptError,
+    ManuscriptResult, MutableBufferChunk,
 };
 use adw::subclass::prelude::*;
 use bytes::{Buf, Bytes, BytesMut};
@@ -176,12 +176,12 @@ impl DocumentManager {
     }
 
     fn process_action(&self, action: DocumentAction) {
-        glib::g_debug!(G_LOG_DOMAIN, "DocumentManager::{}", action);
+        glib::trace!("{}::{}", G_LOG_DOMAIN, action);
         match action {
             DocumentAction::SetTitle(new_title) => {
                 if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(document) = lock.as_mut() {
-                        document.set_title(new_title);
+                        document.set_title(Some(new_title));
                     }
                 }
                 self.emit_by_name::<()>("title-set", &[]);
@@ -275,6 +275,18 @@ impl DocumentManager {
 
     pub fn document_guard(&self) -> &RwLock<Option<Document>> {
         &self.imp().document
+    }
+
+    pub fn document_settings(&self) -> Result<DocumentSettings, ManuscriptError> {
+        if let Ok(lock) = self.document_guard().read() {
+            if let Some(document) = lock.as_ref() {
+                Ok(document.settings().clone())
+            } else {
+                Err(ManuscriptError::NoDocument)
+            }
+        } else {
+            Err(ManuscriptError::DocumentLock)
+        }
     }
 
     pub fn with_document<F, T>(&self, f: F) -> Result<T, ManuscriptError>

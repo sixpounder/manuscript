@@ -18,7 +18,7 @@ use std::cell::{Cell, RefCell};
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpecBoolean, ParamSpecObject, ParamSpecString};
+    use glib::{ParamFlags, ParamSpecBoolean, ParamSpecInt, ParamSpecObject, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(gtk::CompositeTemplate)]
@@ -124,6 +124,15 @@ mod imp {
                         Option::<gtk::TextBuffer>::static_type(),
                         ParamFlags::READWRITE,
                     ),
+                    ParamSpecInt::new(
+                        "paragraph-spacing",
+                        "",
+                        "",
+                        0,
+                        100,
+                        36,
+                        ParamFlags::READABLE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -149,6 +158,7 @@ mod imp {
                     let adjustment = imp.scroll_container.vadjustment();
                     (adjustment.upper() > (adjustment.lower() + adjustment.page_size())).to_value()
                 }
+                "paragraph-spacing" => 36i32.to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -361,8 +371,9 @@ impl ManuscriptTextEditor {
         }
         drop(source_id);
 
-        let delay =
-            std::time::Duration::from_millis(self.settings().text_analysis_delay().abs() as u64);
+        let delay = std::time::Duration::from_millis(
+            self.settings().text_analysis_delay().unsigned_abs() as u64,
+        );
         let source_id = glib::source::timeout_add_local(
             delay,
             glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
@@ -420,10 +431,7 @@ impl ManuscriptTextEditor {
     {
         let chunk_id = self.chunk_id().expect("No chunk id");
         self.sender()
-            .send(DocumentAction::UpdateChunkWith(
-                chunk_id.clone(),
-                Box::new(f),
-            ))
+            .send(DocumentAction::UpdateChunkWith(chunk_id, Box::new(f)))
             .expect("Failed to send character sheet update");
     }
 

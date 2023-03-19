@@ -2,8 +2,7 @@ use adw::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::{gio, glib};
 
-use crate::config::VERSION;
-use crate::ManuscriptWindow;
+use crate::{config::VERSION, services::i18n::translators_list, ManuscriptWindow};
 
 mod imp {
     use super::*;
@@ -86,7 +85,10 @@ impl ManuscriptApplication {
             .application_icon("io.sixpounder.Manuscript")
             .developer_name("Andrea Coronese")
             .version(VERSION)
+            .website("https://github.com/sixpounder/manuscript")
+            .issue_url("https://github.com/sixpounder/manuscript/issues")
             .developers(vec!["Andrea Coronese".into()])
+            .translator_credits(translators_list().join("\n").as_str())
             .copyright("© 2023 Andrea Coronese")
             .build();
 

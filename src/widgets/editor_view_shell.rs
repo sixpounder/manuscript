@@ -7,7 +7,7 @@ use gtk::{
 };
 use std::cell::RefCell;
 
-const G_LOG_DOMAIN: &str = "ManuscriptEditorViewShell";
+// const G_LOG_DOMAIN: &str = "ManuscriptEditorViewShell";
 
 mod imp {
     use super::*;

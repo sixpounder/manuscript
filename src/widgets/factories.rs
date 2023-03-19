@@ -53,30 +53,30 @@ pub fn create_expander_row_for_chunk(chunk: &dyn DocumentChunk) -> adw::Expander
 
 /// Finds the `adw::ActionRow` related to `chunk` inside `parent`. If not found, creates
 /// it and adds it to the proper category expander.
-pub fn get_or_create_row_for_chunk(
-    parent: &gtk::Widget,
-    chunk: &dyn DocumentChunk,
-) -> ManuscriptChunkRow {
-    let mut child = parent.first_child();
-    let mut existing_row = None;
-    while child.is_some() {
-        let existing_child = child.unwrap();
-        child = existing_child.next_sibling();
-        let maybe_data = unsafe { existing_child.data::<String>("chunk_id") };
-        if let Some(inner_data) = maybe_data {
-            let inner_data = unsafe { inner_data.as_ref() };
-            if *inner_data == chunk.id() {
-                existing_row = Some(
-                    existing_child
-                        .downcast::<ManuscriptChunkRow>()
-                        .expect("Not a ManuscriptChunkRow"),
-                );
-            }
-        }
-    }
+// pub fn get_or_create_row_for_chunk(
+//     parent: &gtk::Widget,
+//     chunk: &dyn DocumentChunk,
+// ) -> ManuscriptChunkRow {
+//     let mut child = parent.first_child();
+//     let mut existing_row = None;
+//     while child.is_some() {
+//         let existing_child = child.unwrap();
+//         child = existing_child.next_sibling();
+//         let maybe_data = unsafe { existing_child.data::<String>("chunk_id") };
+//         if let Some(inner_data) = maybe_data {
+//             let inner_data = unsafe { inner_data.as_ref() };
+//             if *inner_data == chunk.id() {
+//                 existing_row = Some(
+//                     existing_child
+//                         .downcast::<ManuscriptChunkRow>()
+//                         .expect("Not a ManuscriptChunkRow"),
+//                 );
+//             }
+//         }
+//     }
 
-    existing_row.unwrap_or_else(|| create_row_for_chunk(chunk))
-}
+//     existing_row.unwrap_or_else(|| create_row_for_chunk(chunk))
+// }
 
 pub fn create_row_for_chunk(chunk: &dyn DocumentChunk) -> ManuscriptChunkRow {
     ManuscriptChunkRow::new(Some(chunk))

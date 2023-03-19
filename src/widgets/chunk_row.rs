@@ -135,7 +135,7 @@ impl ManuscriptChunkRow {
 
     pub fn update_chunk_reading_stats(&self, chunk: Option<&dyn DocumentChunk>, words_count: u64) {
         if let Some(chunk) = chunk {
-            if let Some(_) = chunk.as_any().downcast_ref::<Chapter>() {
+            if chunk.as_any().downcast_ref::<Chapter>().is_some() {
                 self.set_subtitle(format!("{} {}", words_count, i18n("words")).as_str());
             }
         }

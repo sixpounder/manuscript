@@ -95,6 +95,10 @@ mod imp {
                 win.save_project();
             });
 
+            klass.install_action("project.save-as", None, move |win, _, _| {
+                win.save_project_as();
+            });
+
             klass.install_action("project.close", None, move |win, _, _| {
                 win.close_project();
             });
@@ -361,7 +365,7 @@ impl ManuscriptWindow {
             if let Some(document) = document.as_ref() {
                 with_file_save_dialog(
                     document,
-                    glib::clone!(@strong self as win => move |path, bytes| {
+                    glib::clone!(@strong self as win => move |path, _bytes| {
                         win.document_manager().set_backend_path(path);
                     }),
                     glib::clone!(@strong self as win => move |err| {
@@ -375,9 +379,9 @@ impl ManuscriptWindow {
         }
     }
 
-    fn save_project_as(&self, path: String) {
-        self.document_manager().set_backend_path(path);
-        let _ = self.document_manager().sync();
+    fn save_project_as(&self) {
+        // self.document_manager().set_backend_path(path);
+        // let _ = self.document_manager().sync();
     }
 
     fn close_project(&self) {

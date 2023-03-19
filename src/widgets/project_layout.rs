@@ -131,6 +131,7 @@ impl ManuscriptProjectLayout {
         }
     }
 
+    #[allow(dead_code)]
     fn expanders(&self) -> Vec<gtk::Widget> {
         let layout = self.imp().layout.get();
         let mut children = vec![];

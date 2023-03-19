@@ -27,6 +27,7 @@ impl DocumentManifest {
     pub fn title(&self) -> Option<&String> {
         self.title.as_ref()
     }
+
     pub fn set_title(&mut self, value: Option<String>) {
         self.title = value;
     }

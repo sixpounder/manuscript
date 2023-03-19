@@ -117,8 +117,8 @@
                                 <property name="can-focus">true</property>
                                 <property name="monospace">true</property>
                                 <property name="pixels-below-lines">12</property>
-                                <property name="left-margin">12</property>
-                                <property name="right-margin">12</property>
+                                <property name="left-margin">60</property>
+                                <property name="right-margin">60</property>
                                 <property name="top-margin">24</property>
                                 <property name="bottom-margin">24</property>
                                 <property name="justification">GTK_JUSTIFY_FILL</property>
@@ -160,8 +160,8 @@
                                 <property name="can-focus">true</property>
                                 <property name="monospace">true</property>
                                 <property name="pixels-below-lines">12</property>
-                                <property name="left-margin">12</property>
-                                <property name="right-margin">12</property>
+                                <property name="left-margin">60</property>
+                                <property name="right-margin">60</property>
                                 <property name="top-margin">24</property>
                                 <property name="bottom-margin">24</property>
                                 <property name="justification">GTK_JUSTIFY_FILL</property>
@@ -203,8 +203,8 @@
                                 <property name="can-focus">true</property>
                                 <property name="monospace">true</property>
                                 <property name="pixels-below-lines">12</property>
-                                <property name="left-margin">12</property>
-                                <property name="right-margin">12</property>
+                                <property name="left-margin">60</property>
+                                <property name="right-margin">60</property>
                                 <property name="top-margin">24</property>
                                 <property name="bottom-margin">24</property>
                                 <property name="justification">GTK_JUSTIFY_FILL</property>

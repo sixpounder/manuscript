@@ -294,14 +294,12 @@ impl ManuscriptCharacterSheetEditor {
     }
 
     pub fn set_character_psycological_traits(&self, value: Option<Bytes>) {
-        let update_value = value.clone();
-
         self.send_update(move |chunk| {
             let obj = chunk
                 .as_any_mut()
                 .downcast_mut::<CharacterSheet>()
                 .expect("How?");
-            obj.set_psycological_traits_bytes(update_value.unwrap_or_default());
+            obj.set_psycological_traits_bytes(value.unwrap_or_default());
         });
     }
 
@@ -321,14 +319,17 @@ impl ManuscriptCharacterSheetEditor {
         self.imp().character_age_adjustment.get()
     }
 
+    #[allow(dead_code)]
     fn background_text_view(&self) -> gtk::TextView {
         self.imp().background_text_view.get()
     }
 
+    #[allow(dead_code)]
     fn physical_traits_text_view(&self) -> gtk::TextView {
         self.imp().physical_traits_text_view.get()
     }
 
+    #[allow(dead_code)]
     fn psycological_traits_text_view(&self) -> gtk::TextView {
         self.imp().psycological_traits_text_view.get()
     }

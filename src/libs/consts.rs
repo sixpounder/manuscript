@@ -16,4 +16,3 @@ pub const TAG_NAME_SUPERSCRIPT: &str = "superscript";
 pub const TAG_NAME_SUBSCRIPT: &str = "subscript";
 pub const TAG_NAME_CODE_BLOCK: &str = "code_block";
 pub const TAG_NAME_UNFOCUSED_TEXT: &str = "unfocused_text";
-pub const TAG_NAME_MARGIN_INDENT: &str = "margin_indent";

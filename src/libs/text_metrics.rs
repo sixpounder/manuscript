@@ -29,6 +29,7 @@ pub fn get_char_width(text_view: &gtk::TextView) -> i32 {
     ) as i32
 }
 
+#[allow(dead_code)]
 pub fn get_char_height(text_view: &gtk::TextView) -> i32 {
     gtk::pango::units_to_double(text_view.pango_context().metrics(None, None).height()) as i32
 }

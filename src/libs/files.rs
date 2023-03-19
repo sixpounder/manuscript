@@ -9,12 +9,10 @@ fn window() -> gtk::Window {
         .expect("Failed to retrieve application singleton")
         .downcast::<gtk::Application>()
         .unwrap();
-    let win = app
-        .active_window()
+    app.active_window()
         .unwrap()
         .downcast::<gtk::Window>()
-        .unwrap();
-    win
+        .unwrap()
 }
 
 pub fn with_file_open_dialog<F, E>(on_success: F, on_error: E)

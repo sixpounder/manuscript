@@ -1,6 +1,6 @@
 use crate::{
     libs::{consts::*, text_metrics::get_font_size},
-    services::analyst::{MarkupHandler, RegexMatch, TagApplyRules, TagLookup, TEXT_ANALYZER},
+    services::analyst::{TagApplyRules, TagLookup, TEXT_ANALYZER},
 };
 use gtk::{glib, glib::ToValue, pango, prelude::*, subclass::prelude::*};
 use std::cell::{Cell, RefCell};
@@ -145,7 +145,7 @@ impl ManuscriptBuffer {
         self.remove_all_tags(&start_iter, &end_iter);
     }
 
-    fn apply(&self, rules: Vec<TagApplyRules>, view: &gtk::TextView) {
+    fn apply(&self, rules: Vec<TagApplyRules>, _view: &gtk::TextView) {
         let rules_iter = rules.clone();
         *self.imp().matched_tags.borrow_mut() = rules;
         let mut maybe_first_title: Option<String> = None;
@@ -157,7 +157,7 @@ impl ManuscriptBuffer {
                 self.emit_by_name::<()>("parse-first-header", &[&header_candidate]);
             }
 
-            glib::g_debug!(G_LOG_DOMAIN, "Apply rule {:?}", rule);
+            glib::trace!("{} Apply rule {:?}", G_LOG_DOMAIN, rule);
             for tag in rule.rules() {
                 match tag {
                     TagLookup::ByName(target_tag, start, end) => {
@@ -296,16 +296,24 @@ impl ManuscriptBuffer {
             ],
         );
 
-        // buffer
-        //     .create_tag(
-        //         Some(TAG_NAME_CODE_BLOCK),
-        //         &[
-        //             ("weight", &PANGO_WEIGHT_NORMAL),
-        //             ("style", &pango::Style::Normal),
-        //             ("strikethrough", &false),
-        //             ("indent", &get_margin_indent(self, 0, 1, None, None).1),
-        //         ],
-        //     )
-        //     .unwrap();
+        let code_bg_color = match self.parent_view() {
+            Some(view) => view.style_context().lookup_color("code_bg_color"),
+            None => None,
+        };
+
+        buffer
+            .create_tag(
+                Some(TAG_NAME_CODE_BLOCK),
+                &[
+                    ("weight", &PANGO_WEIGHT_NORMAL),
+                    ("style", &pango::Style::Normal),
+                    ("justification", &gtk::Justification::Left),
+                    ("pixels-below-lines", &12i32),
+                    ("background-full-height", &true),
+                    ("paragraph-background-rgba", &code_bg_color),
+                    ("strikethrough", &false),
+                ],
+            )
+            .unwrap();
     }
 }

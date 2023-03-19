@@ -47,7 +47,7 @@ impl ManuscriptSettings {
     }
 
     pub fn text_analysis_delay(&self) -> i32 {
-        self.inner.int("text-analysis-delay").into()
+        self.inner.int("text-analysis-delay")
     }
 
     pub fn set_text_analysis_delay(&self, value: i32) {
