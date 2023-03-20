@@ -1,6 +1,5 @@
 mod application;
 mod config;
-mod consts;
 mod libs;
 mod models;
 mod services;
@@ -28,7 +27,7 @@ fn main() {
     gio::resources_register(&resources);
 
     gtk::glib::set_application_name("Manuscript");
-    gtk::glib::set_program_name(Some("manuscript"));
+    gtk::glib::set_program_name(Some("Manuscript"));
 
     // Create a new GtkApplication. The application manages our main loop,
     // application windows, integration with the window manager/compositor, and

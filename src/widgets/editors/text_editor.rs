@@ -1,5 +1,6 @@
 use super::ManuscriptBuffer;
 use crate::{
+    libs::consts::LOOKUP_LIGHT_ACCENT_FG_COLOR,
     models::*,
     services::{
         i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction,
@@ -49,6 +50,7 @@ mod imp {
         pub(super) words_count: Cell<u64>,
         pub(super) reading_time: Cell<(u64, u64)>,
         pub(super) settings: ManuscriptSettings,
+        pub(super) style_manager: adw::StyleManager,
     }
 
     impl Default for ManuscriptTextEditor {
@@ -63,13 +65,13 @@ mod imp {
                 text_buffer: RefCell::default(),
                 metrics_idle_resource_id: RefCell::default(),
                 format_idle_resource_id: RefCell::default(),
-
                 chunk_id: RefCell::new(None),
                 show_status_bar: Cell::new(true),
                 locked: Cell::new(false),
                 words_count: Cell::new(0),
                 reading_time: Cell::new((0, 0)),
                 settings: ManuscriptSettings::default(),
+                style_manager: adw::StyleManager::default(),
             }
         }
     }
@@ -93,7 +95,9 @@ mod imp {
     impl ObjectImpl for ManuscriptTextEditor {
         fn constructed(&self) {
             self.parent_constructed();
-            self.obj().setup_widgets();
+            let obj = self.obj();
+            obj.setup_widgets();
+            obj.setup_themes();
         }
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
@@ -218,6 +222,11 @@ impl ManuscriptTextEditor {
     fn setup_widgets(&self) {
         let imp = self.imp();
 
+        imp.style_manager
+            .connect_dark_notify(glib::clone!(@weak self as this => move |_| {
+                this.setup_themes();
+            }));
+
         imp.scroll_container.vadjustment().connect_value_changed(
             glib::clone!(@weak self as this => move |adjustment| {
                 let imp = this.imp();
@@ -229,6 +238,15 @@ impl ManuscriptTextEditor {
                 this.notify("overflowing");
             })
         );
+    }
+
+    fn setup_themes(&self) {
+        if let Some(buf) = self.text_buffer().as_ref() {
+            buf.set_accent_fg_color(
+                self.style_context()
+                    .lookup_color(LOOKUP_LIGHT_ACCENT_FG_COLOR),
+            );
+        }
     }
 
     fn set_buffer_irreversible(&self, value: Option<Bytes>) {
@@ -261,6 +279,7 @@ impl ManuscriptTextEditor {
         imp.text_view.set_buffer(Some(&text_buffer));
         imp.text_buffer.replace(Some(text_buffer));
         self.connect_text_buffer();
+        self.setup_themes();
         self.idle_format();
         self.notify("overflowing");
     }

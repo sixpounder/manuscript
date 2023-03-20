@@ -1,4 +1,6 @@
-use crate::{consts::CHUNK_ID_DATA_KEY, models::*, services::DocumentAction, widgets::editors::*};
+use crate::{
+    libs::consts::CHUNK_ID_DATA_KEY, models::*, services::DocumentAction, widgets::editors::*,
+};
 use adw::subclass::prelude::*;
 use gtk::{
     gio, glib,

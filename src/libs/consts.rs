@@ -1,3 +1,7 @@
+pub const CHUNK_ID_DATA_KEY: &str = "chunk-id";
+
+pub const LOOKUP_LIGHT_ACCENT_FG_COLOR: &str = "light_accent_fg_color";
+
 pub const PANGO_WEIGHT_LIGHT: i32 = 300;
 pub const PANGO_WEIGHT_NORMAL: i32 = 400;
 pub const PANGO_WEIGHT_BOLD: i32 = 700;

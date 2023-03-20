@@ -7,10 +7,11 @@ use crate::{
 };
 use adw::subclass::prelude::*;
 use gtk::prelude::*;
-use gtk::{gdk, gio, glib::closure_local};
+use gtk::{gio, glib::closure_local};
 use std::{cell::Cell, ops::Deref};
 
 const STYLE_CSS_FILENAME: &str = "style.css";
+const STYLE_DARK_CSS_FILENAME: &str = "style-dark.css";
 const G_LOG_DOMAIN: &str = "ManuscriptWindow";
 const PROJECT_VIEW_NAME: &str = "project-view";
 
@@ -45,7 +46,9 @@ mod imp {
 
         pub(super) style_manager: adw::StyleManager,
 
-        pub(super) provider: gtk::CssProvider,
+        pub(super) style_provider: gtk::CssProvider,
+
+        pub(super) style_dark_provider: gtk::CssProvider,
 
         pub(super) settings: ManuscriptSettings,
 
@@ -72,7 +75,8 @@ mod imp {
                 editor_view: TemplateChild::default(),
                 flap: TemplateChild::default(),
                 style_manager: adw::StyleManager::default(),
-                provider: gtk::CssProvider::default(),
+                style_provider: gtk::CssProvider::default(),
+                style_dark_provider: gtk::CssProvider::default(),
                 settings: ManuscriptSettings::default(),
                 document_manager: DocumentManager::default(),
                 search_mode: Cell::default(),
@@ -128,7 +132,7 @@ mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             let obj = self.obj();
-            obj.setup_provider();
+            obj.setup_providers();
             obj.setup_widgets();
             obj.restore_window_state();
             obj.connect_events();
@@ -195,12 +199,38 @@ impl ManuscriptWindow {
 
 // Private APIs
 impl ManuscriptWindow {
-    fn setup_provider(&self) {
+    fn setup_providers(&self) {
         let imp = self.imp();
-        imp.provider
+
+        imp.style_provider
             .load_from_resource(format!("{}/{}", APPLICATION_G_PATH, STYLE_CSS_FILENAME).as_str());
-        if let Some(display) = gdk::Display::default() {
-            gtk::StyleContext::add_provider_for_display(&display, &imp.provider, 400);
+
+        imp.style_dark_provider.load_from_resource(
+            format!("{}/{}", APPLICATION_G_PATH, STYLE_DARK_CSS_FILENAME).as_str(),
+        );
+
+        imp.style_manager
+            .connect_dark_notify(glib::clone!(@strong self as this => move |_sm| {
+                this.update_providers();
+            }));
+
+        self.update_providers();
+    }
+
+    fn update_providers(&self) {
+        if let Some(display) = gtk::gdk::Display::default() {
+            let imp = self.imp();
+            let provider;
+            let remove_provider;
+            if imp.style_manager.is_dark() {
+                remove_provider = &imp.style_provider;
+                provider = &imp.style_dark_provider;
+            } else {
+                remove_provider = &imp.style_dark_provider;
+                provider = &imp.style_provider;
+            }
+            gtk::StyleContext::remove_provider_for_display(&display, remove_provider);
+            gtk::StyleContext::add_provider_for_display(&display, provider, 400);
         }
     }
 
@@ -260,12 +290,6 @@ impl ManuscriptWindow {
             })
         );
 
-        self.imp().style_manager.connect_dark_notify(
-            glib::clone!(@strong self as this => move |_sm| {
-                this.update_widgets();
-            }),
-        );
-
         self.imp().project_layout.searchbar().connect_notify_local(
             Some("search-mode-enabled"),
             glib::clone!(@weak self as win => move |searchbar, _| {
@@ -290,17 +314,6 @@ impl ManuscriptWindow {
 
         let editor_view = self.editor_view();
         editor_view.set_channel(self.document_manager().action_sender());
-
-        self.update_widgets();
-    }
-
-    fn update_widgets(&self) {
-        let win = self.imp().instance();
-        if self.imp().style_manager.is_dark() {
-            win.style_context().add_class("dark");
-        } else {
-            win.style_context().remove_class("dark");
-        }
     }
 
     fn add_toast(&self, msg: String) {
@@ -380,8 +393,24 @@ impl ManuscriptWindow {
     }
 
     fn save_project_as(&self) {
-        // self.document_manager().set_backend_path(path);
-        // let _ = self.document_manager().sync();
+        let dm = self.document_manager();
+        let document = dm
+            .document_ref()
+            .expect("Could not get a handle to the document");
+        if let Some(document) = document.as_ref() {
+            with_file_save_dialog(
+                document,
+                glib::clone!(@strong self as win => move |path, _bytes| {
+                    let settings = &win.imp().settings;
+                    settings.set_last_opened_document(&path);
+                    win.document_manager().set_backend_path(path);
+                }),
+                glib::clone!(@strong self as win => move |err| {
+                    glib::g_critical!(G_LOG_DOMAIN, "{}", err);
+                    win.add_toast(err);
+                }),
+            );
+        }
     }
 
     fn close_project(&self) {

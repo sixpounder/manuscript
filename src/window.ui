@@ -143,7 +143,11 @@
   <menu id="primary_menu">
     <section>
       <item>
-        <attribute name="label" translatable="yes">_New</attribute>
+        <attribute name="label" translatable="yes">_New Window</attribute>
+        <attribute name="action">app.new-window</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_New Project</attribute>
         <attribute name="action">app.new-project</attribute>
       </item>
       <item>
@@ -155,11 +159,11 @@
         <attribute name="action">project.save</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">_Save as</attribute>
+        <attribute name="label" translatable="yes">_Save As</attribute>
         <attribute name="action">project.save-as</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">_Close project</attribute>
+        <attribute name="label" translatable="yes">_Close Project</attribute>
         <attribute name="action">project.close</attribute>
       </item>
     </section>

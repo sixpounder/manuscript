@@ -10,15 +10,27 @@ const G_LOG_DOMAIN: &str = "ManuscriptBuffer";
 mod imp {
     use super::*;
     use glib::{
-        subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject,
+        subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecBoxed,
+        ParamSpecObject,
     };
     use once_cell::sync::Lazy;
 
-    #[derive(Default)]
     pub struct ManuscriptBuffer {
         pub(super) parent_view: RefCell<Option<gtk::TextView>>,
         pub(super) matched_tags: RefCell<Vec<TagApplyRules>>,
         pub(super) autoformat: Cell<bool>,
+        pub(super) accent_fg_color: Cell<Option<gtk::gdk::RGBA>>,
+    }
+
+    impl Default for ManuscriptBuffer {
+        fn default() -> Self {
+            Self {
+                parent_view: RefCell::default(),
+                matched_tags: RefCell::default(),
+                autoformat: Cell::default(),
+                accent_fg_color: Cell::new(None),
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -57,6 +69,13 @@ mod imp {
                         ParamFlags::READWRITE,
                     ),
                     ParamSpecBoolean::new("autoformat", "", "", true, ParamFlags::READWRITE),
+                    ParamSpecBoxed::new(
+                        "link-fg-color",
+                        "",
+                        "",
+                        gtk::gdk::RGBA::static_type(),
+                        ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -67,6 +86,7 @@ mod imp {
             match pspec.name() {
                 "parent-view" => obj.parent_view().to_value(),
                 "autoformat" => obj.autoformat().to_value(),
+                "link-fg-color" => obj.accent_fg_color().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -76,6 +96,9 @@ mod imp {
             match pspec.name() {
                 "parent-view" => obj.set_parent_view(value.get::<Option<gtk::TextView>>().unwrap()),
                 "autoformat" => obj.set_autoformat(value.get::<bool>().unwrap()),
+                "link-fg-color" => {
+                    obj.set_accent_fg_color(value.get::<Option<gtk::gdk::RGBA>>().unwrap())
+                }
                 _ => unimplemented!(),
             }
         }
@@ -121,6 +144,17 @@ impl ManuscriptBuffer {
     fn set_parent_view(&self, value: Option<gtk::TextView>) {
         *self.imp().parent_view.borrow_mut() = value;
         self.bind_default_tags();
+    }
+
+    pub fn accent_fg_color(&self) -> Option<gtk::gdk::RGBA> {
+        self.imp().accent_fg_color.get()
+    }
+
+    pub fn set_accent_fg_color(&self, value: Option<gtk::gdk::RGBA>) {
+        self.imp().accent_fg_color.set(value);
+        if let Some(link_tag) = self.tag_table().lookup(TAG_NAME_LINK_COLOR_TEXT) {
+            link_tag.set_foreground_rgba(self.accent_fg_color().as_ref());
+        }
     }
 
     pub fn parsed_tags(&self) -> std::cell::Ref<Vec<TagApplyRules>> {
@@ -246,12 +280,14 @@ impl ManuscriptBuffer {
             ],
         );
 
+        let link_fg_color = self.imp().accent_fg_color.get();
+
         let _ = buffer.create_tag(
             Some(TAG_NAME_LINK_COLOR_TEXT),
             &[
                 ("weight", &PANGO_WEIGHT_NORMAL),
                 ("style", &pango::Style::Italic),
-                ("foreground", &"lightblue"),
+                ("foreground-rgba", &link_fg_color),
             ],
         );
 

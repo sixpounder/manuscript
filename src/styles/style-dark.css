@@ -1,3 +1,35 @@
 @define-color view_fg_color #eeeeec;
+@define-color view_bg_color #212121;
+
 @define-color code_bg_color mix(@window_bg_color, @view_fg_color, 0.05);
-@define-color link_fg_color mix(@window_bg_color, @view_fg_color, 0.45);
+@define-color light_accent_fg_color @blue_1;
+
+entry.manuscript-title {
+  border-radius: .25rem;
+  padding: .5rem;
+  transition: background-color .3s ease, color .3s ease;
+}
+
+entry.manuscript-title:hover {
+  background-color: @purple_3;
+  color: @light_2;
+}
+
+.default-bg {
+  background: mix(@window_bg_color, @dark_5, 0.1);
+}
+
+.transparent-bg {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.editor-view-placeholder-label {
+  filter: opacity(60%);
+  font-size: 1.5rem;
+}
+
+textview.view {
+  font-family: iA Writer Duospace;
+  font-size: 1.2rem;
+}
+
