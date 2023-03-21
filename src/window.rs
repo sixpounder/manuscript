@@ -1,17 +1,17 @@
 use crate::{
-    config::APPLICATION_G_PATH,
     libs::files::{with_file_open_dialog, with_file_save_dialog},
     models::*,
     services::{DocumentManager, ManuscriptSettings},
-    widgets::{ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptWelcomeView},
+    widgets::{
+        ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptThemeSwitcher,
+        ManuscriptWelcomeView,
+    },
 };
 use adw::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::{gio, glib::closure_local};
 use std::{cell::Cell, ops::Deref};
 
-const STYLE_CSS_FILENAME: &str = "style.css";
-const STYLE_DARK_CSS_FILENAME: &str = "style-dark.css";
 const G_LOG_DOMAIN: &str = "ManuscriptWindow";
 const PROJECT_VIEW_NAME: &str = "project-view";
 
@@ -25,6 +25,12 @@ mod imp {
     pub struct ManuscriptWindow {
         #[template_child]
         pub(super) toast_overlay: TemplateChild<adw::ToastOverlay>,
+
+        #[template_child]
+        pub(super) primary_menu_button: TemplateChild<gtk::MenuButton>,
+
+        #[template_child]
+        pub(super) primary_menu_button_alt: TemplateChild<gtk::MenuButton>,
 
         #[template_child]
         pub(super) main_stack: TemplateChild<gtk::Stack>,
@@ -44,11 +50,7 @@ mod imp {
         #[template_child]
         pub(super) flap: TemplateChild<adw::Flap>,
 
-        pub(super) style_manager: adw::StyleManager,
-
-        pub(super) style_provider: gtk::CssProvider,
-
-        pub(super) style_dark_provider: gtk::CssProvider,
+        pub(super) theme_switcher: ManuscriptThemeSwitcher,
 
         pub(super) settings: ManuscriptSettings,
 
@@ -68,15 +70,15 @@ mod imp {
         fn new() -> Self {
             Self {
                 toast_overlay: TemplateChild::default(),
+                primary_menu_button: TemplateChild::default(),
+                primary_menu_button_alt: TemplateChild::default(),
                 main_stack: TemplateChild::default(),
                 welcome_view: TemplateChild::default(),
                 project_layout: TemplateChild::default(),
                 command_palette_overlay: TemplateChild::default(),
                 editor_view: TemplateChild::default(),
                 flap: TemplateChild::default(),
-                style_manager: adw::StyleManager::default(),
-                style_provider: gtk::CssProvider::default(),
-                style_dark_provider: gtk::CssProvider::default(),
+                theme_switcher: ManuscriptThemeSwitcher::new(),
                 settings: ManuscriptSettings::default(),
                 document_manager: DocumentManager::default(),
                 search_mode: Cell::default(),
@@ -132,7 +134,6 @@ mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             let obj = self.obj();
-            obj.setup_providers();
             obj.setup_widgets();
             obj.restore_window_state();
             obj.connect_events();
@@ -199,41 +200,6 @@ impl ManuscriptWindow {
 
 // Private APIs
 impl ManuscriptWindow {
-    fn setup_providers(&self) {
-        let imp = self.imp();
-
-        imp.style_provider
-            .load_from_resource(format!("{}/{}", APPLICATION_G_PATH, STYLE_CSS_FILENAME).as_str());
-
-        imp.style_dark_provider.load_from_resource(
-            format!("{}/{}", APPLICATION_G_PATH, STYLE_DARK_CSS_FILENAME).as_str(),
-        );
-
-        imp.style_manager
-            .connect_dark_notify(glib::clone!(@strong self as this => move |_sm| {
-                this.update_providers();
-            }));
-
-        self.update_providers();
-    }
-
-    fn update_providers(&self) {
-        if let Some(display) = gtk::gdk::Display::default() {
-            let imp = self.imp();
-            let provider;
-            let remove_provider;
-            if imp.style_manager.is_dark() {
-                remove_provider = &imp.style_provider;
-                provider = &imp.style_dark_provider;
-            } else {
-                remove_provider = &imp.style_dark_provider;
-                provider = &imp.style_provider;
-            }
-            gtk::StyleContext::remove_provider_for_display(&display, remove_provider);
-            gtk::StyleContext::add_provider_for_display(&display, provider, 400);
-        }
-    }
-
     fn restore_window_state(&self) {
         let settings = &self.imp().settings;
         self.set_default_size(settings.window_width(), settings.window_height());
@@ -309,6 +275,24 @@ impl ManuscriptWindow {
     }
 
     fn setup_widgets(&self) {
+        if let Some(popover_menu) = self
+            .imp()
+            .primary_menu_button
+            .popover()
+            .and_downcast_ref::<gtk::PopoverMenu>()
+        {
+            popover_menu.add_child(&ManuscriptThemeSwitcher::new(), "themeswitcher");
+        }
+
+        if let Some(popover_menu) = self
+            .imp()
+            .primary_menu_button_alt
+            .popover()
+            .and_downcast_ref::<gtk::PopoverMenu>()
+        {
+            popover_menu.add_child(&self.imp().theme_switcher, "themeswitcher");
+        }
+
         let project_layout = self.imp().project_layout.get();
         project_layout.set_channel(self.document_manager().action_sender());
 

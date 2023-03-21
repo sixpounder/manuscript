@@ -1,11 +1,15 @@
 pub const CHUNK_ID_DATA_KEY: &str = "chunk-id";
 
-pub const LOOKUP_LIGHT_ACCENT_FG_COLOR: &str = "light_accent_fg_color";
+pub const LOOKUP_ACCENT_FG_COLOR: &str = "buffer_accent_fg_color";
+pub const LOOKUP_LIGHT_ACCENT_FG_COLOR: &str = "buffer_light_accent_fg_color";
 
 pub const PANGO_WEIGHT_LIGHT: i32 = 300;
 pub const PANGO_WEIGHT_NORMAL: i32 = 400;
 pub const PANGO_WEIGHT_BOLD: i32 = 700;
 
+pub const TAG_NAME_TEXT_BIGGER: &str = "text-size-bigger";
+pub const TAG_NAME_TEXT_BIG: &str = "text-size-big";
+pub const TAG_NAME_ACCENT: &str = "accent";
 pub const TAG_NAME_ITALIC: &str = "italic";
 pub const TAG_NAME_BOLD: &str = "bold";
 pub const TAG_NAME_BOLD_ITALIC: &str = "bold_italic";

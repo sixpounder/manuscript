@@ -19,7 +19,8 @@ mod imp {
         pub(super) parent_view: RefCell<Option<gtk::TextView>>,
         pub(super) matched_tags: RefCell<Vec<TagApplyRules>>,
         pub(super) autoformat: Cell<bool>,
-        pub(super) accent_fg_color: Cell<Option<gtk::gdk::RGBA>>,
+        pub(super) accent_secondary_fg_color: Cell<Option<gtk::gdk::RGBA>>,
+        pub(super) accent_primary_fg_color: Cell<Option<gtk::gdk::RGBA>>,
     }
 
     impl Default for ManuscriptBuffer {
@@ -28,7 +29,8 @@ mod imp {
                 parent_view: RefCell::default(),
                 matched_tags: RefCell::default(),
                 autoformat: Cell::default(),
-                accent_fg_color: Cell::new(None),
+                accent_primary_fg_color: Cell::new(None),
+                accent_secondary_fg_color: Cell::new(None),
             }
         }
     }
@@ -70,7 +72,14 @@ mod imp {
                     ),
                     ParamSpecBoolean::new("autoformat", "", "", true, ParamFlags::READWRITE),
                     ParamSpecBoxed::new(
-                        "link-fg-color",
+                        "accent-primary-fg-color",
+                        "",
+                        "",
+                        gtk::gdk::RGBA::static_type(),
+                        ParamFlags::READWRITE,
+                    ),
+                    ParamSpecBoxed::new(
+                        "accent-secondary-fg-color",
                         "",
                         "",
                         gtk::gdk::RGBA::static_type(),
@@ -86,7 +95,8 @@ mod imp {
             match pspec.name() {
                 "parent-view" => obj.parent_view().to_value(),
                 "autoformat" => obj.autoformat().to_value(),
-                "link-fg-color" => obj.accent_fg_color().to_value(),
+                "accent-primary-fg-color" => obj.accent_primary_fg_color().to_value(),
+                "accent-secondary-fg-color" => obj.accent_secondary_fg_color().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -96,9 +106,11 @@ mod imp {
             match pspec.name() {
                 "parent-view" => obj.set_parent_view(value.get::<Option<gtk::TextView>>().unwrap()),
                 "autoformat" => obj.set_autoformat(value.get::<bool>().unwrap()),
-                "link-fg-color" => {
-                    obj.set_accent_fg_color(value.get::<Option<gtk::gdk::RGBA>>().unwrap())
+                "accent-primary-fg-color" => {
+                    obj.set_accent_primary_fg_color(value.get::<Option<gtk::gdk::RGBA>>().unwrap())
                 }
+                "accent-secondary-fg-color" => obj
+                    .set_accent_secondary_fg_color(value.get::<Option<gtk::gdk::RGBA>>().unwrap()),
                 _ => unimplemented!(),
             }
         }
@@ -129,6 +141,11 @@ impl ManuscriptBuffer {
         }));
     }
 
+    pub fn reload_colors(&self, context: &gtk::StyleContext) {
+        self.set_accent_primary_fg_color(context.lookup_color(LOOKUP_ACCENT_FG_COLOR));
+        self.set_accent_secondary_fg_color(context.lookup_color(LOOKUP_LIGHT_ACCENT_FG_COLOR));
+    }
+
     pub fn autoformat(&self) -> bool {
         self.imp().autoformat.get()
     }
@@ -146,14 +163,25 @@ impl ManuscriptBuffer {
         self.bind_default_tags();
     }
 
-    pub fn accent_fg_color(&self) -> Option<gtk::gdk::RGBA> {
-        self.imp().accent_fg_color.get()
+    pub fn accent_primary_fg_color(&self) -> Option<gtk::gdk::RGBA> {
+        self.imp().accent_primary_fg_color.get()
     }
 
-    pub fn set_accent_fg_color(&self, value: Option<gtk::gdk::RGBA>) {
-        self.imp().accent_fg_color.set(value);
+    pub fn set_accent_primary_fg_color(&self, value: Option<gtk::gdk::RGBA>) {
+        self.imp().accent_primary_fg_color.set(value);
+        if let Some(tag) = self.tag_table().lookup(TAG_NAME_ACCENT) {
+            tag.set_foreground_rgba(self.accent_primary_fg_color().as_ref());
+        }
+    }
+
+    pub fn accent_secondary_fg_color(&self) -> Option<gtk::gdk::RGBA> {
+        self.imp().accent_secondary_fg_color.get()
+    }
+
+    pub fn set_accent_secondary_fg_color(&self, value: Option<gtk::gdk::RGBA>) {
+        self.imp().accent_secondary_fg_color.set(value);
         if let Some(link_tag) = self.tag_table().lookup(TAG_NAME_LINK_COLOR_TEXT) {
-            link_tag.set_foreground_rgba(self.accent_fg_color().as_ref());
+            link_tag.set_foreground_rgba(self.accent_secondary_fg_color().as_ref());
         }
     }
 
@@ -221,6 +249,28 @@ impl ManuscriptBuffer {
     fn bind_default_tags(&self) {
         let buffer = self;
 
+        let bigger_font_size = match self.parent_view().as_ref() {
+            Some(view) => (get_font_size(view) as f64 * 1.1).ceil() as i32 * pango::SCALE,
+            None => 1400i32,
+        };
+
+        let big_font_size = match self.parent_view().as_ref() {
+            Some(view) => (get_font_size(view) as f64 * 1.05).ceil() as i32 * pango::SCALE,
+            None => 1400i32,
+        };
+
+        let small_font_size = match self.parent_view().as_ref() {
+            Some(view) => (get_font_size(view) as f64 * 0.4).ceil() as i32 * pango::SCALE,
+            None => 1000i32,
+        };
+
+        let accent_color = self.imp().accent_primary_fg_color.get();
+        let _ = buffer.create_tag(Some(TAG_NAME_ACCENT), &[("foreground-rgba", &accent_color)]);
+
+        let _ = buffer.create_tag(Some(TAG_NAME_TEXT_BIGGER), &[("size", &bigger_font_size)]);
+
+        let _ = buffer.create_tag(Some(TAG_NAME_TEXT_BIG), &[("size", &big_font_size)]);
+
         let _ = buffer.create_tag(
             Some(TAG_NAME_ITALIC),
             &[
@@ -280,7 +330,7 @@ impl ManuscriptBuffer {
             ],
         );
 
-        let link_fg_color = self.imp().accent_fg_color.get();
+        let link_fg_color = self.imp().accent_secondary_fg_color.get();
 
         let _ = buffer.create_tag(
             Some(TAG_NAME_LINK_COLOR_TEXT),
@@ -308,11 +358,6 @@ impl ManuscriptBuffer {
                 ("strikethrough", &false),
             ],
         );
-
-        let small_font_size = match self.parent_view().as_ref() {
-            Some(view) => (get_font_size(view) as f64 * 0.4).ceil() as i32 * pango::SCALE,
-            None => 1000i32,
-        };
 
         let _ = buffer.create_tag(
             Some(TAG_NAME_SUBSCRIPT),

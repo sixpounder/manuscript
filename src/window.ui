@@ -32,7 +32,7 @@
                                   </object>
                                 </child>
                                 <child type="end">
-                                  <object class="GtkMenuButton">
+                                  <object class="GtkMenuButton" id="primary_menu_button">
                                     <property name="icon-name">open-menu-symbolic</property>
                                     <property name="menu-model">primary_menu</property>
                                   </object>
@@ -113,7 +113,7 @@
                                   </object>
                                 </child>
                                 <child type="end">
-                                  <object class="GtkMenuButton">
+                                  <object class="GtkMenuButton" id="primary_menu_button_alt">
                                     <property name="icon-name">open-menu-symbolic</property>
                                     <property name="menu-model">primary_menu</property>
                                   </object>
@@ -141,6 +141,11 @@
     </property>
   </template>
   <menu id="primary_menu">
+    <section>
+      <item>
+        <attribute name="custom">themeswitcher</attribute>
+      </item>
+    </section>
     <section>
       <item>
         <attribute name="label" translatable="yes">_New Window</attribute>

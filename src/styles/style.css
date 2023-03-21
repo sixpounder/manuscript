@@ -1,6 +1,14 @@
-@define-color view_fg_color @dark_4;
+@define-color view_bg_color #FFFFFF;
+@define-color view_fg_color #2e3436;
+
+@define-color headerbar_bg_color  @view_bg_color;
+
+@define-color project_layout_bg mix(@window_bg_color, @light_3, 0.2);
+
 @define-color code_bg_color mix(@window_bg_color, @view_fg_color, 0.15);
-@define-color light_accent_fg_color @purple_2;
+
+@define-color buffer_accent_fg_color @view_fg_color;
+@define-color buffer_light_accent_fg_color @purple_2;
 
 entry.manuscript-title {
   border-radius: .25rem;
@@ -18,7 +26,7 @@ entry.manuscript-title:hover {
 }
 
 .default-bg {
-  background: mix(@window_bg_color, @light_3, 0.2);
+  background: @project_layout_bg;
 }
 
 .editor-view-placeholder-label {
@@ -30,3 +38,58 @@ textview.view {
   font-family: iA Writer Duospace;
   font-size: 1.2rem;
 }
+
+.themeswitcher {
+  margin: 9px;
+}
+
+.themeswitcher checkbutton {
+    padding: 0;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 1px;
+    background-clip: content-box;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px @borders;
+}
+
+.themeswitcher checkbutton.system {
+  background: linear-gradient(-45deg, #2d2d2d 49.99%, white 50.01%);
+}
+
+.themeswitcher checkbutton.light {
+  background-color: white;
+}
+
+.themeswitcher checkbutton.sepia {
+  background-color: #F0E8DD;
+}
+
+.themeswitcher checkbutton.dark {
+  background-color: #2d2d2d;
+}
+
+.themeswitcher checkbutton.light:checked,
+.themeswitcher checkbutton.dark:checked,
+.themeswitcher checkbutton.sepia:checked,
+.themeswitcher checkbutton.system:checked {
+  box-shadow: inset 0 0 0 2px @theme_selected_bg_color;
+}
+
+.themeswitcher checkbutton radio {
+      -gtk-icon-source: none;
+      border: none;
+      background: none;
+      box-shadow: none;
+      min-width: 12px;
+      min-height: 12px;
+      transform: translate(27px, 14px);
+      padding: 2px;
+}
+
+.themeswitcher checkbutton radio:checked{
+  -gtk-icon-source: -gtk-icontheme("object-select-symbolic");
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+

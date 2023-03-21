@@ -1,6 +1,5 @@
 use super::ManuscriptBuffer;
 use crate::{
-    libs::consts::LOOKUP_LIGHT_ACCENT_FG_COLOR,
     models::*,
     services::{
         i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction,
@@ -242,10 +241,7 @@ impl ManuscriptTextEditor {
 
     fn setup_themes(&self) {
         if let Some(buf) = self.text_buffer().as_ref() {
-            buf.set_accent_fg_color(
-                self.style_context()
-                    .lookup_color(LOOKUP_LIGHT_ACCENT_FG_COLOR),
-            );
+            buf.reload_colors(&self.style_context());
         }
     }
 

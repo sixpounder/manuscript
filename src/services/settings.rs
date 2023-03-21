@@ -16,6 +16,16 @@ impl Default for ManuscriptSettings {
 }
 
 impl ManuscriptSettings {
+    pub fn color_scheme(&self) -> String {
+        self.inner.string("color-scheme").into()
+    }
+
+    pub fn set_color_scheme(&self, value: String) {
+        self.inner
+            .set_string("color-scheme", value.as_str())
+            .expect("Could not store color scheme");
+    }
+
     pub fn window_width(&self) -> i32 {
         self.inner.int("window-width")
     }

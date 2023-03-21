@@ -161,7 +161,7 @@ pub enum TagLookup {
 }
 
 #[derive(Debug)]
-pub struct RegexRuleCollection {
+struct RegexRuleCollection {
     rules: Vec<RegexRule>,
 }
 
@@ -211,6 +211,7 @@ impl RegexRuleCollection {
                         matched.start(),
                         matched.end(),
                     ),
+                    TagLookup::ByName(TAG_NAME_ACCENT, matched.start(), matched.end()),
                     TagLookup::ByName(TAG_NAME_BOLD, matched.start(), matched.end()),
                 ]);
 
@@ -470,7 +471,7 @@ impl RegexRuleCollection {
 
 type RegexRuleMapFn = Box<dyn Fn(&RegexMatch, &gtk::TextView) -> TagApplyRules + 'static>;
 
-pub struct RegexRule {
+struct RegexRule {
     name: String,
     regex: Regex,
     map_fn: RegexRuleMapFn,

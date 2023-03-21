@@ -3,6 +3,7 @@
   <gresource prefix="/io/sixpounder/Manuscript">
     <file alias="style.css">styles/style.css</file>
     <file alias="style-dark.css">styles/style-dark.css</file>
+    <file alias="style-sepia.css">styles/style-sepia.css</file>
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/text_editor.ui">widgets/editors/gtk/text_editor.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/sheet_editor.ui">widgets/editors/gtk/sheet_editor.ui</file>
@@ -11,6 +12,7 @@
     <file preprocess="xml-stripblanks" alias="chunk_row.ui">widgets/gtk/chunk_row.ui</file>
     <file preprocess="xml-stripblanks" alias="command_palette.ui">widgets/gtk/command_palette.ui</file>
     <file preprocess="xml-stripblanks" alias="progress_indicator.ui">widgets/gtk/progress_indicator.ui</file>
+    <file preprocess="xml-stripblanks" alias="theme_switcher.ui">widgets/gtk/theme_switcher.ui</file>
     <file preprocess="xml-stripblanks" alias="welcome_view.ui">widgets/gtk/welcome_view.ui</file>
     <file preprocess="xml-stripblanks">widgets/gtk/help-overlay.ui</file>
   </gresource>
