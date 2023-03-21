@@ -31,6 +31,7 @@ mod imp {
             let obj = self.instance();
             obj.setup_gactions();
             obj.set_accels_for_action("app.quit", &["<primary>q"]);
+            obj.set_accels_for_action("app.new-window", &["<ctrl><shift>n"]);
             obj.set_accels_for_action("app.new-project", &["<ctrl>n"]);
             obj.set_accels_for_action("app.open-project", &["<ctrl>o"]);
             obj.set_accels_for_action("project.save", &["<ctrl>s"]);
@@ -120,13 +121,22 @@ impl ManuscriptApplication {
     }
 
     fn setup_gactions(&self) {
+        let new_window_action = gio::ActionEntry::builder("new-window")
+            .activate(move |application: &Self, _, _| {
+                let window = ManuscriptWindow::new(&*application);
+                let window = window.upcast::<adw::ApplicationWindow>();
+
+                // Ask the window manager/compositor to present the window
+                window.present();
+            })
+            .build();
         let quit_action = gio::ActionEntry::builder("quit")
             .activate(move |app: &Self, _, _| app.quit())
             .build();
         let about_action = gio::ActionEntry::builder("about")
             .activate(move |app: &Self, _, _| app.show_about())
             .build();
-        self.add_action_entries([quit_action, about_action])
+        self.add_action_entries([new_window_action, quit_action, about_action])
             .unwrap();
     }
 

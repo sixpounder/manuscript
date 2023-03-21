@@ -14,7 +14,7 @@
             <property name="margin-start">12</property>
             <property name="margin-end">12</property>
             <property name="title">Welcome to Manuscript</property>
-            <property name="description" translatable="yes">Select a file or create an empty manuscript</property>
+            <property name="description" translatable="yes">Select a file or create an empty project</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
@@ -24,7 +24,7 @@
                 <property name="spacing">12</property>
                 <child>
                   <object class="GtkButton" id="add_folder_button">
-                    <property name="label" translatable="yes">New manuscript</property>
+                    <property name="label" translatable="yes">New Project</property>
                     <property name="action-name">app.new-project</property>
                     <style>
                       <class name="suggested-action"/>
@@ -34,7 +34,7 @@
                 </child>
                 <child>
                   <object class="GtkButton">
-                    <property name="label" translatable="yes">Open file</property>
+                    <property name="label" translatable="yes">Open File</property>
                     <property name="action-name">app.open-project</property>
                     <style>
                       <class name="pill"/>
