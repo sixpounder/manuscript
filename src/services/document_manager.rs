@@ -9,6 +9,7 @@ use std::{
     cell::RefCell,
     fs::File,
     io::{prelude::*, BufReader, Read},
+    sync::atomic::{AtomicBool, Ordering},
     sync::{LockResult, RwLock},
 };
 
@@ -90,6 +91,7 @@ mod imp {
 
     pub struct ManuscriptDocumentManager {
         pub(super) document: RwLock<Option<Document>>,
+        pub(super) sync: AtomicBool,
         pub(super) backend_path: RefCell<Option<String>>,
         pub(super) rx: RefCell<Option<Receiver<DocumentAction>>>,
         pub(super) tx: Sender<DocumentAction>,
@@ -101,6 +103,7 @@ mod imp {
 
             Self {
                 document: RwLock::new(None),
+                sync: AtomicBool::new(true),
                 backend_path: RefCell::new(None),
                 rx: RefCell::new(Some(rx)),
                 tx,
@@ -182,6 +185,7 @@ impl DocumentManager {
                 if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(document) = lock.as_mut() {
                         document.set_title(Some(new_title));
+                        self.set_sync(false);
                     }
                 }
                 self.emit_by_name::<()>("title-set", &[]);
@@ -191,6 +195,7 @@ impl DocumentManager {
                 if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(document) = lock.as_mut() {
                         document.add_chunk(value);
+                        self.set_sync(false);
                     }
                 }
                 self.emit_by_name::<()>("chunk-added", &[&id]);
@@ -200,6 +205,7 @@ impl DocumentManager {
                 if let Ok(mut lock) = self.imp().document.write() {
                     if let Some(document) = lock.as_mut() {
                         document.add_chunk(value);
+                        self.set_sync(false);
                     }
                 }
                 self.emit_by_name::<()>("chunk-added", &[&id]);
@@ -222,6 +228,7 @@ impl DocumentManager {
                             let as_any = chunk.as_any_mut();
                             if let Some(mbc) = as_any.downcast_mut::<Chapter>() {
                                 mbc.set_buffer(bytes);
+                                self.set_sync(false);
                             } else {
                                 glib::g_warning!(G_LOG_DOMAIN, "An UpdateChunkBuffer was requested on {:?}, but it doesnt implement MutableBufferChunk", as_any);
                             }
@@ -310,7 +317,9 @@ impl DocumentManager {
     {
         if let Ok(mut lock) = self.document_guard().write() {
             if let Some(document) = lock.as_mut() {
-                f(document)
+                let result = f(document);
+                self.set_sync(false);
+                result
             } else {
                 Err(ManuscriptError::DocumentLock)
             }
@@ -350,6 +359,7 @@ impl DocumentManager {
             document.add_chunk(value);
             Ok(())
         });
+        self.set_sync(false);
         if add_chunk_result.is_ok() {
             self.emit_by_name::<()>("chunk-added", &[&id]);
         }
@@ -361,6 +371,7 @@ impl DocumentManager {
             if let Some(document) = lock.as_mut() {
                 let removed = document.remove_chunk(id);
                 drop(lock);
+                self.set_sync(false);
                 self.emit_by_name::<()>("chunk-removed", &[id]);
                 removed
             } else {
@@ -397,6 +408,7 @@ impl DocumentManager {
             }
             if let Ok(document) = Document::try_from(buf.to_vec()) {
                 self.set_document(document).expect("Could not set document");
+                self.set_sync(true);
                 Ok(())
             } else {
                 Err(ManuscriptError::DocumentDeserialize)
@@ -412,6 +424,7 @@ impl DocumentManager {
                 if let Ok(serialized) = document.serialize() {
                     let mut f = File::create(backend_file.as_str()).expect("Unable to create file");
                     if f.write_all(serialized.as_slice()).is_ok() {
+                        self.set_sync(true);
                         Ok(serialized.len())
                     } else {
                         Err(ManuscriptError::Save)
@@ -439,5 +452,13 @@ impl DocumentManager {
 
     pub fn has_backend(&self) -> bool {
         self.backend_path().is_some()
+    }
+
+    pub fn is_sync(&self) -> bool {
+        self.imp().sync.load(Ordering::Acquire)
+    }
+
+    pub fn set_sync(&self, value: bool) {
+        self.imp().sync.store(value, Ordering::Release);
     }
 }

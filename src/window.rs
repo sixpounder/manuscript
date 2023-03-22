@@ -3,12 +3,11 @@ use crate::{
     models::*,
     services::{DocumentManager, ManuscriptSettings},
     widgets::{
-        ManuscriptEditorViewShell, ManuscriptProjectLayout, ManuscriptThemeSwitcher,
-        ManuscriptWelcomeView,
+        dialogs::ManuscriptDestroyConfirmDialog, ManuscriptEditorViewShell,
+        ManuscriptProjectLayout, ManuscriptThemeSwitcher, ManuscriptWelcomeView,
     },
 };
-use adw::subclass::prelude::*;
-use gtk::prelude::*;
+use adw::{prelude::*, subclass::prelude::*};
 use gtk::{gio, glib::closure_local};
 use std::{cell::Cell, ops::Deref};
 
@@ -94,7 +93,7 @@ mod imp {
             });
 
             klass.install_action("app.open-project", None, move |win, _, _| {
-                win.open_project();
+                win.open_project(false);
             });
 
             klass.install_action("project.save", None, move |win, _, _| {
@@ -106,7 +105,7 @@ mod imp {
             });
 
             klass.install_action("project.close", None, move |win, _, _| {
-                win.close_project();
+                win.close_project(false);
             });
 
             klass.install_action("win.toggle-command-palette", None, move |win, _, _| {
@@ -312,33 +311,50 @@ impl ManuscriptWindow {
             .set_visible_child_name(PROJECT_VIEW_NAME);
     }
 
-    fn open_project(&self) {
-        with_file_open_dialog(
-            glib::clone!(@strong self as win => move |path, document| {
-                let imp = win.imp();
-                let dm = win.document_manager();
+    fn open_project(&self, pass: bool) {
+        let dm = self.document_manager();
+        if !(dm.is_sync() || pass) {
+            let dialog = ManuscriptDestroyConfirmDialog::new(self.upcast_ref::<gtk::Window>());
+            dialog.connect_response(
+                None,
+                glib::clone!(@strong self as this => move |_dialog, res| {
+                    if res == "save" {
+                        this.save_project();
+                        this.open_project(true);
+                    } else if res == "discard" {
+                        this.open_project(true);
+                    }
+                }),
+            );
+            dialog.show();
+        } else {
+            with_file_open_dialog(
+                glib::clone!(@strong self as win => move |path, document| {
+                    let imp = win.imp();
+                    let dm = win.document_manager();
 
-                if dm.has_document() && dm.unset_document().is_ok() {
-                    win.editor_view().clear();
-                    win.project_layout().clear();
-                }
-                dm.set_document(document).expect("Could not set document");
-                dm.set_backend_path(path);
-                imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
+                    if dm.has_document() && dm.unset_document().is_ok() {
+                        win.editor_view().clear();
+                        win.project_layout().clear();
+                    }
+                    dm.set_document(document).expect("Could not set document");
+                    dm.set_backend_path(path);
+                    imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
 
-                // Update last opened document
-                let settings = &imp.settings;
-                if dm.has_backend() {
-                    let backend_path = dm.backend_path().as_ref().unwrap().clone();
-                    settings.set_last_opened_document(&backend_path);
-                    glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
-                }
-            }),
-            glib::clone!(@strong self as win => move |err| {
-                glib::g_critical!(G_LOG_DOMAIN, "{}", err);
-                win.add_toast(err);
-            }),
-        );
+                    // Update last opened document
+                    let settings = &imp.settings;
+                    if dm.has_backend() {
+                        let backend_path = dm.backend_path().as_ref().unwrap().clone();
+                        settings.set_last_opened_document(&backend_path);
+                        glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
+                    }
+                }),
+                glib::clone!(@strong self as win => move |err| {
+                    glib::g_critical!(G_LOG_DOMAIN, "{}", err);
+                    win.add_toast(err);
+                }),
+            );
+        }
     }
 
     fn save_project(&self) {
@@ -397,12 +413,28 @@ impl ManuscriptWindow {
         }
     }
 
-    fn close_project(&self) {
+    fn close_project(&self, pass: bool) {
         let dm = self.document_manager();
-        if dm.has_document() && dm.unset_document().is_ok() {
-            self.editor_view().clear();
-            self.project_layout().clear();
-            self.imp().main_stack.set_visible_child_name("welcome-view");
+        if dm.has_document() {
+            if !(dm.is_sync() || pass) {
+                let dialog = ManuscriptDestroyConfirmDialog::new(self.upcast_ref::<gtk::Window>());
+                dialog.connect_response(
+                    None,
+                    glib::clone!(@strong self as this => move |_dialog, res| {
+                        if res == "save" {
+                            this.save_project();
+                            this.close_project(true);
+                        } else if res == "discard" {
+                            this.close_project(true);
+                        }
+                    }),
+                );
+                dialog.show();
+            } else if dm.unset_document().is_ok() {
+                self.editor_view().clear();
+                self.project_layout().clear();
+                self.imp().main_stack.set_visible_child_name("welcome-view");
+            }
         }
     }
 

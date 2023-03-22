@@ -1,5 +1,6 @@
 mod chunk_row;
 mod command_palette;
+pub mod dialogs;
 mod editor_view_shell;
 pub mod editors;
 pub mod factories;

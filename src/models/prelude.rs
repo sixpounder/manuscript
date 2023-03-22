@@ -4,12 +4,19 @@ use glib::{StaticType, Type};
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Color {
     Default,
     Cyan,
     Yellow,
     Green,
     Custom(u8, u8, u8),
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self::Default
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Clone, Serialize, Deserialize)]
@@ -63,10 +70,20 @@ pub trait DocumentChunk {
         Color::Default
     }
 
-    fn set_accent(&mut self, _value: Color) {}
+    fn set_accent(&mut self, _value: Color) -> ManuscriptResult<()> {
+        Err(ManuscriptError::Reason("Not implemented"))
+    }
 
     fn safe_title(&self) -> &str {
         self.title().unwrap_or(self.default_title())
+    }
+
+    fn include_in_compilation(&self) -> bool {
+        true
+    }
+
+    fn set_include_in_compilation(&mut self, _value: bool) -> ManuscriptResult<()> {
+        Err(ManuscriptError::Reason("Not implemented"))
     }
 }
 

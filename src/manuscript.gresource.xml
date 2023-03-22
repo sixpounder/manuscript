@@ -5,6 +5,7 @@
     <file alias="style-dark.css">styles/style-dark.css</file>
     <file alias="style-sepia.css">styles/style-sepia.css</file>
     <file preprocess="xml-stripblanks">window.ui</file>
+    <file preprocess="xml-stripblanks" alias="dialogs/destroy_confirm_dialog.ui">widgets/dialogs/gtk/destroy_confirm_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/text_editor.ui">widgets/editors/gtk/text_editor.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/sheet_editor.ui">widgets/editors/gtk/sheet_editor.ui</file>
     <file preprocess="xml-stripblanks" alias="editor_view_shell.ui">widgets/gtk/editor_view_shell.ui</file>

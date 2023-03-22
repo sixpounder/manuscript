@@ -1,5 +1,8 @@
 use super::{BufferChunk, ChunkType, DocumentChunk, MutableBufferChunk};
-use crate::services::i18n::i18n;
+use crate::{
+    models::prelude::{Color, ManuscriptResult},
+    services::i18n::i18n,
+};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
@@ -85,6 +88,8 @@ impl DocumentChunk for DocumentManifest {
 pub struct Chapter {
     id: String,
     priority: u64,
+    include_in_compilation: bool,
+    accent: Color,
     locked: bool,
     title: Option<String>,
     buffer: Bytes,
@@ -144,6 +149,15 @@ impl DocumentChunk for Chapter {
     fn set_locked(&mut self, value: bool) {
         self.locked = value;
     }
+
+    fn include_in_compilation(&self) -> bool {
+        self.include_in_compilation
+    }
+
+    fn set_include_in_compilation(&mut self, value: bool) -> ManuscriptResult<()> {
+        self.include_in_compilation = value;
+        Ok(())
+    }
 }
 
 impl BufferChunk for Chapter {
@@ -163,6 +177,8 @@ impl Default for Chapter {
         Self {
             id: Ulid::new().into(),
             priority: 0,
+            include_in_compilation: true,
+            accent: Color::default(),
             locked: false,
             title: None,
             buffer: Bytes::from(""),
@@ -213,6 +229,8 @@ impl Chapter {
 pub struct CharacterSheet {
     id: String,
     priority: u64,
+    include_in_compilation: bool,
+    accent: Color,
     locked: bool,
     name: Option<String>,
     gender: Gender,
@@ -228,6 +246,8 @@ impl Default for CharacterSheet {
         Self {
             id: Ulid::new().into(),
             priority: 0,
+            include_in_compilation: true,
+            accent: Color::default(),
             locked: false,
             name: None,
             gender: Gender::Unspecified,
@@ -362,6 +382,24 @@ impl DocumentChunk for CharacterSheet {
 
     fn set_locked(&mut self, value: bool) {
         self.locked = value;
+    }
+
+    fn include_in_compilation(&self) -> bool {
+        self.include_in_compilation
+    }
+
+    fn set_include_in_compilation(&mut self, value: bool) -> ManuscriptResult<()> {
+        self.include_in_compilation = value;
+        Ok(())
+    }
+
+    fn accent(&self) -> Color {
+        self.accent.clone()
+    }
+
+    fn set_accent(&mut self, value: Color) -> ManuscriptResult<()> {
+        self.accent = value;
+        Ok(())
     }
 }
 
