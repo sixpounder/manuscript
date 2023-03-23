@@ -1,5 +1,5 @@
 use super::factories;
-use crate::{models::*, services::DocumentAction, widgets::ManuscriptChunkRow};
+use crate::{models::*, services::{DocumentAction, i18n}, widgets::ManuscriptChunkRow};
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
     subclass::prelude::*,
@@ -15,7 +15,7 @@ const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
 mod imp {
     use super::*;
-    use glib::{subclass::signal::Signal, ParamSpec};
+    use glib::{subclass::signal::Signal, ParamSpec, ParamSpecString, ParamFlags};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -83,8 +83,17 @@ mod imp {
         }
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(Vec::new);
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| vec![
+                ParamSpecString::new("selection-label", "", "", Some(""), ParamFlags::READABLE)
+            ]);
             PROPERTIES.as_ref()
+        }
+
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "selection-label" => format!("{} {}", self.selected_ids.borrow().len(), i18n::i18n("items selected")).to_value(),
+                _ => unimplemented!()
+            }
         }
     }
 
@@ -191,14 +200,17 @@ impl ManuscriptProjectLayout {
         row.connect_notify_local(
             Some("selected"),
             glib::clone!(@weak self as this => move |row, _| {
-                let mut selected_ids = this.imp().selected_ids.borrow_mut();
-                if row.selected() {
-                    selected_ids.push(row.chunk_id());
-                } else {
-                    if let Some(index) = selected_ids.iter().position(|entry| entry.as_str() == row.chunk_id().as_str()) {
-                        selected_ids.remove(index);
+                {
+                    let mut selected_ids = this.imp().selected_ids.borrow_mut();
+                    if row.selected() {
+                        selected_ids.push(row.chunk_id());
+                    } else {
+                        if let Some(index) = selected_ids.iter().position(|entry| entry.as_str() == row.chunk_id().as_str()) {
+                            selected_ids.remove(index);
+                        }
                     }
                 }
+                this.notify("selection-label");
             })
         );
 
@@ -209,24 +221,32 @@ impl ManuscriptProjectLayout {
     }
 
     pub fn remove_chunk<S: ToString>(&self, chunk_id: S) {
-        glib::g_debug!(
-            G_LOG_DOMAIN,
-            "Removing chunk with id {} from project layout",
-            chunk_id.to_string()
-        );
+        let next_select_mode;
 
-        let mut map = self.imp().children_map.borrow_mut();
-        if let Some(removed) = map.remove(&chunk_id.to_string()) {
-            if let Some(parent) = removed.parent_expander() {
-                parent.remove(&removed);
+        {
+            glib::g_debug!(
+                G_LOG_DOMAIN,
+                "Removing chunk with id {} from project layout",
+                chunk_id.to_string()
+            );
+
+            let mut map = self.imp().children_map.borrow_mut();
+            if let Some(removed) = map.remove(&chunk_id.to_string()) {
+                if let Some(parent) = removed.parent_expander() {
+                    parent.remove(&removed);
+                }
             }
+
+            glib::g_debug!(
+                G_LOG_DOMAIN,
+                "Removed chunk with id {} from project layout",
+                chunk_id.to_string()
+            );
+
+            next_select_mode = !map.is_empty();
         }
 
-        glib::g_debug!(
-            G_LOG_DOMAIN,
-            "Removed chunk with id {} from project layout",
-            chunk_id.to_string()
-        );
+        self.set_select(next_select_mode);
     }
 
     pub fn chunk_row(&self, chunk: &dyn DocumentChunk) -> Option<ManuscriptChunkRow> {
@@ -260,6 +280,8 @@ impl ManuscriptProjectLayout {
                     }
                 });
             }
+
+            self.notify("selection-label");
         }
     }
 
@@ -282,9 +304,12 @@ impl ManuscriptProjectLayout {
 impl ManuscriptProjectLayout {
     #[template_callback]
     fn on_remove_items_clicked(&self, _button: &gtk::Button) {
+        let borrow = self.imp().selected_ids.borrow();
+        let ids = borrow.clone();
+        drop(borrow);
         self.emit_by_name::<()>(
             "remove-selected-activated",
-            &[&self.imp().selected_ids.borrow().clone()],
+            &[&ids],
         );
     }
 

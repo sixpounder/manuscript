@@ -125,6 +125,13 @@
             </child>
             <child type="center">
               <object class="GtkLabel" id="project_selected_label">
+                <property
+                  name="label"
+                  bind-source="ManuscriptProjectLayout"
+                  bind-property="selection-label"
+                  bind-flags="default"
+                >
+                </property>
                 <style>
                   <class name="caption"/>
                 </style>
