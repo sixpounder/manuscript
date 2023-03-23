@@ -5,6 +5,7 @@
   <template class="ManuscriptWindow" parent="AdwApplicationWindow">
     <property name="default-width">600</property>
     <property name="default-height">300</property>
+    <signal name="close-request" handler="on_close_request" swapped="true"></signal>
     <property name="content">
       <object class="AdwToastOverlay" id="toast_overlay">
         <property name="child">

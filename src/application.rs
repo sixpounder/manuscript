@@ -122,7 +122,7 @@ impl ManuscriptApplication {
     fn setup_gactions(&self) {
         let new_window_action = gio::ActionEntry::builder("new-window")
             .activate(move |application: &Self, _, _| {
-                let window = ManuscriptWindow::new(&*application);
+                let window = ManuscriptWindow::new(application);
                 let window = window.upcast::<adw::ApplicationWindow>();
 
                 // Ask the window manager/compositor to present the window

@@ -5,6 +5,7 @@ use crate::models::{
 use adw::subclass::prelude::*;
 use bytes::{Buf, Bytes, BytesMut};
 use glib::{clone, MainContext, ObjectExt, Receiver, Sender};
+use gtk::{gio, gio::prelude::*};
 use std::{
     cell::RefCell,
     fs::File,
@@ -92,7 +93,7 @@ mod imp {
     pub struct ManuscriptDocumentManager {
         pub(super) document: RwLock<Option<Document>>,
         pub(super) sync: AtomicBool,
-        pub(super) backend_path: RefCell<Option<String>>,
+        pub(super) backend_file: RefCell<Option<gio::File>>,
         pub(super) rx: RefCell<Option<Receiver<DocumentAction>>>,
         pub(super) tx: Sender<DocumentAction>,
     }
@@ -104,7 +105,7 @@ mod imp {
             Self {
                 document: RwLock::new(None),
                 sync: AtomicBool::new(true),
-                backend_path: RefCell::new(None),
+                backend_file: RefCell::new(None),
                 rx: RefCell::new(Some(rx)),
                 tx,
             }
@@ -344,7 +345,7 @@ impl DocumentManager {
             if lock.is_some() {
                 *lock = None;
                 drop(lock);
-                *self.backend_path_mut() = None;
+                *self.backend_file_mut() = None;
                 self.set_sync(true);
                 self.emit_by_name::<()>("document-unloaded", &[]);
             }
@@ -419,10 +420,12 @@ impl DocumentManager {
     }
 
     pub fn sync(&self) -> ManuscriptResult<usize> {
-        if let Some(backend_file) = self.backend_path().as_ref() {
-            self.with_document_mut(move |document| {
+        if let Some(backend_file) = self.backend_file().as_ref() {
+            self.with_document(move |document| {
                 if let Ok(serialized) = document.serialize() {
-                    let mut f = File::create(backend_file.as_str()).expect("Unable to create file");
+                    let mut f =
+                        File::create(backend_file.path().unwrap().as_path().to_str().unwrap())
+                            .expect("Unable to create file");
                     if f.write_all(serialized.as_slice()).is_ok() {
                         self.set_sync(true);
                         Ok(serialized.len())
@@ -438,20 +441,20 @@ impl DocumentManager {
         }
     }
 
-    pub fn backend_path(&self) -> std::cell::Ref<Option<String>> {
-        self.imp().backend_path.borrow()
+    pub fn backend_file(&self) -> std::cell::Ref<Option<gio::File>> {
+        self.imp().backend_file.borrow()
     }
 
-    pub fn backend_path_mut(&self) -> std::cell::RefMut<Option<String>> {
-        self.imp().backend_path.borrow_mut()
+    pub fn backend_file_mut(&self) -> std::cell::RefMut<Option<gio::File>> {
+        self.imp().backend_file.borrow_mut()
     }
 
     pub fn set_backend_path(&self, path: String) {
-        self.imp().backend_path.replace(Some(path));
+        *self.imp().backend_file.borrow_mut() = Some(gio::File::for_path(path));
     }
 
     pub fn has_backend(&self) -> bool {
-        self.backend_path().is_some()
+        self.backend_file().is_some()
     }
 
     pub fn is_sync(&self) -> bool {

@@ -83,10 +83,9 @@ where
     dialog.show();
 }
 
-pub fn with_file_save_dialog<F, E>(document: &Document, on_success: F, on_error: E)
+pub fn with_file_save_dialog<F>(on_choice: F)
 where
-    F: Fn(String, usize) + 'static,
-    E: Fn(String) + 'static,
+    F: Fn(String) + 'static,
 {
     let win = window();
 
@@ -111,37 +110,11 @@ where
     dialog.add_filter(&manuscript_file_filter);
     dialog.add_filter(&any_file_filter);
 
-    let serialized = document.serialize();
-
     dialog.connect_response(glib::clone!(@strong dialog => move |_, response| {
         let file = dialog.file();
         if response == gtk::ResponseType::Accept {
             if let Some(file) = file.as_ref() {
-                match &serialized {
-                    Ok(serialized) => {
-                        let file_io_stream = if file.query_exists(gtk::gio::Cancellable::NONE) {
-                            file.open_readwrite(gtk::gio::Cancellable::NONE).unwrap()
-                        } else {
-                            file.create_readwrite(gtk::gio::FileCreateFlags::NONE | gtk::gio::FileCreateFlags::REPLACE_DESTINATION, gtk::gio::Cancellable::NONE).unwrap()
-                        };
-
-                        let write_result = file_io_stream.output_stream().write_all(serialized.as_slice(), gtk::gio::Cancellable::NONE);
-                        match write_result {
-                            Ok((bytes_written, _)) => {
-                                glib::info!("Written {} bytes", bytes_written);
-                                on_success(file.path().unwrap().to_str().unwrap().into(), bytes_written);
-                            },
-                            Err(error) => {
-                                glib::g_critical!(G_LOG_DOMAIN, "Unable to write to file: {}", error);
-                                on_error(i18n("Unable to write to file"));
-                            }
-                        }
-                    },
-                    Err(error) => {
-                        glib::g_critical!(G_LOG_DOMAIN, "Unable to serialize document: {:?}", error);
-                        on_error(i18n("Unable to serialize document"));
-                    }
-                }
+                on_choice(file.path().unwrap().to_str().unwrap().into());
             }
         }
     }));

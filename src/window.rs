@@ -58,6 +58,8 @@ mod imp {
         pub(super) search_mode: Cell<bool>,
 
         pub(super) select_mode: Cell<bool>,
+
+        pub(super) close_anyway: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -82,6 +84,7 @@ mod imp {
                 document_manager: DocumentManager::default(),
                 search_mode: Cell::default(),
                 select_mode: Cell::default(),
+                close_anyway: Cell::new(false),
             }
         }
 
@@ -356,7 +359,12 @@ impl ManuscriptWindow {
                     // Update last opened document
                     let settings = &imp.settings;
                     if dm.has_backend() {
-                        let backend_path = dm.backend_path().as_ref().unwrap().clone();
+                        let backend_path = dm.backend_file();
+                        let backend_path = backend_path.as_ref().unwrap();
+                        let backend_path = backend_path.path().unwrap();
+                        let backend_path = backend_path.as_path().to_str().unwrap();
+                        let backend_path = backend_path.to_string();
+
                         settings.set_last_opened_document(&backend_path);
                         glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
                     }
@@ -371,57 +379,43 @@ impl ManuscriptWindow {
 
     fn save_project(&self) {
         let dm = self.document_manager();
-        if dm.has_backend() {
-            match dm.sync() {
-                Ok(bytes_written) => {
-                    glib::g_info!(
-                        G_LOG_DOMAIN,
-                        "Project saved - {bytes_written} bytes written"
-                    );
+        if dm.has_document() {
+            if dm.has_backend() {
+                match dm.sync() {
+                    Ok(bytes_written) => {
+                        glib::g_info!(
+                            G_LOG_DOMAIN,
+                            "Project saved - {bytes_written} bytes written"
+                        );
+                    }
+                    Err(error) => {
+                        glib::g_warning!(G_LOG_DOMAIN, "Problem when saving project - {:?}", error);
+                    }
                 }
-                Err(error) => {
-                    glib::g_warning!(G_LOG_DOMAIN, "Problem when saving project - {:?}", error);
-                }
+            } else {
+                with_file_save_dialog(glib::clone!(@strong self as win => move |path| {
+                    win.document_manager().set_backend_path(path);
+                    if let Err(_error) = win.document_manager().sync() {
+                        win.add_toast("Could not save file".into());
+                    }
+                }));
             }
         } else {
-            let document = dm
-                .document_ref()
-                .expect("Could not get a handle to the document");
-            if let Some(document) = document.as_ref() {
-                with_file_save_dialog(
-                    document,
-                    glib::clone!(@strong self as win => move |path, _bytes| {
-                        win.document_manager().set_backend_path(path);
-                    }),
-                    glib::clone!(@strong self as win => move |err| {
-                        glib::g_critical!(G_LOG_DOMAIN, "{}", err);
-                        win.add_toast(err);
-                    }),
-                );
-            } else {
-                glib::g_warning!(G_LOG_DOMAIN, "Could not acquire document for saving");
-            }
+            glib::g_warning!(G_LOG_DOMAIN, "Could not acquire document for saving");
         }
     }
 
     fn save_project_as(&self) {
         let dm = self.document_manager();
-        let document = dm
-            .document_ref()
-            .expect("Could not get a handle to the document");
-        if let Some(document) = document.as_ref() {
-            with_file_save_dialog(
-                document,
-                glib::clone!(@strong self as win => move |path, _bytes| {
-                    let settings = &win.imp().settings;
-                    settings.set_last_opened_document(&path);
-                    win.document_manager().set_backend_path(path);
-                }),
-                glib::clone!(@strong self as win => move |err| {
-                    glib::g_critical!(G_LOG_DOMAIN, "{}", err);
-                    win.add_toast(err);
-                }),
-            );
+        if dm.has_document() {
+            with_file_save_dialog(glib::clone!(@strong self as win => move |path| {
+                let settings = &win.imp().settings;
+                settings.set_last_opened_document(&path);
+                win.document_manager().set_backend_path(path);
+                if let Err(_error) = win.document_manager().sync() {
+                    win.add_toast("Could not save file".into());
+                }
+            }));
         }
     }
 
@@ -536,16 +530,6 @@ impl ManuscriptWindow {
         self.imp().select_mode.get()
     }
 
-    fn toggle_command_palette(&self) {
-        const COMMAND_PALETTE_CLASS: &str = "command-palette";
-        let main_stack_style_context = self.imp().main_stack.style_context();
-        if main_stack_style_context.has_class(COMMAND_PALETTE_CLASS) {
-            main_stack_style_context.remove_class(COMMAND_PALETTE_CLASS);
-        } else {
-            main_stack_style_context.add_class(COMMAND_PALETTE_CLASS);
-        }
-    }
-
     fn set_select(&self, value: bool) {
         let imp = self.imp();
         if value != imp.select_mode.replace(value) {
@@ -610,8 +594,7 @@ impl ManuscriptWindow {
             if let Some(document) = &*lock {
                 if let Some(chunk) = document.get_chunk_ref(&id) {
                     if let Some(row) = self.project_layout().chunk_row(chunk) {
-                        let the_chunk = Some(chunk);
-                        row.update_chunk_reading_stats(the_chunk, words_count);
+                        row.update_chunk_reading_stats(chunk, words_count);
                     } else {
                         glib::g_warning!(
                             G_LOG_DOMAIN,
@@ -657,6 +640,16 @@ impl ManuscriptWindow {
         }
     }
 
+    fn toggle_command_palette(&self) {
+        const COMMAND_PALETTE_CLASS: &str = "command-palette";
+        let main_stack_style_context = self.imp().main_stack.style_context();
+        if main_stack_style_context.has_class(COMMAND_PALETTE_CLASS) {
+            main_stack_style_context.remove_class(COMMAND_PALETTE_CLASS);
+        } else {
+            main_stack_style_context.add_class(COMMAND_PALETTE_CLASS);
+        }
+    }
+
     fn update_actions(&self) {
         let dm = self.document_manager();
         self.action_set_enabled("project.compile", dm.has_document());
@@ -668,6 +661,11 @@ impl ManuscriptWindow {
     pub fn flap(&self) -> adw::Flap {
         self.imp().flap.get()
     }
+
+    pub fn can_close(&self) -> bool {
+        self.imp().close_anyway.get()
+            || (!self.document_manager().has_document() || self.document_manager().is_sync())
+    }
 }
 
 #[gtk::template_callbacks]
@@ -678,5 +676,29 @@ impl ManuscriptWindow {
         ids.iter().for_each(|id| {
             dm.remove_chunk(id);
         });
+    }
+
+    #[template_callback]
+    fn on_close_request(&self) -> bool {
+        if self.can_close() {
+            false
+        } else {
+            let dialog = ManuscriptDestroyConfirmDialog::new(self.upcast_ref::<gtk::Window>());
+            dialog.connect_response(
+                None,
+                glib::clone!(@strong self as this => move |_dialog, res| {
+                    if res == "save" {
+                        this.save_project();
+                        this.imp().close_anyway.set(true);
+                        this.close();
+                    } else if res == "discard" {
+                        this.imp().close_anyway.set(true);
+                        this.close();
+                    }
+                }),
+            );
+            dialog.show();
+            true
+        }
     }
 }

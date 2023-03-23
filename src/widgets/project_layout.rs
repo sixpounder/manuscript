@@ -1,5 +1,9 @@
 use super::factories;
-use crate::{models::*, services::{DocumentAction, i18n}, widgets::ManuscriptChunkRow};
+use crate::{
+    models::*,
+    services::{i18n, DocumentAction},
+    widgets::ManuscriptChunkRow,
+};
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
     subclass::prelude::*,
@@ -15,7 +19,7 @@ const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
 mod imp {
     use super::*;
-    use glib::{subclass::signal::Signal, ParamSpec, ParamSpecString, ParamFlags};
+    use glib::{subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -83,16 +87,27 @@ mod imp {
         }
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| vec![
-                ParamSpecString::new("selection-label", "", "", Some(""), ParamFlags::READABLE)
-            ]);
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![ParamSpecString::new(
+                    "selection-label",
+                    "",
+                    "",
+                    Some(""),
+                    ParamFlags::READABLE,
+                )]
+            });
             PROPERTIES.as_ref()
         }
 
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "selection-label" => format!("{} {}", self.selected_ids.borrow().len(), i18n::i18n("items selected")).to_value(),
-                _ => unimplemented!()
+                "selection-label" => format!(
+                    "{} {}",
+                    self.selected_ids.borrow().len(),
+                    i18n::i18n("items selected")
+                )
+                .to_value(),
+                _ => unimplemented!(),
             }
         }
     }
@@ -204,10 +219,8 @@ impl ManuscriptProjectLayout {
                     let mut selected_ids = this.imp().selected_ids.borrow_mut();
                     if row.selected() {
                         selected_ids.push(row.chunk_id());
-                    } else {
-                        if let Some(index) = selected_ids.iter().position(|entry| entry.as_str() == row.chunk_id().as_str()) {
-                            selected_ids.remove(index);
-                        }
+                    } else if let Some(index) = selected_ids.iter().position(|entry| entry.as_str() == row.chunk_id().as_str()) {
+                        selected_ids.remove(index);
                     }
                 }
                 this.notify("selection-label");
@@ -286,6 +299,9 @@ impl ManuscriptProjectLayout {
     }
 
     pub fn select_all_rows(&self) {
+        {
+            self.imp().selected_ids.borrow_mut().clear();
+        }
         let children = self.imp().children_map.borrow();
         children
             .iter()
@@ -307,10 +323,7 @@ impl ManuscriptProjectLayout {
         let borrow = self.imp().selected_ids.borrow();
         let ids = borrow.clone();
         drop(borrow);
-        self.emit_by_name::<()>(
-            "remove-selected-activated",
-            &[&ids],
-        );
+        self.emit_by_name::<()>("remove-selected-activated", &[&ids]);
     }
 
     #[template_callback]

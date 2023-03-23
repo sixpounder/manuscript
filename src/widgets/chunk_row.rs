@@ -110,8 +110,17 @@ glib::wrapper! {
 impl ManuscriptChunkRow {
     pub fn new(chunk: Option<&dyn DocumentChunk>, expander: adw::ExpanderRow) -> Self {
         let obj: Self = glib::Object::new(&[("expander", &expander), ("select-mode", &false)]);
-        obj.update_chunk(chunk);
+        obj.init(chunk);
         obj
+    }
+
+    fn init(&self, chunk: Option<&dyn DocumentChunk>) {
+        self.update_chunk(chunk);
+        if let Some(chunk) = chunk {
+            if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
+                self.update_chunk_reading_stats(chapter, chapter.words_count());
+            }
+        }
     }
 
     pub fn selected(&self) -> bool {
@@ -150,13 +159,7 @@ impl ManuscriptChunkRow {
                 self.set_locked(chunk.locked());
                 self.set_tint(chunk.accent());
 
-                if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
-                    self.set_subtitle(
-                        format!("{} {}", chapter.words_count(), i18n("words")).as_str(),
-                    );
-                } else if let Some(character_sheet) =
-                    chunk.as_any().downcast_ref::<CharacterSheet>()
-                {
+                if let Some(character_sheet) = chunk.as_any().downcast_ref::<CharacterSheet>() {
                     self.set_subtitle(character_sheet.role().unwrap_or(&i18n("No role")).as_str());
                 }
             } else {
@@ -187,11 +190,9 @@ impl ManuscriptChunkRow {
         }
     }
 
-    pub fn update_chunk_reading_stats(&self, chunk: Option<&dyn DocumentChunk>, words_count: u64) {
-        if let Some(chunk) = chunk {
-            if chunk.as_any().downcast_ref::<Chapter>().is_some() {
-                self.set_subtitle(format!("{} {}", words_count, i18n("words")).as_str());
-            }
+    pub fn update_chunk_reading_stats(&self, chunk: &dyn DocumentChunk, words_count: u64) {
+        if chunk.as_any().downcast_ref::<Chapter>().is_some() {
+            self.set_subtitle(format!("{} {}", words_count, i18n("words")).as_str());
         }
     }
 
