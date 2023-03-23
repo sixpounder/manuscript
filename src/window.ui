@@ -85,6 +85,7 @@
                         <property name="flap">
                           <object class="ManuscriptProjectLayout" id="project_layout">
                             <property name="width-request">380</property>
+                            <signal name="remove-selected-activated" handler="on_remove_selected_activated" swapped="true"></signal>
                           </object>
                         </property>
                         <property name="content">

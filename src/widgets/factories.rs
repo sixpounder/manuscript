@@ -78,6 +78,9 @@ pub fn create_expander_row_for_chunk(chunk: &dyn DocumentChunk) -> adw::Expander
 //     existing_row.unwrap_or_else(|| create_row_for_chunk(chunk))
 // }
 
-pub fn create_row_for_chunk(chunk: &dyn DocumentChunk) -> ManuscriptChunkRow {
-    ManuscriptChunkRow::new(Some(chunk))
+pub fn create_row_for_chunk(
+    chunk: &dyn DocumentChunk,
+    expander: adw::ExpanderRow,
+) -> ManuscriptChunkRow {
+    ManuscriptChunkRow::new(Some(chunk), expander)
 }

@@ -91,7 +91,6 @@ impl ManuscriptThemeSwitcher {
     }
 
     pub fn set_active_switch(&self, theme: String) {
-        glib::g_debug!("ManuscriptThemeSwitcher", "Setting {theme} theme");
         let imp = self.imp();
 
         match theme.as_str() {

@@ -4,18 +4,55 @@ use glib::{StaticType, Type};
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
+const DEFAULT_CONTRAST_LIGHT: Color = Color(0.0, 0.0, 0.0, 0.9);
+const DEFAULT_CONTRAST_DARK: Color = Color(250.0, 250.0, 250.0, 0.9);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Color {
-    Default,
-    Cyan,
-    Yellow,
-    Green,
-    Custom(u8, u8, u8),
+pub struct Color(pub f32, pub f32, pub f32, pub f32);
+
+impl Color {
+    pub fn is_dark(&self) -> bool {
+        !self.is_light()
+    }
+
+    // Calculate the perceived brightness of the color using the formula
+    // (0.299 * R + 0.587 * G + 0.114 * B) * A
+    pub fn is_light(&self) -> bool {
+        let brightness = (0.299 * self.0 + 0.587 * self.1 + 0.114 * self.2) * self.3;
+        // If the brightness is greater than or equal to 0.6, the color is considered light
+        brightness >= 0.6
+    }
+
+    pub fn contrast_color(&self) -> Color {
+        if self.is_light() {
+            DEFAULT_CONTRAST_LIGHT
+        } else {
+            DEFAULT_CONTRAST_DARK
+        }
+    }
 }
 
-impl Default for Color {
-    fn default() -> Self {
-        Self::Default
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "rgba({}, {}, {}, {})",
+            self.0.ceil(),
+            self.1.ceil(),
+            self.2.ceil(),
+            self.3
+        )
+    }
+}
+
+impl From<gtk::gdk::RGBA> for Color {
+    fn from(value: gtk::gdk::RGBA) -> Self {
+        Self(
+            value.red() * 255.0,
+            value.green() * 255.0,
+            value.blue() * 255.0,
+            value.alpha(),
+        )
     }
 }
 
@@ -66,11 +103,11 @@ pub trait DocumentChunk {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 
-    fn accent(&self) -> Color {
-        Color::Default
+    fn accent(&self) -> Option<Color> {
+        None
     }
 
-    fn set_accent(&mut self, _value: Color) -> ManuscriptResult<()> {
+    fn set_accent(&mut self, _value: Option<Color>) -> ManuscriptResult<()> {
         Err(ManuscriptError::Reason("Not implemented"))
     }
 

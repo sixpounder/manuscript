@@ -88,6 +88,8 @@ mod imp {
         fn class_init(klass: &mut Self::Class) {
             klass.bind_template();
 
+            klass.bind_template_instance_callbacks();
+
             klass.install_action("app.new-project", None, move |win, _, _| {
                 win.new_project();
             });
@@ -216,6 +218,14 @@ impl ManuscriptWindow {
         );
 
         dm.connect_closure(
+            "document-unloaded",
+            false,
+            closure_local!(@strong self as this => move |_: DocumentManager| {
+                this.on_document_unloaded();
+            }),
+        );
+
+        dm.connect_closure(
             "chunk-added",
             false,
             closure_local!(@strong self as this => move |_obj: DocumentManager, id: String| {
@@ -297,6 +307,8 @@ impl ManuscriptWindow {
 
         let editor_view = self.editor_view();
         editor_view.set_channel(self.document_manager().action_sender());
+
+        self.update_actions();
     }
 
     fn add_toast(&self, msg: String) {
@@ -439,6 +451,7 @@ impl ManuscriptWindow {
     }
 
     fn on_document_loaded(&self) {
+        self.update_actions();
         glib::idle_add_local(
             glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
                 let imp = this.imp();
@@ -453,6 +466,10 @@ impl ManuscriptWindow {
                 glib::Continue(false)
             }),
         );
+    }
+
+    fn on_document_unloaded(&self) {
+        self.update_actions();
     }
 
     fn on_chunk_added(&self, id: String) {
@@ -473,12 +490,9 @@ impl ManuscriptWindow {
     }
 
     fn on_chunk_removed(&self, id: String) {
-        if let Ok(lock) = self.document_manager().document_ref() {
-            if let Some(document) = &*lock {
-                let removed_chunk = document.get_chunk_ref(id.as_str()).unwrap();
-                self.imp().project_layout.remove_chunk(removed_chunk.id());
-            }
-        }
+        let imp = self.imp();
+        imp.project_layout.remove_chunk(id.clone());
+        imp.editor_view.close_page_by_id(id);
     }
 
     fn on_chunk_selected(&self, id: String) {
@@ -643,7 +657,26 @@ impl ManuscriptWindow {
         }
     }
 
+    fn update_actions(&self) {
+        let dm = self.document_manager();
+        self.action_set_enabled("project.compile", dm.has_document());
+        self.action_set_enabled("project.save", dm.has_document());
+        self.action_set_enabled("project.save-as", dm.has_document());
+        self.action_set_enabled("project.close", dm.has_document());
+    }
+
     pub fn flap(&self) -> adw::Flap {
         self.imp().flap.get()
+    }
+}
+
+#[gtk::template_callbacks]
+impl ManuscriptWindow {
+    #[template_callback]
+    fn on_remove_selected_activated(&self, ids: Vec<String>) {
+        let dm = self.document_manager();
+        ids.iter().for_each(|id| {
+            dm.remove_chunk(id);
+        });
     }
 }

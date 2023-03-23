@@ -89,7 +89,7 @@ pub struct Chapter {
     id: String,
     priority: u64,
     include_in_compilation: bool,
-    accent: Color,
+    accent: Option<Color>,
     locked: bool,
     title: Option<String>,
     buffer: Bytes,
@@ -158,6 +158,15 @@ impl DocumentChunk for Chapter {
         self.include_in_compilation = value;
         Ok(())
     }
+
+    fn accent(&self) -> Option<Color> {
+        self.accent.clone()
+    }
+
+    fn set_accent(&mut self, value: Option<Color>) -> ManuscriptResult<()> {
+        self.accent = value;
+        Ok(())
+    }
 }
 
 impl BufferChunk for Chapter {
@@ -178,7 +187,7 @@ impl Default for Chapter {
             id: Ulid::new().into(),
             priority: 0,
             include_in_compilation: true,
-            accent: Color::default(),
+            accent: None,
             locked: false,
             title: None,
             buffer: Bytes::from(""),
@@ -230,7 +239,7 @@ pub struct CharacterSheet {
     id: String,
     priority: u64,
     include_in_compilation: bool,
-    accent: Color,
+    accent: Option<Color>,
     locked: bool,
     name: Option<String>,
     gender: Gender,
@@ -247,7 +256,7 @@ impl Default for CharacterSheet {
             id: Ulid::new().into(),
             priority: 0,
             include_in_compilation: true,
-            accent: Color::default(),
+            accent: None,
             locked: false,
             name: None,
             gender: Gender::Unspecified,
@@ -393,11 +402,11 @@ impl DocumentChunk for CharacterSheet {
         Ok(())
     }
 
-    fn accent(&self) -> Color {
+    fn accent(&self) -> Option<Color> {
         self.accent.clone()
     }
 
-    fn set_accent(&mut self, value: Color) -> ManuscriptResult<()> {
+    fn set_accent(&mut self, value: Option<Color>) -> ManuscriptResult<()> {
         self.accent = value;
         Ok(())
     }

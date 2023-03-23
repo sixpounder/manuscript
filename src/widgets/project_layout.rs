@@ -6,13 +6,16 @@ use adw::{
 };
 use glib::Sender;
 use gtk::{gio, prelude::*};
-use std::{cell::RefCell, collections::HashMap};
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+};
 
 const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
 mod imp {
     use super::*;
-    use glib::ParamSpec;
+    use glib::{subclass::signal::Signal, ParamSpec};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -31,11 +34,18 @@ mod imp {
         pub(super) searchbar: TemplateChild<gtk::SearchBar>,
 
         #[template_child]
-        pub searchentry: TemplateChild<gtk::SearchEntry>,
+        pub(super) searchentry: TemplateChild<gtk::SearchEntry>,
+
+        #[template_child]
+        pub(super) project_actionbar: TemplateChild<gtk::ActionBar>,
 
         pub(super) channel: RefCell<Option<Sender<DocumentAction>>>,
 
         pub(super) children_map: RefCell<HashMap<String, ManuscriptChunkRow>>,
+
+        pub(super) chunk_selection: Cell<bool>,
+
+        pub(super) selected_ids: RefCell<Vec<String>>,
     }
 
     #[glib::object_subclass]
@@ -47,6 +57,7 @@ mod imp {
         fn class_init(klass: &mut Self::Class) {
             klass.bind_template();
             klass.set_layout_manager_type::<gtk::BinLayout>();
+            klass.bind_template_instance_callbacks();
         }
 
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
@@ -60,6 +71,17 @@ mod imp {
             let obj = self.obj();
             obj.setup_widgets();
         }
+
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
+                vec![Signal::builder("remove-selected-activated")
+                    .param_types([Vec::<String>::static_type()])
+                    .build()]
+            });
+
+            SIGNALS.as_ref()
+        }
+
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(Vec::new);
             PROPERTIES.as_ref()
@@ -129,6 +151,7 @@ impl ManuscriptProjectLayout {
             child = existing_child.next_sibling();
             layout.remove(&existing_child);
         }
+        self.set_select(false);
     }
 
     #[allow(dead_code)]
@@ -155,10 +178,29 @@ impl ManuscriptProjectLayout {
             factories::get_or_create_expander_row_for_chunk(&layout.upcast::<gtk::Widget>(), chunk);
         expander_row.set_expanded(true);
 
-        let row = factories::create_row_for_chunk(chunk);
+        let row = factories::create_row_for_chunk(chunk, expander_row.clone());
         row.connect_activated(glib::clone!(@weak self as this => move |row| {
-            this.send_action(DocumentAction::SelectChunk(row.chunk_id()));
+            if row.select_mode() {
+                let selected = !row.selected();
+                row.set_property("selected", selected);
+            } else {
+                this.send_action(DocumentAction::SelectChunk(row.chunk_id()));
+            }
         }));
+
+        row.connect_notify_local(
+            Some("selected"),
+            glib::clone!(@weak self as this => move |row, _| {
+                let mut selected_ids = this.imp().selected_ids.borrow_mut();
+                if row.selected() {
+                    selected_ids.push(row.chunk_id());
+                } else {
+                    if let Some(index) = selected_ids.iter().position(|entry| entry.as_str() == row.chunk_id().as_str()) {
+                        selected_ids.remove(index);
+                    }
+                }
+            })
+        );
 
         let mut map = self.imp().children_map.borrow_mut();
         map.insert(chunk.id().to_string(), row.clone());
@@ -174,7 +216,17 @@ impl ManuscriptProjectLayout {
         );
 
         let mut map = self.imp().children_map.borrow_mut();
-        map.remove(&chunk_id.to_string());
+        if let Some(removed) = map.remove(&chunk_id.to_string()) {
+            if let Some(parent) = removed.parent_expander() {
+                parent.remove(&removed);
+            }
+        }
+
+        glib::g_debug!(
+            G_LOG_DOMAIN,
+            "Removed chunk with id {} from project layout",
+            chunk_id.to_string()
+        );
     }
 
     pub fn chunk_row(&self, chunk: &dyn DocumentChunk) -> Option<ManuscriptChunkRow> {
@@ -190,8 +242,32 @@ impl ManuscriptProjectLayout {
         self.searchbar().set_search_mode(value);
     }
 
-    pub fn set_select(&self, _value: bool) {
-        // TODO
+    pub fn set_select(&self, value: bool) {
+        let imp = self.imp();
+        imp.selected_ids.borrow_mut().clear();
+
+        if value != imp.chunk_selection.replace(value) {
+            imp.project_actionbar.set_revealed(value);
+            let children = imp.children_map.borrow();
+            children
+                .iter()
+                .for_each(|(_key, child)| child.set_property("select-mode", value));
+
+            if value {
+                self.expanders().iter().for_each(|expander| {
+                    if let Some(expander) = expander.downcast_ref::<adw::ExpanderRow>() {
+                        expander.set_expanded(true);
+                    }
+                });
+            }
+        }
+    }
+
+    pub fn select_all_rows(&self) {
+        let children = self.imp().children_map.borrow();
+        children
+            .iter()
+            .for_each(|(_key, child)| child.set_property("selected", true));
     }
 
     fn send_action(&self, action: DocumentAction) {
@@ -199,5 +275,21 @@ impl ManuscriptProjectLayout {
         if let Some(channel) = maybe_channel.as_ref() {
             channel.send(action).expect("Could not send action");
         }
+    }
+}
+
+#[gtk::template_callbacks]
+impl ManuscriptProjectLayout {
+    #[template_callback]
+    fn on_remove_items_clicked(&self, _button: &gtk::Button) {
+        self.emit_by_name::<()>(
+            "remove-selected-activated",
+            &[&self.imp().selected_ids.borrow().clone()],
+        );
+    }
+
+    #[template_callback]
+    fn on_select_all_button_clicked(&self, _button: &gtk::Button) {
+        self.select_all_rows();
     }
 }

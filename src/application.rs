@@ -73,7 +73,6 @@ mod imp {
                 "color-scheme",
                 glib::clone!(@strong obj as this => move |_, _key| {
                     let theme = Theme::current();
-                    glib::g_debug!("ManuscriptApplication", "Theme settings changed to {theme}");
                     this.set_color_scheme(theme.as_str());
                 }),
             );

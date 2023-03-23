@@ -154,6 +154,10 @@ impl ManuscriptEditorViewShell {
     }
 
     fn page_for_chunk(&self, chunk: &dyn DocumentChunk) -> Option<adw::TabPage> {
+        self.page_for_chunk_by_id(chunk.id().to_string())
+    }
+
+    fn page_for_chunk_by_id(&self, id: String) -> Option<adw::TabPage> {
         let editor_view = self.editor_tab_view();
         let page_list_iterator = editor_view.pages();
         let mut page_list_iterator = page_list_iterator
@@ -165,7 +169,7 @@ impl ManuscriptEditorViewShell {
                     let maybe_data = unsafe { page.data::<String>(CHUNK_ID_DATA_KEY) };
                     if let Some(inner_data) = maybe_data {
                         let inner_data = unsafe { inner_data.as_ref() };
-                        if *inner_data == chunk.id() {
+                        if *inner_data == id {
                             return true;
                         }
                     }
@@ -198,6 +202,18 @@ impl ManuscriptEditorViewShell {
             self.editor_tab_view().set_selected_page(&page);
         } else {
             self.add_and_select_page(chunk);
+        }
+    }
+
+    pub fn close_page(&self, chunk: &dyn DocumentChunk) {
+        if let Some(page) = self.page_for_chunk(chunk) {
+            self.editor_tab_view().close_page(&page);
+        }
+    }
+
+    pub fn close_page_by_id(&self, id: String) {
+        if let Some(page) = self.page_for_chunk_by_id(id) {
+            self.editor_tab_view().close_page(&page);
         }
     }
 

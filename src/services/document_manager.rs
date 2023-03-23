@@ -345,6 +345,7 @@ impl DocumentManager {
                 *lock = None;
                 drop(lock);
                 *self.backend_path_mut() = None;
+                self.set_sync(true);
                 self.emit_by_name::<()>("document-unloaded", &[]);
             }
             Ok(())
@@ -366,17 +367,16 @@ impl DocumentManager {
     }
 
     pub fn remove_chunk(&self, id: &String) -> Option<Box<dyn DocumentChunk>> {
-        let imp = self.imp();
-        if let Ok(mut lock) = imp.document.write() {
-            if let Some(document) = lock.as_mut() {
-                let removed = document.remove_chunk(id);
-                drop(lock);
-                self.set_sync(false);
-                self.emit_by_name::<()>("chunk-removed", &[id]);
-                removed
+        if let Ok(removed) = self.with_document_mut(move |document| {
+            if let Some(removed) = document.remove_chunk(id) {
+                Ok(removed)
             } else {
-                None
+                Err(ManuscriptError::ChunkUnavailable)
             }
+        }) {
+            self.set_sync(false);
+            self.emit_by_name::<()>("chunk-removed", &[id]);
+            Some(removed)
         } else {
             None
         }

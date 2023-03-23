@@ -110,6 +110,35 @@
             </child>
           </object>
         </child>
+        <child>
+          <object class="GtkActionBar" id="project_actionbar">
+            <property name="revealed">false</property>
+            <style>
+              <class name="flat" />
+            </style>
+            <child>
+              <object class="GtkButton" id="project_select_all_button">
+                <property name="icon-name">edit-select-all-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Select All Items</property>
+                <signal name="clicked" handler="on_select_all_button_clicked" swapped="true"></signal>
+              </object>
+            </child>
+            <child type="center">
+              <object class="GtkLabel" id="project_selected_label">
+                <style>
+                  <class name="caption"/>
+                </style>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkButton" id="project_remove_button">
+                <property name="icon-name">list-remove-all-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Remove Selected Items</property>
+                <signal name="clicked" handler="on_remove_items_clicked" swapped="true"></signal>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
   </template>

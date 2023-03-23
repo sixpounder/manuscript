@@ -7,9 +7,41 @@
     <property name="title"></property>
     <property name="subtitle"></property>
     <property name="subtitle-lines">2</property>
-    <child type="prefix">
+    <style>
+      <class name="chunk-row" />
+    </style>
+    <child type="suffix">
       <object class="GtkImage" id="lock_icon">
         <property name="icon-name">system-lock-screen-symbolic</property>
+        <property
+          name="visible"
+          bind-source="ManuscriptChunkRow"
+          bind-property="locked"
+          bind-flags="default|sync-create"
+        >
+        </property>
+      </object>
+    </child>
+    <child type="prefix">
+      <object class="GtkCheckButton" id="selected_button">
+        <property
+          name="visible"
+          bind-source="ManuscriptChunkRow"
+          bind-property="select-mode"
+          bind-flags="default|sync-create"
+        >
+        </property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property
+          name="active"
+          bind-source="ManuscriptChunkRow"
+          bind-property="selected"
+          bind-flags="default|sync-create"
+        ></property>
+        <style>
+          <class name="selection-mode"/>
+        </style>
       </object>
     </child>
   </template>
