@@ -691,9 +691,21 @@ impl ManuscriptWindow {
                 None,
                 glib::clone!(@strong self as this => move |_dialog, res| {
                     if res == "save" {
-                        this.save_project();
-                        this.imp().close_anyway.set(true);
-                        this.close();
+                        if this.document_manager().has_backend() {
+                            this.save_project();
+                            this.imp().close_anyway.set(true);
+                            this.close();
+                        } else {
+                            with_file_save_dialog(glib::clone!(@strong this as win => move |path| {
+                                win.document_manager().set_backend_path(path);
+                                if let Err(_error) = win.document_manager().sync() {
+                                    win.add_toast("Could not save file".into());
+                                } else {
+                                    win.imp().close_anyway.set(true);
+                                    win.close();
+                                }
+                            }));
+                        }
                     } else if res == "discard" {
                         this.imp().close_anyway.set(true);
                         this.close();

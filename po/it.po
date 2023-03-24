@@ -1,0 +1,306 @@
+# Italian translations for manuscript package.
+# Copyright (C) 2022 THE manuscript'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the manuscript package.
+# Andrea Coronese <sixpounder@protonmail.com>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: manuscript\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-03-24 14:54+0100\n"
+"PO-Revision-Date: 2023-03-03 19:27+0100\n"
+"Last-Translator: Andrea Coronese\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: data/io.sixpounder.Manuscript.desktop.in.in:3
+#: data/io.sixpounder.Manuscript.appdata.xml.in.in:6
+msgid "Manuscript"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.desktop.in.in:10
+msgid "writing;office;"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.appdata.xml.in.in:7
+msgid "Write your stories"
+msgstr "Scrivi le tue storie"
+
+#: data/io.sixpounder.Manuscript.appdata.xml.in.in:9
+msgid ""
+"A text editor specifically designed for book writers, authors and "
+"storytellers."
+msgstr ""
+"Un'editor di testi progettato per scrittori ed autori"
+
+#: data/io.sixpounder.Manuscript.appdata.xml.in.in:14
+msgid "Andrea Coronese"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.appdata.xml.in.in:33
+msgid "First release"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:12
+msgid "Application color scheme"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:13
+msgid "The colors to use to paint the UI"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:23
+msgid "The last opened document"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:24
+msgid "The absolute path to the last opened document"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:28
+msgid "Text scale factor"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:29
+msgid ""
+"The percentage value representing the text scaling on text editors with "
+"respect to your desktop default"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:33
+msgid "Text analysis delay"
+msgstr ""
+
+#: data/io.sixpounder.Manuscript.gschema.xml:34
+msgid ""
+"The delay - in milliseconds - that the application will debounce each text "
+"word count and reading time analysis"
+msgstr ""
+
+#: src/models/chunk.rs:60
+msgid "Manifest"
+msgstr "Manifesto"
+
+#: src/models/chunk.rs:126
+msgid "Chapters"
+msgstr "Capitoli"
+
+#: src/models/chunk.rs:369
+msgid "Character sheets"
+msgstr "Schede personaggio"
+
+#: src/widgets/gtk/help-overlay.ui:11
+msgctxt "shortcut window"
+msgid "General"
+msgstr "Generale"
+
+#: src/widgets/gtk/help-overlay.ui:14
+msgctxt "shortcut window"
+msgid "Show Shortcuts"
+msgstr "Mostra Scorciatoie"
+
+#: src/widgets/gtk/help-overlay.ui:20
+msgctxt "shortcut window"
+msgid "Quit"
+msgstr "Chiudi"
+
+#: src/widgets/gtk/editor_view_shell.ui:22
+msgid "Add or select items to edit them"
+msgstr "Aggiungi o seleziona elementi per modificarli"
+
+#: src/widgets/gtk/theme_switcher.ui:18
+msgid "Use System Colors"
+msgstr "Usa Colori di Sistema"
+
+#: src/widgets/gtk/theme_switcher.ui:28
+msgid "Use Light Colors"
+msgstr "Usa Colori Chiari"
+
+#: src/widgets/gtk/theme_switcher.ui:38
+msgid "Use Sepia Colors"
+msgstr "Usa Colori Seppia"
+
+#: src/widgets/gtk/theme_switcher.ui:48
+msgid "Use Dark Colors"
+msgstr "Usa Colori Scuri"
+
+#: src/widgets/gtk/welcome_view.ui:17
+msgid "Select a file or create an empty project"
+msgstr "Seleziona una file o crea un progetto vuoto"
+
+#: src/widgets/gtk/welcome_view.ui:27
+msgid "New Project"
+msgstr "Nuovo Progetto"
+
+#: src/widgets/gtk/welcome_view.ui:37
+msgid "Open File"
+msgstr "Apri File"
+
+#: src/widgets/gtk/project_layout.ui:26
+msgid "Untitled project"
+msgstr "Progetto senza titolo"
+
+#: src/widgets/gtk/project_layout.ui:27
+msgid "The title of your project. Click to edit."
+msgstr "Il titolo del tuo progetto. Clicca per modificare."
+
+#: src/widgets/gtk/project_layout.ui:50
+msgid "Add elements to the project"
+msgstr "Aggiungi elementi al progetto"
+
+#: src/widgets/gtk/project_layout.ui:67
+msgid "Search for elements in the project"
+msgstr "Cerca elementi nel progetto"
+
+#: src/widgets/gtk/project_layout.ui:79
+msgid "Select elements from the project"
+msgstr "Seleziona elementi"
+
+#: src/widgets/gtk/project_layout.ui:122
+msgid "Select All Items"
+msgstr "Seleziona Tutti gli Elementi"
+
+#: src/widgets/gtk/project_layout.ui:143
+msgid "Remove Selected Items"
+msgstr "Rimuovi Elementi Selezionati"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:29
+msgid "Base informations"
+msgstr "Informazioni di base"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:41
+msgid "Character name"
+msgstr "Nome personaggio"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:46
+msgid "Role"
+msgstr "Ruolo"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:51
+msgid "Gender"
+msgstr "Genere"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:56
+msgid "Male"
+msgstr "Maschio"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:57
+msgid "Female"
+msgstr "Femmina"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:58
+msgid "Other"
+msgstr "Altro"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:59
+msgid "Unspecified"
+msgstr "Non Specificato"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:67
+msgid "Age"
+msgstr "Età"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:69
+msgid "Leave this at zero to specify no age"
+msgstr "Imposta a zero per non specificare un'età"
+
+#: src/widgets/editors/gtk/sheet_editor.ui:86
+msgid "Background and descriptions"
+msgstr "Background e descrizioni"
+
+#: src/widgets/editors/text_editor.rs:154 src/widgets/chunk_row.rs:195
+msgid "words"
+msgstr "parole"
+
+#: src/widgets/editors/text_editor.rs:158
+msgid "minutes"
+msgstr "minuti"
+
+#: src/widgets/dialogs/gtk/destroy_confirm_dialog.ui:6
+msgid "Save Changes?"
+msgstr "Salva Modifiche?"
+
+#: src/widgets/dialogs/gtk/destroy_confirm_dialog.ui:7
+msgid ""
+"This project contains unsaved changes. Changes which are not saved will be "
+"permanently lost."
+msgstr ""
+"Questo progetto contiene modifiche non salvate che andranno perse"
+
+#: src/widgets/dialogs/gtk/destroy_confirm_dialog.ui:11 src/libs/files.rs:24
+#: src/libs/files.rs:69
+msgid "_Cancel"
+msgstr "_Annulla"
+
+#: src/widgets/dialogs/gtk/destroy_confirm_dialog.ui:12
+msgid "_Discard"
+msgstr "_Scarta"
+
+#: src/widgets/dialogs/gtk/destroy_confirm_dialog.ui:13 src/libs/files.rs:68
+#: src/window.ui:165
+msgid "_Save"
+msgstr "_Salva"
+
+#: src/widgets/chunk_row.rs:163
+msgid "No role"
+msgstr "Nessun ruolo"
+
+#: src/widgets/project_layout.rs:107
+msgid "items selected"
+msgstr "elementi selezionati"
+
+#: src/libs/files.rs:23 src/window.ui:161
+msgid "_Open"
+msgstr "Apri"
+
+#: src/libs/files.rs:26
+msgid "Open manuscript"
+msgstr "Apri Progetto"
+
+#: src/libs/files.rs:33 src/libs/files.rs:78
+msgid "Manuscript files"
+msgstr "File di Manuscript"
+
+#: src/libs/files.rs:37 src/libs/files.rs:82
+msgid "All files"
+msgstr "Tutti i File"
+
+#: src/libs/files.rs:71
+msgid "Save manuscript"
+msgstr "Salva Progetto"
+
+#: src/window.ui:153
+msgid "_New Window"
+msgstr "_Nuova finestra"
+
+#: src/window.ui:157
+msgid "_New Project"
+msgstr "_Nuovo Progetto"
+
+#: src/window.ui:169
+msgid "_Save As"
+msgstr "_Salva con Nome"
+
+#: src/window.ui:173
+msgid "_Close Project"
+msgstr "_Chiudi Progetto"
+
+#: src/window.ui:179
+msgid "Compile Project"
+msgstr "Compila Progetto"
+
+#: src/window.ui:185
+msgid "_Preferences"
+msgstr "_Preferenze"
+
+#: src/window.ui:189
+msgid "_Keyboard Shortcuts"
+msgstr "Scorciatoie da Tastiera"
+
+#: src/window.ui:193
+msgid "_About Manuscript"
+msgstr "_Informazioni"
