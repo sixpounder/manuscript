@@ -3,7 +3,7 @@ use crate::models::{
     ManuscriptResult, MutableBufferChunk,
 };
 use adw::subclass::prelude::*;
-use bytes::{Buf, Bytes, BytesMut};
+use bytes::Bytes;
 use glib::{clone, MainContext, ObjectExt, Receiver, Sender};
 use gtk::{gio, gio::prelude::*};
 use std::{
@@ -267,6 +267,10 @@ impl DocumentManager {
         }
     }
 
+    fn start_monitor(&self) {}
+
+    fn stop_monitor(&self) {}
+
     pub fn new() -> Self {
         let obj: Self = glib::Object::new::<Self>(&[]);
         obj.listen();
@@ -329,7 +333,7 @@ impl DocumentManager {
         }
     }
 
-    pub fn set_document(&self, document: Document) -> ManuscriptResult<()> {
+    fn set_document(&self, document: Document) -> ManuscriptResult<()> {
         if let Ok(mut lock) = self.document_guard().write() {
             *lock = Some(document);
             drop(lock);
@@ -340,7 +344,7 @@ impl DocumentManager {
         }
     }
 
-    pub fn unset_document(&self) -> ManuscriptResult<()> {
+    pub fn unload_document(&self) -> ManuscriptResult<()> {
         if let Ok(mut lock) = self.document_guard().write() {
             if lock.is_some() {
                 *lock = None;
@@ -395,24 +399,30 @@ impl DocumentManager {
         self.imp().tx.clone()
     }
 
-    pub fn load_document(&self, path: String) -> ManuscriptResult<()> {
-        if self.unset_document().is_ok() {
-            let file = File::open(path.as_str()).expect("Unable to open file");
-            let mut buf: BytesMut = BytesMut::with_capacity(4096);
-            let mut reader = BufReader::new(file);
-            while let Ok(bytes_read) = reader.read(buf.as_mut()) {
-                if bytes_read == 0 {
-                    break;
+    pub fn load_document(&self, path: Option<String>) -> ManuscriptResult<()> {
+        if self.unload_document().is_ok() {
+            if let Some(path) = path {
+                let file =
+                    File::open(path.as_str()).or(Err(ManuscriptError::Open(path.clone())))?;
+                let mut buffer: Vec<u8> = Vec::with_capacity(4096);
+                let mut reader = BufReader::new(file);
+                if let Ok(_bytes_read) = reader.read_to_end(&mut buffer) {
+                    if let Ok(document) = Document::try_from(buffer.as_slice()) {
+                        self.set_document(document)?;
+                        self.set_backend_path(path);
+                        self.set_sync(true);
+                        Ok(())
+                    } else {
+                        Err(ManuscriptError::DocumentDeserialize)
+                    }
                 } else {
-                    buf.advance(bytes_read);
+                    Err(ManuscriptError::Open(path))
                 }
-            }
-            if let Ok(document) = Document::try_from(buf.to_vec()) {
-                self.set_document(document).expect("Could not set document");
+            } else {
+                self.set_document(Document::default())?;
+                self.unset_backend_path();
                 self.set_sync(true);
                 Ok(())
-            } else {
-                Err(ManuscriptError::DocumentDeserialize)
             }
         } else {
             Err(ManuscriptError::Reason("Could not unload document"))
@@ -425,7 +435,7 @@ impl DocumentManager {
                 if let Ok(serialized) = document.serialize() {
                     let mut f =
                         File::create(backend_file.path().unwrap().as_path().to_str().unwrap())
-                            .expect("Unable to create file");
+                            .or(Err(ManuscriptError::Save))?;
                     if f.write_all(serialized.as_slice()).is_ok() {
                         self.set_sync(true);
                         Ok(serialized.len())
@@ -445,12 +455,18 @@ impl DocumentManager {
         self.imp().backend_file.borrow()
     }
 
-    pub fn backend_file_mut(&self) -> std::cell::RefMut<Option<gio::File>> {
+    fn backend_file_mut(&self) -> std::cell::RefMut<Option<gio::File>> {
         self.imp().backend_file.borrow_mut()
     }
 
     pub fn set_backend_path(&self, path: String) {
         *self.imp().backend_file.borrow_mut() = Some(gio::File::for_path(path));
+        self.start_monitor();
+    }
+
+    fn unset_backend_path(&self) {
+        *self.backend_file_mut() = None;
+        self.stop_monitor();
     }
 
     pub fn has_backend(&self) -> bool {

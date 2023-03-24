@@ -79,6 +79,7 @@ pub enum ManuscriptError {
     NoDocument,
     NoBackend,
     Save,
+    Open(String),
     DocumentLock,
     DocumentSerialize,
     DocumentDeserialize,

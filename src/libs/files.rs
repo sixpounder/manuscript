@@ -1,8 +1,7 @@
-use crate::{config::G_LOG_DOMAIN, models::*, services::i18n::i18n};
+use crate::services::i18n::i18n;
 use glib;
 use gtk::gio;
 use gtk::prelude::*;
-use std::io::Read;
 
 fn window() -> gtk::Window {
     let app = gio::Application::default()
@@ -15,10 +14,9 @@ fn window() -> gtk::Window {
         .unwrap()
 }
 
-pub fn with_file_open_dialog<F, E>(on_success: F, on_error: E)
+pub fn with_file_open_dialog<F>(on_done: F)
 where
-    F: Fn(String, Document) + 'static,
-    E: Fn(String) + 'static,
+    F: Fn(String) + 'static,
 {
     let win = window();
     let dialog = gtk::FileChooserNative::builder()
@@ -47,34 +45,11 @@ where
         if response == gtk::ResponseType::Accept {
             if let Some(file) = file.as_ref() {
                 if file.query_exists(gio::Cancellable::NONE) {
-                    let mut buffer: Vec<u8> = vec![];
-
                     let file_io_stream = dialog.file().unwrap();
                     let file_name = file_io_stream.path().unwrap();
                     let file_name = file_name.to_str().unwrap();
 
-                    if let Ok(file) = std::fs::File::open(file_name) {
-                        let mut file = std::io::BufReader::new(file);
-                        if let Ok(bytes_read) = file.read_to_end(&mut buffer) {
-                            glib::debug!("Opening project (read {} bytes)", bytes_read);
-
-                            match Document::try_from(buffer.as_slice()) {
-                                Ok(document) => {
-                                    on_success(file_name.into(), document);
-                                },
-                                Err(_error) => {
-                                    on_error(i18n("Unreadable file"));
-
-                                }
-                            }
-                        } else {
-                            // Failed to read file
-                            on_error(i18n("Unreadable file"));
-                        }
-                    } else {
-                        // File not accessible
-                        on_error(i18n("File not existing or not accessible"));
-                    }
+                    on_done(file_name.into());
                 }
             }
         }

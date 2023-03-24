@@ -13,6 +13,7 @@ use std::{cell::Cell, ops::Deref};
 
 const G_LOG_DOMAIN: &str = "ManuscriptWindow";
 const PROJECT_VIEW_NAME: &str = "project-view";
+const WELCOME_VIEW_NAME: &str = "welcome-view";
 
 mod imp {
     use super::*;
@@ -320,7 +321,9 @@ impl ManuscriptWindow {
     }
 
     fn new_project(&self) {
-        self.set_document(Document::default());
+        self.document_manager()
+            .load_document(None)
+            .expect("Could not load empty document");
         self.imp()
             .main_stack
             .set_visible_child_name(PROJECT_VIEW_NAME);
@@ -343,37 +346,41 @@ impl ManuscriptWindow {
             );
             dialog.show();
         } else {
-            with_file_open_dialog(
-                glib::clone!(@strong self as win => move |path, document| {
-                    let imp = win.imp();
-                    let dm = win.document_manager();
+            with_file_open_dialog(glib::clone!(@strong self as win => move |path| {
+                let imp = win.imp();
+                let dm = win.document_manager();
 
-                    if dm.has_document() && dm.unset_document().is_ok() {
-                        win.editor_view().clear();
-                        win.project_layout().clear();
+                if dm.has_document() && dm.unload_document().is_ok() {
+                    win.editor_view().clear();
+                    win.project_layout().clear();
+                }
+                match dm.load_document(Some(path)) {
+                    Ok(_) => {
+                        imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
+
+                        // Update last opened document
+                        let settings = &imp.settings;
+                        if dm.has_backend() {
+                            let backend_path = dm.backend_file();
+                            let backend_path = backend_path.as_ref().unwrap();
+                            let backend_path = backend_path.path().unwrap();
+                            let backend_path = backend_path.as_path().to_str().unwrap();
+                            let backend_path = backend_path.to_string();
+
+                            settings.set_last_opened_document(&backend_path);
+                            glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
+                        }
+                    },
+                    Err(error) => {
+                        match error {
+                            ManuscriptError::Open(path) => {
+                                win.add_toast(format!("Unreadable file: {}", path));
+                            },
+                            _ => ()
+                        }
                     }
-                    dm.set_document(document).expect("Could not set document");
-                    dm.set_backend_path(path);
-                    imp.main_stack.set_visible_child_name(PROJECT_VIEW_NAME);
-
-                    // Update last opened document
-                    let settings = &imp.settings;
-                    if dm.has_backend() {
-                        let backend_path = dm.backend_file();
-                        let backend_path = backend_path.as_ref().unwrap();
-                        let backend_path = backend_path.path().unwrap();
-                        let backend_path = backend_path.as_path().to_str().unwrap();
-                        let backend_path = backend_path.to_string();
-
-                        settings.set_last_opened_document(&backend_path);
-                        glib::g_debug!(G_LOG_DOMAIN, "Updated last opened document with {backend_path}");
-                    }
-                }),
-                glib::clone!(@strong self as win => move |err| {
-                    glib::g_critical!(G_LOG_DOMAIN, "{}", err);
-                    win.add_toast(err);
-                }),
-            );
+                }
+            }));
         }
     }
 
@@ -436,10 +443,12 @@ impl ManuscriptWindow {
                     }),
                 );
                 dialog.show();
-            } else if dm.unset_document().is_ok() {
+            } else if dm.unload_document().is_ok() {
                 self.editor_view().clear();
                 self.project_layout().clear();
-                self.imp().main_stack.set_visible_child_name("welcome-view");
+                self.imp()
+                    .main_stack
+                    .set_visible_child_name(WELCOME_VIEW_NAME);
             }
         }
     }
@@ -536,12 +545,6 @@ impl ManuscriptWindow {
             imp.project_layout.set_select(value);
             self.notify("project-select");
         }
-    }
-
-    fn set_document(&self, document: Document) {
-        self.document_manager()
-            .set_document(document)
-            .expect("Could not set document");
     }
 
     fn add_chapter(&self) {
