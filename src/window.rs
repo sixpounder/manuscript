@@ -372,11 +372,8 @@ impl ManuscriptWindow {
                         }
                     },
                     Err(error) => {
-                        match error {
-                            ManuscriptError::Open(path) => {
-                                win.add_toast(format!("Unreadable file: {}", path));
-                            },
-                            _ => ()
+                        if let ManuscriptError::Open(path) = error {
+                            win.add_toast(format!("Unreadable file: {}", path));
                         }
                     }
                 }

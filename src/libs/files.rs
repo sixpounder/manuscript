@@ -76,10 +76,11 @@ where
 
     let manuscript_file_filter = gtk::FileFilter::new();
     manuscript_file_filter.set_name(Some(&i18n("Manuscript files")));
-    manuscript_file_filter.add_mime_type("application/x-manuscript");
+    manuscript_file_filter.add_pattern("*.mscript");
 
     let any_file_filter = gtk::FileFilter::new();
     any_file_filter.set_name(Some(&i18n("All files")));
+    any_file_filter.add_mime_type("application/x-manuscript");
     any_file_filter.add_pattern("*");
 
     dialog.add_filter(&manuscript_file_filter);

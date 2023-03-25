@@ -37,7 +37,7 @@
           name="active"
           bind-source="ManuscriptChunkRow"
           bind-property="selected"
-          bind-flags="default|sync-create"
+          bind-flags="default|sync-create|bidirectional"
         ></property>
         <style>
           <class name="selection-mode"/>

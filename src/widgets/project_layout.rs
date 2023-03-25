@@ -19,7 +19,9 @@ const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
 mod imp {
     use super::*;
-    use glib::{subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecString};
+    use glib::{
+        subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecString,
+    };
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -88,25 +90,30 @@ mod imp {
 
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpecString::new(
-                    "selection-label",
-                    "",
-                    "",
-                    Some(""),
-                    ParamFlags::READABLE,
-                )]
+                vec![
+                    ParamSpecString::new("selection-label", "", "", Some(""), ParamFlags::READABLE),
+                    ParamSpecBoolean::new("select-mode", "", "", false, ParamFlags::READABLE),
+                ]
             });
             PROPERTIES.as_ref()
         }
 
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "selection-label" => format!(
-                    "{} {}",
-                    self.selected_ids.borrow().len(),
-                    i18n::i18n("items selected")
-                )
-                .to_value(),
+                "select-mode" => self.chunk_selection.get().to_value(),
+                "selection-label" => {
+                    let items_len = self.selected_ids.borrow().len();
+                    if items_len == 0 {
+                        "".to_value()
+                    } else {
+                        format!(
+                            "{} {}",
+                            items_len,
+                            i18n::ni18n("item selected", "items selected", items_len as u32)
+                        )
+                        .to_value()
+                    }
+                }
                 _ => unimplemented!(),
             }
         }
@@ -178,7 +185,6 @@ impl ManuscriptProjectLayout {
         self.set_select(false);
     }
 
-    #[allow(dead_code)]
     fn expanders(&self) -> Vec<gtk::Widget> {
         let layout = self.imp().layout.get();
         let mut children = vec![];
@@ -277,7 +283,7 @@ impl ManuscriptProjectLayout {
 
     pub fn set_select(&self, value: bool) {
         let imp = self.imp();
-        imp.selected_ids.borrow_mut().clear();
+        self.clear_all_rows();
 
         if value != imp.chunk_selection.replace(value) {
             imp.project_actionbar.set_revealed(value);
@@ -295,17 +301,20 @@ impl ManuscriptProjectLayout {
             }
 
             self.notify("selection-label");
+            self.notify("select-mode");
         }
     }
 
-    pub fn select_all_rows(&self) {
-        {
-            self.imp().selected_ids.borrow_mut().clear();
-        }
+    fn select_all_rows(&self) {
+        self.clear_all_rows();
         let children = self.imp().children_map.borrow();
         children
             .iter()
             .for_each(|(_key, child)| child.set_property("selected", true));
+    }
+
+    fn clear_all_rows(&self) {
+        self.imp().selected_ids.borrow_mut().clear();
     }
 
     fn send_action(&self, action: DocumentAction) {

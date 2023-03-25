@@ -81,14 +81,12 @@ impl TextAnalyzer {
 }
 
 #[derive(Clone, Debug)]
-#[allow(dead_code)]
 pub struct RegexMatch<'a> {
     regex: &'a Regex,
     re_match: regex::Match<'a>,
     tag_name: &'a str,
 }
 
-#[allow(dead_code)]
 impl<'a> RegexMatch<'a> {
     pub fn new(regex: &'a Regex, re_match: regex::Match<'a>, tag_name: &'a str) -> Self {
         Self {
@@ -106,6 +104,7 @@ impl<'a> RegexMatch<'a> {
         &self.re_match
     }
 
+    #[allow(dead_code)]
     pub fn tag_name(&self) -> &str {
         self.tag_name
     }
@@ -418,11 +417,18 @@ impl RegexRuleCollection {
             },
         );
 
-        // Self::create_regex(
-        //     &mut regexes,
-        //     "CODE",
-        //     r"(?P<ticks_start>`+)(?P<content>.+?)(?P<ticks_end>`+)",
-        // );
+        Self::create_regex(
+            &mut regexes,
+            "CODE",
+            r"(?P<ticks_start>`+)(?P<content>.+?)(?P<ticks_end>`+)",
+            |matched: &RegexMatch, _view: &gtk::TextView| {
+                TagApplyRules::new(vec![TagLookup::ByName(
+                    TAG_NAME_CODE_TEXT,
+                    matched.start(),
+                    matched.end(),
+                )])
+            },
+        );
 
         // Self::create_regex(
         //     &mut regexes,

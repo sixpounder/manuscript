@@ -76,11 +76,15 @@ Copyright: 2023  Andrea Coronese
 License: CC0-1.0
 
 Files: po/POTFILES
-Copyright: 2022  Translation authors
+Copyright: 2023  Translation authors
+License: GPL-3.0-or-later
+
+Files: po/*.pot
+Copyright: 2023  Translation authors
 License: GPL-3.0-or-later
 
 Files: po/*.po
-Copyright: 2022  Translation authors
+Copyright: 2023  Translation authors
 License: GPL-3.0-or-later
 
 Files: src/manuscript.gresource.xml

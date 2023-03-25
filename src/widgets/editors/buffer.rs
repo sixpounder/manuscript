@@ -351,15 +351,6 @@ impl ManuscriptBuffer {
         );
 
         let _ = buffer.create_tag(
-            Some(TAG_NAME_CODE_TEXT),
-            &[
-                ("weight", &PANGO_WEIGHT_NORMAL),
-                ("style", &pango::Style::Normal),
-                ("strikethrough", &false),
-            ],
-        );
-
-        let _ = buffer.create_tag(
             Some(TAG_NAME_SUBSCRIPT),
             &[
                 ("weight", &PANGO_WEIGHT_LIGHT),
@@ -392,6 +383,21 @@ impl ManuscriptBuffer {
                     ("pixels-below-lines", &12i32),
                     ("background-full-height", &true),
                     ("paragraph-background-rgba", &code_bg_color),
+                    ("strikethrough", &false),
+                ],
+            )
+            .unwrap();
+
+        buffer
+            .create_tag(
+                Some(TAG_NAME_CODE_TEXT),
+                &[
+                    ("weight", &PANGO_WEIGHT_NORMAL),
+                    ("style", &pango::Style::Normal),
+                    ("justification", &gtk::Justification::Left),
+                    ("pixels-below-lines", &12i32),
+                    ("background-full-height", &true),
+                    ("background-rgba", &code_bg_color),
                     ("strikethrough", &false),
                 ],
             )

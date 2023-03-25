@@ -18,22 +18,22 @@
             <property name="margin-start">12</property>
             <property name="margin-end">12</property>
             <child type="start">
-                <object class="GtkEntry" id="title_entry">
-                  <property name="xalign">0</property>
-                  <property name="hexpand">true</property>
-                  <property name="width-request">180</property>
-                  <property name="text"></property>
-                  <property name="placeholder-text" translatable="yes">Untitled project</property>
-                  <property name="tooltip-text" translatable="yes">The title of your project. Click to edit.</property>
-                  <style>
-                    <class name="flat" />
-                    <class name="manuscript-title" />
-                  </style>
-                  <child>
-                    <object class="GtkPopover" id="title_popover">
-                    </object>
-                  </child>
-                </object>
+              <object class="GtkEntry" id="title_entry">
+                <property name="xalign">0</property>
+                <property name="hexpand">true</property>
+                <property name="width-request">180</property>
+                <property name="text"></property>
+                <property name="placeholder-text" translatable="yes">Untitled project</property>
+                <property name="tooltip-text" translatable="yes">The title of your project. Click to edit.</property>
+                <style>
+                  <class name="flat" />
+                  <class name="manuscript-title" />
+                </style>
+                <child>
+                  <object class="GtkPopover" id="title_popover">
+                  </object>
+                </child>
+              </object>
             </child>
             <child type="end">
               <!-- Top toolbar (search, add ecc...) -->
@@ -43,19 +43,25 @@
                 <property name="hexpand">true</property>
                 <property name="halign">end</property>
                 <child>
-                  <object class="GtkMenuButton">
+                  <object class="GtkMenuButton" id="add-chunk-menu-button">
                     <property name="icon-name">list-add-symbolic</property>
                     <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="tooltip-text" translatable="yes">Add elements to the project</property>
-                    <style>
-                      <class name="flat"/>
-                    </style>
+                    <property
+                      name="sensitive"
+                      bind-source="ManuscriptProjectLayout"
+                      bind-property="select-mode"
+                      bind-flags="default|invert-boolean"
+                    ></property>
                     <property name="popover">
                       <object class="GtkPopoverMenu">
                         <property name="menu-model">add-chunk-menu</property>
                       </object>
                     </property>
+                    <style>
+                      <class name="flat"/>
+                    </style>
                   </object>
                 </child>
                 <child>
