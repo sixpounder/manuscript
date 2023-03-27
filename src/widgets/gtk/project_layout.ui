@@ -4,66 +4,64 @@
   <requires lib="Adw" version="1.0"/>
   <template class="ManuscriptProjectLayout" parent="GtkWidget">
     <child>
-      <!-- Main layout box -->
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-          <!-- Top status bar -->
-          <object class="GtkCenterBox">
-            <property name="orientation">horizontal</property>
-            <property name="hexpand">true</property>
-            <property name="halign">fill</property>
-            <property name="margin-top">6</property>
-            <property name="margin-bottom">6</property>
-            <property name="margin-start">12</property>
-            <property name="margin-end">12</property>
+          <object class="AdwHeaderBar" id="header_bar">
+            <style>
+              <class name="flat" />
+            </style>
             <child type="start">
-              <object class="GtkEntry" id="title_entry">
-                <property name="xalign">0</property>
-                <property name="hexpand">true</property>
-                <property name="width-request">180</property>
-                <property name="text"></property>
-                <property name="placeholder-text" translatable="yes">Untitled project</property>
-                <property name="tooltip-text" translatable="yes">The title of your project. Click to edit.</property>
-                <style>
-                  <class name="flat" />
-                  <class name="manuscript-title" />
-                </style>
-                <child>
-                  <object class="GtkPopover" id="title_popover">
+              <object class="GtkMenuButton" id="add_chunk_menu_button">
+                <property name="icon-name">list-add-symbolic</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="tooltip-text" translatable="yes">Add elements to the project</property>
+                <property
+                  name="sensitive"
+                  bind-source="ManuscriptProjectLayout"
+                  bind-property="select-mode"
+                  bind-flags="default|invert-boolean"
+                ></property>
+                <property name="popover">
+                  <object class="GtkPopoverMenu">
+                    <property name="menu-model">add-chunk-menu</property>
                   </object>
-                </child>
+                </property>
+                <style>
+                  <class name="flat"/>
+                </style>
               </object>
             </child>
+            <property name="title-widget">
+              <object class="GtkButton">
+                <property name="icon-name">document-edit-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Your project's title. Click to modify.</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property
+                      name="label"
+                      bind-source="ManuscriptProjectLayout"
+                      bind-property="title"
+                      bind-flags="default|sync-create"
+                    >
+                    </property>
+                    <property name="max-width-chars">15</property>
+                    <property name="ellipsize">PANGO_ELLIPSIZE_END</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="flat" />
+                </style>
+              </object>
+            </property>
             <child type="end">
-              <!-- Top toolbar (search, add ecc...) -->
+              <!-- Toolbar (search, add ecc...) -->
               <object class="GtkBox">
                 <property name="orientation">horizontal</property>
                 <property name="spacing">2</property>
                 <property name="hexpand">true</property>
                 <property name="halign">end</property>
-                <child>
-                  <object class="GtkMenuButton" id="add-chunk-menu-button">
-                    <property name="icon-name">list-add-symbolic</property>
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
-                    <property name="tooltip-text" translatable="yes">Add elements to the project</property>
-                    <property
-                      name="sensitive"
-                      bind-source="ManuscriptProjectLayout"
-                      bind-property="select-mode"
-                      bind-flags="default|invert-boolean"
-                    ></property>
-                    <property name="popover">
-                      <object class="GtkPopoverMenu">
-                        <property name="menu-model">add-chunk-menu</property>
-                      </object>
-                    </property>
-                    <style>
-                      <class name="flat"/>
-                    </style>
-                  </object>
-                </child>
                 <child>
                   <object class="GtkToggleButton">
                     <property name="icon-name">system-search-symbolic</property>
@@ -88,66 +86,75 @@
                     </style>
                   </object>
                 </child>
+                <child>
+                  <object class="ManuscriptPrimaryMenuButton" id="primary_menu_button"></object>
+                </child>
               </object>
             </child>
           </object>
         </child>
         <child>
-          <object class="GtkSearchBar" id="searchbar">
-            <property name="child">
-              <object class="GtkSearchEntry" id="searchentry">
-              </object>
-            </property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkScrolledWindow">
-            <property name="hscrollbar-policy">never</property>
-            <property name="vscrollbar-policy">automatic</property>
-            <property name="propagate-natural-height">true</property>
-            <property name="max-content-width">320</property>
-            <property name="width-request">320</property>
-            <property name="vexpand">true</property>
+          <!-- Main layout box -->
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
             <child>
-              <!-- Main content -->
-              <object class="GtkBox" id="layout">
-                <property name="orientation">vertical</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <child>
-          <object class="GtkActionBar" id="project_actionbar">
-            <property name="revealed">false</property>
-            <style>
-              <class name="flat" />
-            </style>
-            <child>
-              <object class="GtkButton" id="project_select_all_button">
-                <property name="icon-name">edit-select-all-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Select All Items</property>
-                <signal name="clicked" handler="on_select_all_button_clicked" swapped="true"></signal>
-              </object>
-            </child>
-            <child type="center">
-              <object class="GtkLabel" id="project_selected_label">
-                <property
-                  name="label"
-                  bind-source="ManuscriptProjectLayout"
-                  bind-property="selection-label"
-                  bind-flags="default"
-                >
+              <object class="GtkSearchBar" id="searchbar">
+                <property name="child">
+                  <object class="GtkSearchEntry" id="searchentry">
+                  </object>
                 </property>
-                <style>
-                  <class name="caption"/>
-                </style>
               </object>
             </child>
-            <child type="end">
-              <object class="GtkButton" id="project_remove_button">
-                <property name="icon-name">list-remove-all-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Remove Selected Items</property>
-                <signal name="clicked" handler="on_remove_items_clicked" swapped="true"></signal>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="hscrollbar-policy">never</property>
+                <property name="vscrollbar-policy">automatic</property>
+                <property name="propagate-natural-height">true</property>
+                <!-- <property name="max-content-width">320</property> -->
+                <!-- <property name="width-request">320</property> -->
+                <property name="vexpand">true</property>
+                <child>
+                  <!-- Main content -->
+                  <object class="GtkBox" id="layout">
+                    <property name="orientation">vertical</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkActionBar" id="project_actionbar">
+                <property name="revealed">false</property>
+                <style>
+                  <class name="flat" />
+                </style>
+                <child>
+                  <object class="GtkButton" id="project_select_all_button">
+                    <property name="icon-name">edit-select-all-symbolic</property>
+                    <property name="tooltip-text" translatable="yes">Select All Items</property>
+                    <signal name="clicked" handler="on_select_all_button_clicked" swapped="true"></signal>
+                  </object>
+                </child>
+                <child type="center">
+                  <object class="GtkLabel" id="project_selected_label">
+                    <property
+                      name="label"
+                      bind-source="ManuscriptProjectLayout"
+                      bind-property="selection-label"
+                      bind-flags="default"
+                    >
+                    </property>
+                    <style>
+                      <class name="caption"/>
+                    </style>
+                  </object>
+                </child>
+                <child type="end">
+                  <object class="GtkButton" id="project_remove_button">
+                    <property name="icon-name">list-remove-all-symbolic</property>
+                    <property name="tooltip-text" translatable="yes">Remove Selected Items</property>
+                    <signal name="clicked" handler="on_remove_items_clicked" swapped="true"></signal>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
@@ -171,5 +178,4 @@
     </section>
   </menu>
 </interface>
-
 

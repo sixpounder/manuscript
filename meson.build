@@ -50,7 +50,7 @@ subdir('po')
 
 reuse = find_program('reuse', required: false)
 if reuse.found()
-  test('license',
+  test('Check licenses',
     reuse,
     args:['lint'],
     workdir: meson.project_source_root(),

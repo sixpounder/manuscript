@@ -33,7 +33,6 @@
             <property name="child">
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
-                <property name="width-request">420</property>
                 <child>
                   <object class="AdwTabBar" id="editor_tab_bar">
                     <property name="expand-tabs">true</property>

@@ -33,6 +33,8 @@ mod imp {
         #[template_child]
         pub(super) dark_selector: TemplateChild<gtk::CheckButton>,
 
+        pub(super) settings: ManuscriptSettings,
+
         pub(super) style_manager: adw::StyleManager,
     }
 
@@ -43,6 +45,7 @@ mod imp {
                 light_selector: TemplateChild::default(),
                 sepia_selector: TemplateChild::default(),
                 dark_selector: TemplateChild::default(),
+                settings: ManuscriptSettings::default(),
                 style_manager: adw::StyleManager::default(),
             }
         }
@@ -68,6 +71,7 @@ mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             self.obj().set_active_switch(Theme::current());
+            self.obj().connect_events();
         }
     }
     impl BoxImpl for ManuscriptThemeSwitcher {}
@@ -88,6 +92,15 @@ impl Default for ManuscriptThemeSwitcher {
 impl ManuscriptThemeSwitcher {
     pub fn new() -> Self {
         glib::Object::new(&[])
+    }
+
+    fn connect_events(&self) {
+        self.imp().settings.connect_changed(
+            "color-scheme",
+            glib::clone!(@weak self as this => move |_, _| {
+                this.set_active_switch(this.imp().settings.color_scheme());
+            }),
+        );
     }
 
     pub fn set_active_switch(&self, theme: String) {
@@ -119,8 +132,7 @@ impl ManuscriptThemeSwitcher {
     }
 
     pub fn set_selected_theme(&self, theme: String) {
-        Theme::set_current(theme.clone());
-        self.set_active_switch(theme);
+        Theme::set_current(theme);
     }
 }
 

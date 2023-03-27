@@ -4,7 +4,7 @@ use crate::{
     services::{DocumentManager, ManuscriptSettings},
     widgets::{
         dialogs::ManuscriptDestroyConfirmDialog, ManuscriptEditorViewShell,
-        ManuscriptProjectLayout, ManuscriptThemeSwitcher, ManuscriptWelcomeView,
+        ManuscriptPrimaryMenuButton, ManuscriptProjectLayout, ManuscriptWelcomeView,
     },
 };
 use adw::{prelude::*, subclass::prelude::*};
@@ -24,13 +24,10 @@ mod imp {
     #[template(resource = "/io/sixpounder/Manuscript/window.ui")]
     pub struct ManuscriptWindow {
         #[template_child]
+        pub(super) primary_menu_button: TemplateChild<ManuscriptPrimaryMenuButton>,
+
+        #[template_child]
         pub(super) toast_overlay: TemplateChild<adw::ToastOverlay>,
-
-        #[template_child]
-        pub(super) primary_menu_button: TemplateChild<gtk::MenuButton>,
-
-        #[template_child]
-        pub(super) primary_menu_button_alt: TemplateChild<gtk::MenuButton>,
 
         #[template_child]
         pub(super) main_stack: TemplateChild<gtk::Stack>,
@@ -39,18 +36,19 @@ mod imp {
         pub(super) welcome_view: TemplateChild<ManuscriptWelcomeView>,
 
         #[template_child]
-        pub(super) project_layout: TemplateChild<ManuscriptProjectLayout>,
-
-        #[template_child]
         pub(super) command_palette_overlay: TemplateChild<gtk::Overlay>,
 
         #[template_child]
         pub(super) editor_view: TemplateChild<ManuscriptEditorViewShell>,
 
         #[template_child]
-        pub(super) flap: TemplateChild<adw::Flap>,
+        pub(super) leaflet: TemplateChild<adw::Leaflet>,
 
-        pub(super) theme_switcher: ManuscriptThemeSwitcher,
+        #[template_child]
+        pub(super) editor_view_shell_page: TemplateChild<adw::LeafletPage>,
+
+        #[template_child]
+        pub(super) project_layout: TemplateChild<ManuscriptProjectLayout>,
 
         pub(super) settings: ManuscriptSettings,
 
@@ -73,14 +71,13 @@ mod imp {
             Self {
                 toast_overlay: TemplateChild::default(),
                 primary_menu_button: TemplateChild::default(),
-                primary_menu_button_alt: TemplateChild::default(),
                 main_stack: TemplateChild::default(),
                 welcome_view: TemplateChild::default(),
-                project_layout: TemplateChild::default(),
                 command_palette_overlay: TemplateChild::default(),
                 editor_view: TemplateChild::default(),
-                flap: TemplateChild::default(),
-                theme_switcher: ManuscriptThemeSwitcher::new(),
+                leaflet: TemplateChild::default(),
+                editor_view_shell_page: TemplateChild::default(),
+                project_layout: TemplateChild::default(),
                 settings: ManuscriptSettings::default(),
                 document_manager: DocumentManager::default(),
                 search_mode: Cell::default(),
@@ -288,24 +285,6 @@ impl ManuscriptWindow {
     }
 
     fn setup_widgets(&self) {
-        if let Some(popover_menu) = self
-            .imp()
-            .primary_menu_button
-            .popover()
-            .and_downcast_ref::<gtk::PopoverMenu>()
-        {
-            popover_menu.add_child(&ManuscriptThemeSwitcher::new(), "themeswitcher");
-        }
-
-        if let Some(popover_menu) = self
-            .imp()
-            .primary_menu_button_alt
-            .popover()
-            .and_downcast_ref::<gtk::PopoverMenu>()
-        {
-            popover_menu.add_child(&self.imp().theme_switcher, "themeswitcher");
-        }
-
         let project_layout = self.imp().project_layout.get();
         project_layout.set_channel(self.document_manager().action_sender());
 
@@ -477,14 +456,15 @@ impl ManuscriptWindow {
             if let Some(document) = lock.as_ref() {
                 let imp = self.imp();
                 let added_chunk = document.get_chunk_ref(id.as_str()).unwrap();
-                imp.editor_view.add_and_select_page(added_chunk);
                 imp.project_layout.add_chunk(added_chunk);
+                imp.editor_view.add_page(added_chunk);
+                self.show_chunk_page(added_chunk);
 
                 // Ensure flap closes and editor view gets revealed if in folded mode
-                let flap = self.flap();
-                if flap.is_folded() {
-                    flap.set_reveal_flap(false);
-                }
+                // let flap = self.flap();
+                // if flap.is_folded() {
+                //     flap.set_reveal_flap(false);
+                // }
             }
         }
     }
@@ -499,13 +479,7 @@ impl ManuscriptWindow {
         if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = &*lock {
                 let selected_chunk = document.get_chunk_ref(id.as_str()).unwrap();
-                self.editor_view().select_page(selected_chunk);
-
-                // Ensure flap closes and editor view gets revealed if in folded mode
-                let flap = self.flap();
-                if flap.is_folded() {
-                    flap.set_reveal_flap(false);
-                }
+                self.show_chunk_page(selected_chunk);
             }
         }
     }
@@ -658,8 +632,11 @@ impl ManuscriptWindow {
         self.action_set_enabled("project.close", dm.has_document());
     }
 
-    pub fn flap(&self) -> adw::Flap {
-        self.imp().flap.get()
+    pub fn show_chunk_page(&self, chunk: &dyn DocumentChunk) {
+        self.editor_view().select_page(chunk);
+        self.imp()
+            .leaflet
+            .set_visible_child_name("editor_view_shell_page");
     }
 
     pub fn can_close(&self) -> bool {
@@ -670,6 +647,11 @@ impl ManuscriptWindow {
 
 #[gtk::template_callbacks]
 impl ManuscriptWindow {
+    #[template_callback]
+    fn on_navigate_back(&self, _btn: gtk::Button) {
+        self.imp().leaflet.navigate(adw::NavigationDirection::Back);
+    }
+
     #[template_callback]
     fn on_remove_selected_activated(&self, ids: Vec<String>) {
         let dm = self.document_manager();

@@ -2,7 +2,7 @@ use super::factories;
 use crate::{
     models::*,
     services::{i18n, DocumentAction},
-    widgets::ManuscriptChunkRow,
+    widgets::{ManuscriptChunkRow, ManuscriptPrimaryMenuButton},
 };
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
@@ -28,13 +28,13 @@ mod imp {
     #[template(resource = "/io/sixpounder/Manuscript/project_layout.ui")]
     pub struct ManuscriptProjectLayout {
         #[template_child]
+        pub(super) header_bar: TemplateChild<adw::HeaderBar>,
+
+        #[template_child]
+        pub(super) primary_menu_button: TemplateChild<ManuscriptPrimaryMenuButton>,
+
+        #[template_child]
         pub(super) layout: TemplateChild<gtk::Box>,
-
-        #[template_child]
-        pub(super) title_entry: TemplateChild<gtk::Entry>,
-
-        #[template_child]
-        pub(super) title_popover: TemplateChild<gtk::Popover>,
 
         #[template_child]
         pub(super) searchbar: TemplateChild<gtk::SearchBar>,
@@ -44,6 +44,8 @@ mod imp {
 
         #[template_child]
         pub(super) project_actionbar: TemplateChild<gtk::ActionBar>,
+
+        pub(super) title: RefCell<String>,
 
         pub(super) channel: RefCell<Option<Sender<DocumentAction>>>,
 
@@ -91,8 +93,23 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
+                    ParamSpecString::new("title", "", "", None, ParamFlags::READWRITE),
                     ParamSpecString::new("selection-label", "", "", Some(""), ParamFlags::READABLE),
                     ParamSpecBoolean::new("select-mode", "", "", false, ParamFlags::READABLE),
+                    ParamSpecBoolean::new(
+                        "show-primary-menu-button",
+                        "",
+                        "",
+                        false,
+                        ParamFlags::READWRITE,
+                    ),
+                    ParamSpecBoolean::new(
+                        "show-end-title-buttons",
+                        "",
+                        "",
+                        false,
+                        ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -100,6 +117,7 @@ mod imp {
 
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
+                "title" => self.obj().document_title_label_text().to_value(),
                 "select-mode" => self.chunk_selection.get().to_value(),
                 "selection-label" => {
                     let items_len = self.selected_ids.borrow().len();
@@ -113,6 +131,24 @@ mod imp {
                         )
                         .to_value()
                     }
+                }
+                "show-primary-menu-button" => self.primary_menu_button.is_visible().to_value(),
+                "show-end-title-buttons" => self.obj().show_end_title_buttons().to_value(),
+                _ => unimplemented!(),
+            }
+        }
+
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
+            let obj = self.obj();
+            match pspec.name() {
+                "title" => {
+                    obj.set_document_title_label_text(value.get::<Option<String>>().unwrap())
+                }
+                "show-primary-menu-button" => self
+                    .primary_menu_button
+                    .set_visible(value.get::<bool>().unwrap()),
+                "show-end-title-buttons" => {
+                    obj.set_show_end_title_buttons(value.get::<bool>().unwrap())
                 }
                 _ => unimplemented!(),
             }
@@ -147,16 +183,21 @@ impl ManuscriptProjectLayout {
 
         let entry = self.imp().searchentry.get();
         self.imp().searchbar.connect_entry(&entry);
-
-        self.imp().title_entry.connect_changed(glib::clone!(@strong self as this => move |entry| {
-            let sender = this.imp().channel.borrow();
-            let sender = sender.as_ref().unwrap();
-            sender.send(DocumentAction::SetTitle(entry.text().to_string())).expect("Could not send title update event");
-        }));
     }
 
-    pub fn set_document_title_label_text<S: ToString>(&self, value: S) {
-        self.imp().title_entry.set_text(value.to_string().as_str());
+    pub fn document_title_label_text(&self) -> String {
+        self.imp().title.borrow().clone()
+    }
+
+    pub fn set_document_title_label_text(&self, value: Option<String>) {
+        let new_title = value.unwrap_or(i18n::i18n("Untitled Project"));
+        *self.imp().title.borrow_mut() = new_title.clone();
+        let sender = self.imp().channel.borrow();
+        let sender = sender.as_ref().unwrap();
+        sender
+            .send(DocumentAction::SetTitle(new_title))
+            .expect("Could not send title update event");
+        self.notify("title");
     }
 
     pub fn load_document(&self, document: Option<&Document>) {
@@ -166,8 +207,10 @@ impl ManuscriptProjectLayout {
 
         if let Some(document) = document {
             // Populate project structure
+            // 1. Set title
+            self.set_document_title_label_text(document.title().cloned());
 
-            // 1. Add chunk categories entries
+            // 2. Add chunk entries
             document.chunks().iter().for_each(|chunk| {
                 self.add_chunk(*chunk);
             });
@@ -322,6 +365,15 @@ impl ManuscriptProjectLayout {
         if let Some(channel) = maybe_channel.as_ref() {
             channel.send(action).expect("Could not send action");
         }
+    }
+
+    pub fn show_end_title_buttons(&self) -> bool {
+        self.imp().header_bar.shows_end_title_buttons()
+    }
+
+    pub fn set_show_end_title_buttons(&self, value: bool) {
+        self.imp().header_bar.set_show_end_title_buttons(value);
+        self.notify("show-end-title-buttons");
     }
 }
 
