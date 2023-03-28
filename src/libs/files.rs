@@ -3,7 +3,7 @@ use glib;
 use gtk::gio;
 use gtk::prelude::*;
 
-fn window() -> gtk::Window {
+pub fn window() -> gtk::Window {
     let app = gio::Application::default()
         .expect("Failed to retrieve application singleton")
         .downcast::<gtk::Application>()
@@ -20,10 +20,10 @@ where
 {
     let win = window();
     let dialog = gtk::FileChooserNative::builder()
-        .accept_label(&i18n("_Open"))
-        .cancel_label(&i18n("_Cancel"))
+        .accept_label(i18n("_Open"))
+        .cancel_label(i18n("_Cancel"))
         .modal(true)
-        .title(&i18n("Open manuscript"))
+        .title(i18n("Open manuscript"))
         .transient_for(&win)
         .select_multiple(false)
         .action(gtk::FileChooserAction::Open)
@@ -65,10 +65,10 @@ where
     let win = window();
 
     let dialog = gtk::FileChooserNative::builder()
-        .accept_label(&i18n("_Save"))
-        .cancel_label(&i18n("_Cancel"))
+        .accept_label(i18n("_Save"))
+        .cancel_label(i18n("_Cancel"))
         .modal(true)
-        .title(&i18n("Save manuscript"))
+        .title(i18n("Save manuscript"))
         .transient_for(&win)
         .select_multiple(false)
         .action(gtk::FileChooserAction::Save)

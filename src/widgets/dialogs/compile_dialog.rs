@@ -1,5 +1,5 @@
 use adw::subclass::prelude::*;
-use gtk::{gio, glib, prelude::*};
+use gtk::{gio, glib};
 
 mod imp {
     use super::*;
@@ -58,6 +58,9 @@ glib::wrapper! {
 
 impl ManuscriptCompileDialog {
     pub fn new(parent: &gtk::Window) -> Self {
-        glib::Object::new(&[("modal", &true), ("transient-for", parent)])
+        glib::Object::builder()
+            .property("modal", &true)
+            .property("transient-for", parent)
+            .build()
     }
 }

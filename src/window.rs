@@ -17,7 +17,7 @@ const WELCOME_VIEW_NAME: &str = "welcome-view";
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean};
+    use glib::{ParamSpec, ParamSpecBoolean};
     use once_cell::sync::Lazy;
 
     #[derive(Debug, gtk::CompositeTemplate)]
@@ -144,8 +144,14 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new("project-search", "", "", false, ParamFlags::READWRITE),
-                    ParamSpecBoolean::new("project-select", "", "", false, ParamFlags::READWRITE),
+                    ParamSpecBoolean::builder("project-search")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
+                    ParamSpecBoolean::builder("project-select")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -184,7 +190,9 @@ glib::wrapper! {
 // Public APIs
 impl ManuscriptWindow {
     pub fn new<P: glib::IsA<gtk::Application>>(application: &P) -> Self {
-        glib::Object::new(&[("application", application)])
+        glib::Object::builder()
+            .property("application", application)
+            .build()
     }
 
     pub fn document_manager(&self) -> &DocumentManager {
@@ -296,7 +304,7 @@ impl ManuscriptWindow {
 
     fn add_toast(&self, msg: String) {
         let toast = adw::Toast::new(&msg);
-        self.imp().toast_overlay.add_toast(&toast);
+        self.imp().toast_overlay.add_toast(toast);
     }
 
     fn new_project(&self) {

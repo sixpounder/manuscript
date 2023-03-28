@@ -18,7 +18,7 @@ use std::cell::{Cell, RefCell};
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpecBoolean, ParamSpecInt, ParamSpecObject, ParamSpecString};
+    use glib::{ParamSpecBoolean, ParamSpecInt, ParamSpecObject, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(gtk::CompositeTemplate)]
@@ -102,40 +102,39 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new("show-status-bar", "", "", true, ParamFlags::READWRITE),
-                    ParamSpecBoolean::new("locked", "", "", false, ParamFlags::READWRITE),
-                    ParamSpecBoolean::new("overflowing", "", "", false, ParamFlags::READABLE),
-                    ParamSpecString::new("chunk-id", "", "", None, ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "words-count-label-text",
-                        "",
-                        "",
-                        None,
-                        ParamFlags::READABLE,
-                    ),
-                    ParamSpecString::new(
-                        "reading-time-label-text",
-                        "",
-                        "",
-                        None,
-                        ParamFlags::READABLE,
-                    ),
-                    ParamSpecObject::new(
-                        "buffer",
-                        "",
-                        "",
-                        Option::<gtk::TextBuffer>::static_type(),
-                        ParamFlags::READWRITE,
-                    ),
-                    ParamSpecInt::new(
-                        "paragraph-spacing",
-                        "",
-                        "",
-                        0,
-                        100,
-                        36,
-                        ParamFlags::READABLE,
-                    ),
+                    ParamSpecBoolean::builder("show-status-bar")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
+                    ParamSpecBoolean::builder("locked")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
+                    ParamSpecBoolean::builder("overflowing")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
+                    ParamSpecString::builder("chunk-id")
+                        .default_value(None)
+                        .read_only()
+                        .build(),
+                    ParamSpecString::builder("words-count-label-text")
+                        .default_value(None)
+                        .read_only()
+                        .build(),
+                    ParamSpecString::builder("reading-time-label-text")
+                        .default_value(None)
+                        .read_only()
+                        .build(),
+                    ParamSpecObject::builder::<gtk::TextBuffer>("buffer")
+                        .readwrite()
+                        .build(),
+                    ParamSpecInt::builder("paragraph-spacing")
+                        .minimum(0)
+                        .maximum(100)
+                        .default_value(36)
+                        .read_only()
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -200,7 +199,7 @@ impl Default for ManuscriptTextEditor {
 
 impl ManuscriptTextEditor {
     pub fn new(sender: Option<Sender<DocumentAction>>) -> Self {
-        let obj: Self = glib::Object::new(&[]);
+        let obj: Self = glib::Object::new();
         obj.imp().sender.replace(sender);
 
         obj

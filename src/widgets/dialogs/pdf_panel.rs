@@ -1,6 +1,6 @@
 use super::compile::CompilePanel;
 use adw::subclass::prelude::*;
-use gtk::{gio, glib, prelude::*};
+use gtk::{gio, glib};
 
 mod imp {
     use super::*;
@@ -62,10 +62,9 @@ impl Default for ManuscriptCompilePdfPanel {
     }
 }
 
-
 impl ManuscriptCompilePdfPanel {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 }
 

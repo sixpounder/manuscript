@@ -13,7 +13,7 @@ use std::cell::RefCell;
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -53,14 +53,14 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new("has-views", "", "", false, ParamFlags::READABLE),
-                    ParamSpecString::new(
-                        "visible-view-name",
-                        "",
-                        "",
-                        "placeholder_view".into(),
-                        ParamFlags::READABLE,
-                    ),
+                    ParamSpecBoolean::builder("has-views")
+                        .default_value(false)
+                        .read_only()
+                        .build(),
+                    ParamSpecString::builder("visible-view-name")
+                        .read_only()
+                        .default_value("placeholder_view")
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -105,7 +105,7 @@ impl Default for ManuscriptEditorViewShell {
 
 impl ManuscriptEditorViewShell {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     fn setup_widgets(&self) {
@@ -160,9 +160,7 @@ impl ManuscriptEditorViewShell {
     fn page_for_chunk_by_id(&self, id: String) -> Option<adw::TabPage> {
         let editor_view = self.editor_tab_view();
         let page_list_iterator = editor_view.pages();
-        let mut page_list_iterator = page_list_iterator
-            .iter::<adw::TabPage>()
-            .expect("No iterator for view pages");
+        let mut page_list_iterator = page_list_iterator.iter::<adw::TabPage>();
         page_list_iterator
             .find(|page| {
                 if let Ok(page) = page {
@@ -220,9 +218,7 @@ impl ManuscriptEditorViewShell {
     pub fn clear(&self) {
         let editor_view = self.editor_tab_view();
         let page_list_iterator = editor_view.pages();
-        let page_list_iterator = page_list_iterator
-            .iter::<adw::TabPage>()
-            .expect("No iterator for view pages");
+        let page_list_iterator = page_list_iterator.iter::<adw::TabPage>();
         let pages = page_list_iterator
             .map(|p| p.expect("Failed to retrieve TabPage for closing"))
             .collect::<Vec<adw::TabPage>>();

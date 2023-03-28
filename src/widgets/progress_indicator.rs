@@ -4,7 +4,7 @@ use std::cell::Cell;
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecInt};
+    use glib::{ParamSpec, ParamSpecBoolean, ParamSpecInt};
     use gtk::gdk::RGBA;
     use once_cell::sync::Lazy;
 
@@ -40,10 +40,28 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecInt::new("value", "", "", 0, i32::MAX, 0, ParamFlags::READWRITE),
-                    ParamSpecInt::new("min", "", "", 0, i32::MAX, 0, ParamFlags::READWRITE),
-                    ParamSpecInt::new("max", "", "", 0, i32::MAX, 0, ParamFlags::READWRITE),
-                    ParamSpecBoolean::new("show-label", "", "", true, ParamFlags::READWRITE),
+                    ParamSpecInt::builder("value")
+                        .readwrite()
+                        .minimum(0)
+                        .maximum(i32::MAX)
+                        .default_value(0)
+                        .build(),
+                    ParamSpecInt::builder("min")
+                        .readwrite()
+                        .minimum(0)
+                        .maximum(i32::MAX)
+                        .default_value(0)
+                        .build(),
+                    ParamSpecInt::builder("max")
+                        .readwrite()
+                        .minimum(0)
+                        .maximum(i32::MAX)
+                        .default_value(0)
+                        .build(),
+                    ParamSpecBoolean::builder("show-label")
+                        .readwrite()
+                        .default_value(true)
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -143,7 +161,7 @@ impl Default for ManuscriptProgressIndicator {
 
 impl ManuscriptProgressIndicator {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn value(&self) -> i32 {

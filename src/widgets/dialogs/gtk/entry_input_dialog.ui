@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="Adw" version="1.0"/>
+  <template class="ManuscriptEntryInputDialog" parent="AdwMessageDialog">
+    <property name="heading" bind-source="ManuscriptEntryInputDialog" bind-property="heading" bind-flags="default|sync-create"></property>
+    <property name="body" bind-source="ManuscriptEntryInputDialog" bind-property="body" bind-flags="default|sync-create"></property>
+    <property name="default-response">confirm</property>
+    <property name="close-response">cancel</property>
+    <responses>
+      <response id="cancel" translatable="yes">_Cancel</response>
+      <response id="confirm" translatable="yes" appearance="suggested">_Confirm</response>
+    </responses>
+  </template>
+</interface>
+

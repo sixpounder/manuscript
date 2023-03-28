@@ -37,6 +37,7 @@
               <object class="GtkButton">
                 <property name="icon-name">document-edit-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Your project's title. Click to modify.</property>
+                <signal name="clicked" handler="on_title_clicked" swapped="true"></signal>
                 <child>
                   <object class="GtkLabel">
                     <property
@@ -124,6 +125,7 @@
             <child>
               <object class="GtkActionBar" id="project_actionbar">
                 <property name="revealed">false</property>
+                <property name="height-request">50</property>
                 <style>
                   <class name="flat" />
                 </style>

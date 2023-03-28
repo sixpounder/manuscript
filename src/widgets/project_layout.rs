@@ -2,7 +2,9 @@ use super::factories;
 use crate::{
     models::*,
     services::{i18n, DocumentAction},
-    widgets::{ManuscriptChunkRow, ManuscriptPrimaryMenuButton},
+    widgets::{
+        dialogs::ManuscriptEntryInputDialog, ManuscriptChunkRow, ManuscriptPrimaryMenuButton,
+    },
 };
 use adw::{
     prelude::{ActionRowExt, ExpanderRowExt},
@@ -19,9 +21,7 @@ const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
 mod imp {
     use super::*;
-    use glib::{
-        subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecString,
-    };
+    use glib::{subclass::signal::Signal, ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -93,23 +93,26 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("title", "", "", None, ParamFlags::READWRITE),
-                    ParamSpecString::new("selection-label", "", "", Some(""), ParamFlags::READABLE),
-                    ParamSpecBoolean::new("select-mode", "", "", false, ParamFlags::READABLE),
-                    ParamSpecBoolean::new(
-                        "show-primary-menu-button",
-                        "",
-                        "",
-                        false,
-                        ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "show-end-title-buttons",
-                        "",
-                        "",
-                        false,
-                        ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("title")
+                        .default_value(None)
+                        .readwrite()
+                        .build(),
+                    ParamSpecString::builder("selection-label")
+                        .default_value(Some(""))
+                        .read_only()
+                        .build(),
+                    ParamSpecBoolean::builder("select-mode")
+                        .read_only()
+                        .default_value(false)
+                        .build(),
+                    ParamSpecBoolean::builder("show-primary-menu-button")
+                        .readwrite()
+                        .default_value(false)
+                        .build(),
+                    ParamSpecBoolean::builder("show-end-title-buttons")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -122,7 +125,7 @@ mod imp {
                 "selection-label" => {
                     let items_len = self.selected_ids.borrow().len();
                     if items_len == 0 {
-                        "".to_value()
+                        i18n::i18n("No items selected").to_value()
                     } else {
                         format!(
                             "{} {}",
@@ -171,7 +174,7 @@ impl Default for ManuscriptProjectLayout {
 
 impl ManuscriptProjectLayout {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_channel(&self, sender: Sender<DocumentAction>) {
@@ -379,6 +382,20 @@ impl ManuscriptProjectLayout {
 
 #[gtk::template_callbacks]
 impl ManuscriptProjectLayout {
+    #[template_callback]
+    fn on_title_clicked(&self, _button: &gtk::Button) {
+        let current_title: String = self.document_title_label_text();
+        let dialog = ManuscriptEntryInputDialog::new(
+            &crate::libs::files::window(),
+            &[
+                ("entry-text", &current_title),
+                ("entry-label", &i18n::i18n("Project Title")),
+                ("heading", &i18n::i18n("Change Project Title")),
+            ],
+        );
+        dialog.show();
+    }
+
     #[template_callback]
     fn on_remove_items_clicked(&self, _button: &gtk::Button) {
         let borrow = self.imp().selected_ids.borrow();

@@ -1,6 +1,7 @@
 use crate::{models::*, services::i18n::i18n};
 use adw::prelude::{ActionRowExt, PreferencesRowExt};
 use adw::subclass::prelude::*;
+use glib_macros::Properties;
 use gtk::{gio, glib, prelude::*};
 use std::cell::{Cell, RefCell};
 
@@ -9,26 +10,40 @@ const G_LOG_DOMAIN: &str = "ManuscriptChunkRow";
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecObject};
-    use once_cell::sync::Lazy;
+    use glib::ParamSpec;
 
-    #[derive(Default, gtk::CompositeTemplate)]
+    #[derive(Default, Properties, gtk::CompositeTemplate)]
+    #[properties(wrapper_type = super::ManuscriptChunkRow)]
     #[template(resource = "/io/sixpounder/Manuscript/chunk_row.ui")]
     pub struct ManuscriptChunkRow {
         #[template_child]
         pub(super) lock_icon: TemplateChild<gtk::Image>,
 
+        #[property(name = "expander", get, set, nullable)]
         pub(super) parent_expander: RefCell<Option<adw::ExpanderRow>>,
 
         pub(super) chunk_id: RefCell<String>,
 
+        #[property(name = "select-mode", get, set = Self::set_select_mode)]
         pub(super) select_mode: Cell<bool>,
 
+        #[property(name = "locked", get, set)]
         pub(super) locked: Cell<bool>,
 
+        #[property(name = "selected", get, set)]
         pub(super) selected: Cell<bool>,
 
         pub(super) style_provider: gtk::CssProvider,
+    }
+
+    impl ManuscriptChunkRow {
+        pub fn set_select_mode(&self, value: bool) {
+            if !value {
+                self.obj().set_property("selected", false);
+            }
+
+            self.select_mode.set(value)
+        }
     }
 
     #[glib::object_subclass]
@@ -49,50 +64,15 @@ mod imp {
 
     impl ObjectImpl for ManuscriptChunkRow {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![
-                    ParamSpecObject::new(
-                        "expander",
-                        "",
-                        "",
-                        Option::<adw::ExpanderRow>::static_type(),
-                        ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new("locked", "", "", false, ParamFlags::READWRITE),
-                    ParamSpecBoolean::new("selected", "", "", false, ParamFlags::READWRITE),
-                    ParamSpecBoolean::new("select-mode", "", "", false, ParamFlags::READWRITE),
-                ]
-            });
-            PROPERTIES.as_ref()
+            Self::derived_properties()
         }
 
-        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
-            let obj = self.obj();
-            match pspec.name() {
-                "expander" => self.parent_expander.borrow().to_value(),
-                "locked" => obj.locked().to_value(),
-                "selected" => obj.selected().to_value(),
-                "select-mode" => obj.select_mode().to_value(),
-                _ => unimplemented!(),
-            }
+        fn property(&self, id: usize, pspec: &ParamSpec) -> glib::Value {
+            self.derived_property(id, pspec)
         }
 
-        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
-            let obj = self.obj();
-            match pspec.name() {
-                "expander" => {
-                    *self.parent_expander.borrow_mut() =
-                        value.get::<Option<adw::ExpanderRow>>().unwrap()
-                }
-                "locked" => obj.set_locked(value.get::<bool>().unwrap()),
-                "selected" => obj.set_selected(value.get::<bool>().unwrap()),
-                "select-mode" => obj.set_select_mode(value.get::<bool>().unwrap()),
-                _ => unimplemented!(),
-            }
-        }
-
-        fn constructed(&self) {
-            self.parent_constructed();
+        fn set_property(&self, id: usize, value: &glib::Value, pspec: &ParamSpec) {
+            self.derived_set_property(id, value, pspec)
         }
     }
 
@@ -109,7 +89,10 @@ glib::wrapper! {
 
 impl ManuscriptChunkRow {
     pub fn new(chunk: Option<&dyn DocumentChunk>, expander: adw::ExpanderRow) -> Self {
-        let obj: Self = glib::Object::new(&[("expander", &expander), ("select-mode", &false)]);
+        let obj: Self = glib::Object::builder()
+            .property("expander", &expander)
+            .property("select-mode", &false)
+            .build();
         obj.init(chunk);
         obj
     }
@@ -123,33 +106,33 @@ impl ManuscriptChunkRow {
         }
     }
 
-    pub fn selected(&self) -> bool {
-        self.imp().selected.get()
-    }
+    // pub fn selected(&self) -> bool {
+    //     self.imp().selected.get()
+    // }
 
-    pub fn set_selected(&self, value: bool) {
-        self.imp().selected.set(value)
-    }
+    // pub fn set_selected(&self, value: bool) {
+    //     self.imp().selected.set(value)
+    // }
 
-    pub fn locked(&self) -> bool {
-        self.imp().locked.get()
-    }
+    // pub fn locked(&self) -> bool {
+    //     self.imp().locked.get()
+    // }
 
-    pub fn set_locked(&self, value: bool) {
-        self.imp().locked.set(value)
-    }
+    // pub fn set_locked(&self, value: bool) {
+    //     self.imp().locked.set(value)
+    // }
 
-    pub fn select_mode(&self) -> bool {
-        self.imp().select_mode.get()
-    }
+    // pub fn select_mode(&self) -> bool {
+    //     self.imp().select_mode.get()
+    // }
 
-    pub fn set_select_mode(&self, value: bool) {
-        if !value {
-            self.set_property("selected", false);
-        }
+    // pub fn set_select_mode(&self, value: bool) {
+    //     if !value {
+    //         self.set_property("selected", false);
+    //     }
 
-        self.imp().select_mode.set(value)
-    }
+    //     self.imp().select_mode.set(value)
+    // }
 
     pub fn update_chunk(&self, chunk: Option<&dyn DocumentChunk>) {
         if let Ok(mut borrow) = self.imp().chunk_id.try_borrow_mut() {
@@ -183,7 +166,7 @@ impl ManuscriptChunkRow {
                 color,
                 color.contrast_color()
             ));
-            tint_provider.load_from_data(css.as_bytes());
+            tint_provider.load_from_data(css.as_str());
             ctx.add_provider(tint_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
         } else {
             ctx.remove_provider(tint_provider);

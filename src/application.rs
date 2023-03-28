@@ -28,7 +28,7 @@ mod imp {
     impl ObjectImpl for ManuscriptApplication {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_gactions();
             obj.set_accels_for_action("app.quit", &["<primary>q"]);
             obj.set_accels_for_action("app.new-window", &["<ctrl><shift>n"]);
@@ -46,7 +46,7 @@ mod imp {
         // tries to launch a "second instance" of the application. When they try
         // to do that, we'll just present any existing window.
         fn activate(&self) {
-            let application = self.instance();
+            let application = self.obj();
             application.set_color_scheme(Theme::current().as_str());
             // Get the current window or create one if necessary
             let window = if let Some(window) = application.active_window() {
@@ -96,15 +96,13 @@ glib::wrapper! {
 
 impl ManuscriptApplication {
     pub fn new(application_id: &str, flags: &gio::ApplicationFlags) -> Self {
-        glib::Object::new(&[("application-id", &application_id), ("flags", flags)])
+        glib::Object::builder()
+            .property("application-id", &application_id)
+            .property("flags", flags)
+            .build()
     }
 
     fn set_color_scheme(&self, scheme: &str) {
-        glib::g_debug!(
-            "ManuscriptApplication",
-            "Setting color scheme to {}",
-            scheme
-        );
         let display = gtk::gdk::Display::default().unwrap();
         let sepia_provider = self.imp().sepia_style_provider.borrow();
         let sepia_provider: &gtk::CssProvider = sepia_provider.as_ref().unwrap();
@@ -135,8 +133,7 @@ impl ManuscriptApplication {
         let about_action = gio::ActionEntry::builder("about")
             .activate(move |app: &Self, _, _| app.show_about())
             .build();
-        self.add_action_entries([new_window_action, quit_action, about_action])
-            .unwrap();
+        self.add_action_entries([new_window_action, quit_action, about_action]);
     }
 
     fn show_about(&self) {
@@ -149,7 +146,7 @@ impl ManuscriptApplication {
             .version(VERSION)
             .website("https://github.com/sixpounder/manuscript")
             .issue_url("https://github.com/sixpounder/manuscript/issues")
-            .developers(vec!["Andrea Coronese".into()])
+            .developers(vec!["Andrea Coronese"])
             .translator_credits(translators_list().join("\n").as_str())
             .copyright("© 2023 Andrea Coronese")
             .build();

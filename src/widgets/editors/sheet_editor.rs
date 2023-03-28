@@ -7,7 +7,7 @@ use std::cell::RefCell;
 
 mod imp {
     use super::*;
-    use glib::{ParamFlags, ParamSpec, ParamSpecString};
+    use glib::{ParamSpec, ParamSpecString};
     use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
@@ -71,29 +71,26 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("character-name", "", "", None, ParamFlags::READWRITE),
-                    ParamSpecString::new("character-role", "", "", None, ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "character-background-buffer",
-                        "",
-                        "",
-                        None,
-                        ParamFlags::READABLE,
-                    ),
-                    ParamSpecString::new(
-                        "character-physical-traits-buffer",
-                        "",
-                        "",
-                        None,
-                        ParamFlags::READABLE,
-                    ),
-                    ParamSpecString::new(
-                        "character-psycological-traits-buffer",
-                        "",
-                        "",
-                        None,
-                        ParamFlags::READABLE,
-                    ),
+                    ParamSpecString::builder("character-name")
+                        .readwrite()
+                        .default_value(None)
+                        .build(),
+                    ParamSpecString::builder("character-role")
+                        .readwrite()
+                        .default_value(None)
+                        .build(),
+                    ParamSpecString::builder("character-background-buffer")
+                        .read_only()
+                        .default_value(None)
+                        .build(),
+                    ParamSpecString::builder("character-physical-traits-buffer")
+                        .read_only()
+                        .default_value(None)
+                        .build(),
+                    ParamSpecString::builder("character-psycological-traits-buffer")
+                        .read_only()
+                        .default_value(None)
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -139,7 +136,7 @@ glib::wrapper! {
 
 impl ManuscriptCharacterSheetEditor {
     pub fn new(source: &dyn DocumentChunk, sender: Option<Sender<DocumentAction>>) -> Self {
-        let obj: Self = glib::Object::new(&[]);
+        let obj: Self = glib::Object::new();
         obj.set_chunk_id(source.id().into());
         obj.set_sender(sender);
         if let Some(source) = source.as_any().downcast_ref::<CharacterSheet>() {

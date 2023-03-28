@@ -91,7 +91,7 @@ impl Default for ManuscriptThemeSwitcher {
 
 impl ManuscriptThemeSwitcher {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     fn connect_events(&self) {

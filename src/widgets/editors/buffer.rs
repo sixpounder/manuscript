@@ -10,8 +10,7 @@ const G_LOG_DOMAIN: &str = "ManuscriptBuffer";
 mod imp {
     use super::*;
     use glib::{
-        subclass::signal::Signal, ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecBoxed,
-        ParamSpecObject,
+        subclass::signal::Signal, ParamSpec, ParamSpecBoolean, ParamSpecBoxed, ParamSpecObject,
     };
     use once_cell::sync::Lazy;
 
@@ -63,28 +62,19 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecObject::new(
-                        "parent-view",
-                        "",
-                        "",
-                        Option::<gtk::TextView>::static_type(),
-                        ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new("autoformat", "", "", true, ParamFlags::READWRITE),
-                    ParamSpecBoxed::new(
-                        "accent-primary-fg-color",
-                        "",
-                        "",
-                        gtk::gdk::RGBA::static_type(),
-                        ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoxed::new(
-                        "accent-secondary-fg-color",
-                        "",
-                        "",
-                        gtk::gdk::RGBA::static_type(),
-                        ParamFlags::READWRITE,
-                    ),
+                    ParamSpecObject::builder::<gtk::TextView>("parent-view")
+                        .readwrite()
+                        .build(),
+                    ParamSpecBoolean::builder("autoformat")
+                        .readwrite()
+                        .default_value(true)
+                        .build(),
+                    ParamSpecBoxed::builder::<gtk::gdk::RGBA>("accent-primary-fg-color")
+                        .readwrite()
+                        .build(),
+                    ParamSpecBoxed::builder::<gtk::gdk::RGBA>("accent-secondary-fg-color")
+                        .readwrite()
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -130,7 +120,10 @@ impl Default for ManuscriptBuffer {
 
 impl ManuscriptBuffer {
     pub fn new(tag_table: Option<gtk::TextTagTable>, parent_view: Option<gtk::TextView>) -> Self {
-        glib::Object::new(&[("tag-table", &tag_table), ("parent-view", &parent_view)])
+        glib::Object::builder()
+            .property("tag-table", &tag_table)
+            .property("parent-view", &parent_view)
+            .build()
     }
 
     fn connect_events(&self) {

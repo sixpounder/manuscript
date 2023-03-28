@@ -272,7 +272,7 @@ impl DocumentManager {
     fn stop_monitor(&self) {}
 
     pub fn new() -> Self {
-        let obj: Self = glib::Object::new::<Self>(&[]);
+        let obj: Self = glib::Object::new::<Self>();
         obj.listen();
         obj
     }
