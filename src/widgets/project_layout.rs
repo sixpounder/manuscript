@@ -7,7 +7,7 @@ use crate::{
     },
 };
 use adw::{
-    prelude::{ActionRowExt, ExpanderRowExt},
+    prelude::{ActionRowExt, ExpanderRowExt, MessageDialogExt},
     subclass::prelude::*,
 };
 use glib::Sender;
@@ -195,11 +195,6 @@ impl ManuscriptProjectLayout {
     pub fn set_document_title_label_text(&self, value: Option<String>) {
         let new_title = value.unwrap_or(i18n::i18n("Untitled Project"));
         *self.imp().title.borrow_mut() = new_title.clone();
-        let sender = self.imp().channel.borrow();
-        let sender = sender.as_ref().unwrap();
-        sender
-            .send(DocumentAction::SetTitle(new_title))
-            .expect("Could not send title update event");
         self.notify("title");
     }
 
@@ -388,10 +383,22 @@ impl ManuscriptProjectLayout {
         let dialog = ManuscriptEntryInputDialog::new(
             &crate::libs::files::window(),
             &[
+                ("heading", &i18n::i18n("Change Project Title")),
+                (
+                    "body",
+                    &i18n::i18n("This will appear in the cover page of your exports"),
+                ),
                 ("entry-text", &current_title),
                 ("entry-label", &i18n::i18n("Project Title")),
-                ("heading", &i18n::i18n("Change Project Title")),
             ],
+        );
+        dialog.connect_response(
+            None,
+            glib::clone!(@strong self as this => move |dialog, res| {
+                if res == "confirm" {
+                    this.send_action(DocumentAction::SetTitle(dialog.entry_text()));
+                }
+            }),
         );
         dialog.show();
     }

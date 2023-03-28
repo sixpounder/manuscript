@@ -4,52 +4,64 @@
   <requires lib="Adw" version="1.0"/>
   <template class="ManuscriptEditorViewShell" parent="GtkWidget">
     <child>
-      <object class="GtkStack">
-        <property name="transition-type">GTK_STACK_TRANSITION_TYPE_CROSSFADE</property>
-        <property name="transition-duration">250</property>
-        <property
-          name="visible-child-name"
-          bind-source="ManuscriptEditorViewShell"
-          bind-property="visible-view-name"
-          bind-flags="default"
-        >
-        </property>
+      <object class="AdwTabOverview">
+        <property name="view">editor_tab_view</property>
+        <property name="show-end-title-buttons">False</property>
         <child>
-          <object class="GtkStackPage">
-            <property name="name">placeholder_view</property>
-            <property name="child">
-              <object class="GtkLabel">
-                <property name="label" translatable="yes">Add or select items to edit them</property>
-                <style>
-                  <class name="editor-view-placeholder-label" />
-                </style>
-              </object>
+          <object class="GtkStack">
+            <property name="transition-type">GTK_STACK_TRANSITION_TYPE_CROSSFADE</property>
+            <property name="transition-duration">250</property>
+            <property
+              name="visible-child-name"
+              bind-source="ManuscriptEditorViewShell"
+              bind-property="visible-view-name"
+              bind-flags="default"
+            >
             </property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkStackPage">
-            <property name="name">editors_view</property>
-            <property name="child">
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="AdwTabBar" id="editor_tab_bar">
-                    <property name="expand-tabs">true</property>
-                    <property name="autohide">false</property>
-                    <property name="hexpand">true</property>
-                    <property name="view">editor_tab_view</property>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">placeholder_view</property>
+                <property name="child">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Add or select items to edit them</property>
+                    <style>
+                      <class name="editor-view-placeholder-label" />
+                    </style>
                   </object>
-                </child>
-                <child>
-                  <object class="AdwTabView" id="editor_tab_view">
-                    <property name="vexpand">true</property>
-                    <property name="valign">fill</property>
-                    <property name="halign">fill</property>
-                  </object>
-                </child>
+                </property>
               </object>
-            </property>
+            </child>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">editors_view</property>
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="AdwTabBar" id="editor_tab_bar">
+                        <property name="expand-tabs">true</property>
+                        <property name="autohide">false</property>
+                        <property name="hexpand">true</property>
+                        <property name="view">editor_tab_view</property>
+                        <property name="end-action-widget">
+                          <object class="AdwTabButton">
+                              <property name="view">editor_tab_view</property>
+                              <property name="action-name">overview.open</property>
+                            </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwTabView" id="editor_tab_view">
+                        <property name="vexpand">true</property>
+                        <property name="valign">fill</property>
+                        <property name="halign">fill</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

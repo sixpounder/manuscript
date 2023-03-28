@@ -219,6 +219,14 @@ impl ManuscriptWindow {
         let dm = self.document_manager();
 
         dm.connect_closure(
+            "title-set",
+            false,
+            closure_local!(@strong self as this => move |_: DocumentManager| {
+                this.on_title_set();
+            }),
+        );
+
+        dm.connect_closure(
             "document-loaded",
             false,
             closure_local!(@strong self as this => move |_: DocumentManager| {
@@ -457,6 +465,15 @@ impl ManuscriptWindow {
 
     fn on_document_unloaded(&self) {
         self.update_actions();
+    }
+
+    fn on_title_set(&self) {
+        if let Ok(lock) = self.document_manager().document_ref() {
+            if let Some(document) = lock.as_ref() {
+                self.project_layout()
+                    .set_document_title_label_text(document.title().cloned());
+            }
+        }
     }
 
     fn on_chunk_added(&self, id: String) {

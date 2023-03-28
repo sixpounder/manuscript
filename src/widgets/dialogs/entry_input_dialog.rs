@@ -116,15 +116,6 @@ impl ManuscriptEntryInputDialog {
 
     fn setup(&self) {
         let entry_row = &self.imp().entry_row;
-        self.bind_property("entry-label", entry_row, "title")
-            .bidirectional()
-            .sync_create()
-            .build();
-        self.bind_property("entry-text", entry_row, "text")
-            .bidirectional()
-            .sync_create()
-            .build();
-
         let listbox = gtk::ListBox::builder()
             .css_classes(vec!["boxed-list"])
             .margin_top(12)
@@ -138,7 +129,11 @@ impl ManuscriptEntryInputDialog {
         self.set_extra_child(Some(&listbox));
     }
 
-    fn entry_row(&self) -> adw::EntryRow {
-        adw::EntryRow::builder().build()
+    pub fn entry_text(&self) -> String {
+        self.entry_row().text().to_string()
+    }
+
+    fn entry_row(&self) -> &adw::EntryRow {
+        &self.imp().entry_row
     }
 }
