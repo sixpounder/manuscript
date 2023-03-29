@@ -21,13 +21,18 @@ entry.manuscript-title:hover {
   color: @light_2;
 }
 
+.sheet-editor row {
+	background-color: @view_bg_color;
+	color: @view_fg_color;
+}
+
 .transparent-bg {
   background-color: rgba(0, 0, 0, 0);
 }
 
-.default-bg {
-  background: @project_layout_bg;
-}
+/* .default-bg { */
+/*   background: @project_layout_bg; */
+/* } */
 
 .editor-view-placeholder-label {
   filter: opacity(60%);

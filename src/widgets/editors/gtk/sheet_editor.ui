@@ -3,6 +3,9 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="Adw" version="1.0"/>
   <template class="ManuscriptCharacterSheetEditor" parent="GtkWidget">
+    <style>
+      <class name="sheet-editor" />
+    </style>
     <child>
       <object class="GtkScrolledWindow">
         <property name="overlay-scrolling">true</property>
