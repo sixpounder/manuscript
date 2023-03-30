@@ -116,8 +116,41 @@
                 <property name="vexpand">true</property>
                 <child>
                   <!-- Main content -->
-                  <object class="GtkBox" id="layout">
+                  <object class="GtkBox">
                     <property name="orientation">vertical</property>
+                    <property name="margin-top">24</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="spacing">24</property>
+                    <child>
+                      <object class="GtkListBox">
+                        <style>
+                          <class name="boxed-list" />
+                        </style>
+                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Project settings</property>
+                            <property name="subtitle" translatable="yes">Change project title, text styles and other settings</property>
+                            <property name="icon-name">settings-symbolic</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="ManuscriptProjectLayoutChunkContainer" id="chapters_container">
+                        <binding name="visible">
+                          <lookup name="has-items">chapters_container</lookup>
+                        </binding>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="ManuscriptProjectLayoutChunkContainer" id="character_sheets_container">
+                        <binding name="visible">
+                          <lookup name="has-items">character_sheets_container</lookup>
+                        </binding>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

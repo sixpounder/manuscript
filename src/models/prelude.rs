@@ -63,6 +63,16 @@ pub enum ChunkType {
     CharacterSheet,
 }
 
+// impl ToString for ChunkType {
+//     fn to_string(&self) -> String {
+//         match self {
+//             ChunkType::Manifest => "Manifest".into(),
+//             ChunkType::Chapter => "Chapter".into(),
+//             ChunkType::CharacterSheet => "Character Sheet".into(),
+//         }
+//     }
+// }
+
 impl std::fmt::Display for ChunkType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let desc = match self {

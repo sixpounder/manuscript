@@ -3,10 +3,10 @@ mod command_palette;
 pub mod dialogs;
 mod editor_view_shell;
 pub mod editors;
-pub mod factories;
 mod primary_menu_button;
 mod progress_indicator;
 mod project_layout;
+mod project_layout_chunk_container;
 mod theme_switcher;
 mod welcome_view;
 
@@ -16,5 +16,6 @@ pub use editor_view_shell::*;
 pub use primary_menu_button::*;
 pub use progress_indicator::*;
 pub use project_layout::*;
+pub use project_layout_chunk_container::*;
 pub use theme_switcher::*;
 pub use welcome_view::*;

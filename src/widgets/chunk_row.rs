@@ -1,4 +1,4 @@
-use crate::{models::*, services::i18n::i18n};
+use crate::{models::*, services::i18n::i18n, widgets::ManuscriptProjectLayoutChunkContainer};
 use adw::prelude::{ActionRowExt, PreferencesRowExt};
 use adw::subclass::prelude::*;
 use glib_macros::Properties;
@@ -19,8 +19,8 @@ mod imp {
         #[template_child]
         pub(super) lock_icon: TemplateChild<gtk::Image>,
 
-        #[property(name = "expander", get, set, nullable)]
-        pub(super) parent_expander: RefCell<Option<adw::ExpanderRow>>,
+        #[property(name = "parent-container", get, set, nullable)]
+        pub(super) parent_container: RefCell<Option<ManuscriptProjectLayoutChunkContainer>>,
 
         pub(super) chunk_id: RefCell<String>,
 
@@ -88,9 +88,12 @@ glib::wrapper! {
 }
 
 impl ManuscriptChunkRow {
-    pub fn new(chunk: Option<&dyn DocumentChunk>, expander: adw::ExpanderRow) -> Self {
+    pub fn new(
+        chunk: Option<&dyn DocumentChunk>,
+        parent: &ManuscriptProjectLayoutChunkContainer,
+    ) -> Self {
         let obj: Self = glib::Object::builder()
-            .property("expander", &expander)
+            .property("parent-container", parent)
             .property("select-mode", &false)
             .build();
         obj.init(chunk);
@@ -105,34 +108,6 @@ impl ManuscriptChunkRow {
             }
         }
     }
-
-    // pub fn selected(&self) -> bool {
-    //     self.imp().selected.get()
-    // }
-
-    // pub fn set_selected(&self, value: bool) {
-    //     self.imp().selected.set(value)
-    // }
-
-    // pub fn locked(&self) -> bool {
-    //     self.imp().locked.get()
-    // }
-
-    // pub fn set_locked(&self, value: bool) {
-    //     self.imp().locked.set(value)
-    // }
-
-    // pub fn select_mode(&self) -> bool {
-    //     self.imp().select_mode.get()
-    // }
-
-    // pub fn set_select_mode(&self, value: bool) {
-    //     if !value {
-    //         self.set_property("selected", false);
-    //     }
-
-    //     self.imp().select_mode.set(value)
-    // }
 
     pub fn update_chunk(&self, chunk: Option<&dyn DocumentChunk>) {
         if let Ok(mut borrow) = self.imp().chunk_id.try_borrow_mut() {
@@ -185,9 +160,5 @@ impl ManuscriptChunkRow {
 
     pub fn chunk_id(&self) -> String {
         self.imp().chunk_id.borrow().clone()
-    }
-
-    pub fn parent_expander(&self) -> Option<adw::ExpanderRow> {
-        self.imp().parent_expander.borrow().clone()
     }
 }

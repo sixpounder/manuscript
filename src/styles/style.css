@@ -10,17 +10,6 @@
 @define-color buffer_accent_fg_color @view_fg_color;
 @define-color buffer_light_accent_fg_color @purple_2;
 
-entry.manuscript-title {
-  border-radius: .25rem;
-  padding: .5rem;
-  transition: background-color .3s ease, color .3s ease;
-}
-
-entry.manuscript-title:hover {
-  background-color: @accent_color;
-  color: @light_2;
-}
-
 .sheet-editor row {
 	background-color: @view_bg_color;
 	color: @view_fg_color;
@@ -29,10 +18,6 @@ entry.manuscript-title:hover {
 .transparent-bg {
   background-color: rgba(0, 0, 0, 0);
 }
-
-/* .default-bg { */
-/*   background: @project_layout_bg; */
-/* } */
 
 .editor-view-placeholder-label {
   filter: opacity(60%);

@@ -1,21 +1,18 @@
-use super::factories;
 use crate::{
     models::*,
     services::{i18n, DocumentAction},
     widgets::{
         dialogs::ManuscriptEntryInputDialog, ManuscriptChunkRow, ManuscriptPrimaryMenuButton,
+        ManuscriptProjectLayoutChunkContainer,
     },
 };
 use adw::{
-    prelude::{ActionRowExt, ExpanderRowExt, MessageDialogExt},
+    prelude::{ActionRowExt, MessageDialogExt},
     subclass::prelude::*,
 };
 use glib::Sender;
 use gtk::{gio, prelude::*};
-use std::{
-    cell::{Cell, RefCell},
-    collections::HashMap,
-};
+use std::cell::{Cell, RefCell};
 
 const G_LOG_DOMAIN: &str = "ManuscriptProjectLayout";
 
@@ -34,7 +31,10 @@ mod imp {
         pub(super) primary_menu_button: TemplateChild<ManuscriptPrimaryMenuButton>,
 
         #[template_child]
-        pub(super) layout: TemplateChild<gtk::Box>,
+        pub(super) chapters_container: TemplateChild<ManuscriptProjectLayoutChunkContainer>,
+
+        #[template_child]
+        pub(super) character_sheets_container: TemplateChild<ManuscriptProjectLayoutChunkContainer>,
 
         #[template_child]
         pub(super) searchbar: TemplateChild<gtk::SearchBar>,
@@ -48,8 +48,6 @@ mod imp {
         pub(super) title: RefCell<String>,
 
         pub(super) channel: RefCell<Option<Sender<DocumentAction>>>,
-
-        pub(super) children_map: RefCell<HashMap<String, ManuscriptChunkRow>>,
 
         pub(super) chunk_selection: Cell<bool>,
 
@@ -216,26 +214,33 @@ impl ManuscriptProjectLayout {
     }
 
     pub fn clear(&self) {
-        let layout = self.imp().layout.get();
-        let mut child = layout.first_child();
-        while child.is_some() {
-            let existing_child = child.unwrap();
-            child = existing_child.next_sibling();
-            layout.remove(&existing_child);
-        }
-        self.set_select(false);
+        self.containers().iter().for_each(|c| c.remove_all());
     }
 
-    fn expanders(&self) -> Vec<gtk::Widget> {
-        let layout = self.imp().layout.get();
-        let mut children = vec![];
-        let mut child = layout.first_child();
-        while child.is_some() {
-            let existing_child = child.unwrap();
-            child = existing_child.next_sibling();
-            children.push(existing_child);
+    fn containers(&self) -> Vec<ManuscriptProjectLayoutChunkContainer> {
+        let imp = self.imp();
+        vec![
+            imp.chapters_container.get(),
+            imp.character_sheets_container.get(),
+        ]
+    }
+
+    fn containers_apply<F>(&self, f: F)
+    where
+        F: Fn(&ManuscriptProjectLayoutChunkContainer),
+    {
+        self.containers().iter().for_each(|c| f(c));
+    }
+
+    fn container_for(&self, chunk: &dyn DocumentChunk) -> ManuscriptProjectLayoutChunkContainer {
+        let imp = self.imp();
+        if let Some(_) = chunk.as_any().downcast_ref::<Chapter>() {
+            imp.chapters_container.get()
+        } else if let Some(_) = chunk.as_any().downcast_ref::<CharacterSheet>() {
+            imp.character_sheets_container.get()
+        } else {
+            unimplemented!("Not a known chunk type");
         }
-        children
     }
 
     pub fn add_chunk(&self, chunk: &dyn DocumentChunk) {
@@ -244,12 +249,10 @@ impl ManuscriptProjectLayout {
             "Adding chunk with id {} to project layout",
             chunk.id()
         );
-        let layout = self.imp().layout.get();
-        let expander_row =
-            factories::get_or_create_expander_row_for_chunk(&layout.upcast::<gtk::Widget>(), chunk);
-        expander_row.set_expanded(true);
 
-        let row = factories::create_row_for_chunk(chunk, expander_row.clone());
+        let container = self.container_for(chunk);
+        let row = container.add(chunk);
+
         row.connect_activated(glib::clone!(@weak self as this => move |row| {
             if row.select_mode() {
                 let selected = !row.selected();
@@ -273,45 +276,31 @@ impl ManuscriptProjectLayout {
                 this.notify("selection-label");
             })
         );
-
-        let mut map = self.imp().children_map.borrow_mut();
-        map.insert(chunk.id().to_string(), row.clone());
-
-        expander_row.add_row(&row);
     }
 
     pub fn remove_chunk<S: ToString>(&self, chunk_id: S) {
-        let next_select_mode;
+        glib::g_debug!(
+            G_LOG_DOMAIN,
+            "Removing chunk with id {} from project layout",
+            chunk_id.to_string()
+        );
 
-        {
-            glib::g_debug!(
-                G_LOG_DOMAIN,
-                "Removing chunk with id {} from project layout",
-                chunk_id.to_string()
-            );
+        self.containers_apply(|c| c.remove_by_id(chunk_id.to_string()));
 
-            let mut map = self.imp().children_map.borrow_mut();
-            if let Some(removed) = map.remove(&chunk_id.to_string()) {
-                if let Some(parent) = removed.parent_expander() {
-                    parent.remove(&removed);
-                }
-            }
-
-            glib::g_debug!(
-                G_LOG_DOMAIN,
-                "Removed chunk with id {} from project layout",
-                chunk_id.to_string()
-            );
-
-            next_select_mode = !map.is_empty();
-        }
-
-        self.set_select(next_select_mode);
+        glib::g_debug!(
+            G_LOG_DOMAIN,
+            "Removed chunk with id {} from project layout",
+            chunk_id.to_string()
+        );
     }
 
     pub fn chunk_row(&self, chunk: &dyn DocumentChunk) -> Option<ManuscriptChunkRow> {
-        let widget_ref = self.imp().children_map.borrow();
-        widget_ref.get(&chunk.id().to_string()).cloned()
+        self.containers()
+            .iter()
+            .map(|c| c.chunk_row(chunk))
+            .filter(Option::is_some)
+            .last()
+            .unwrap()
     }
 
     pub fn searchbar(&self) -> gtk::SearchBar {
@@ -323,35 +312,28 @@ impl ManuscriptProjectLayout {
     }
 
     pub fn set_select(&self, value: bool) {
-        let imp = self.imp();
         self.clear_all_rows();
+        self.imp().project_actionbar.set_revealed(value);
 
-        if value != imp.chunk_selection.replace(value) {
-            imp.project_actionbar.set_revealed(value);
-            let children = imp.children_map.borrow();
-            children
-                .iter()
-                .for_each(|(_key, child)| child.set_property("select-mode", value));
+        let selection_mode;
 
-            if value {
-                self.expanders().iter().for_each(|expander| {
-                    if let Some(expander) = expander.downcast_ref::<adw::ExpanderRow>() {
-                        expander.set_expanded(true);
-                    }
-                });
-            }
-
-            self.notify("selection-label");
-            self.notify("select-mode");
+        if value {
+            selection_mode = gtk::SelectionMode::Multiple;
+        } else {
+            selection_mode = gtk::SelectionMode::None;
         }
+
+        self.containers_apply(|c| {
+            c.clear_selection();
+            c.set_selection_mode(selection_mode);
+        });
     }
 
     fn select_all_rows(&self) {
-        self.clear_all_rows();
-        let children = self.imp().children_map.borrow();
-        children
-            .iter()
-            .for_each(|(_key, child)| child.set_property("selected", true));
+        self.containers_apply(|c| {
+            c.clear_selection();
+            c.select_all_rows();
+        });
     }
 
     fn clear_all_rows(&self) {
