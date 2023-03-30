@@ -22,7 +22,7 @@ mod imp {
     impl Default for ManuscriptProjectSettingsEditor {
         fn default() -> Self {
             Self {
-                title: RefCell::new(i18n("Project Settings").into()),
+                title: RefCell::new(i18n("Project Settings")),
             }
         }
     }

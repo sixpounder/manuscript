@@ -60,10 +60,6 @@ cargo_build = custom_target(
   ]
 )
 
-# cargo_test_args = ['test']
-# cargo_test_args += cargo_opt
-# test('Rust unit tests', cargo_bin, args: cargo_test_args, env: cargo_env)
-
 test('Lint code with clippy', cargo_bin, args: [
     'clippy',
     '--no-deps',

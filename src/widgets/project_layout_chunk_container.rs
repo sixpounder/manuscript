@@ -12,7 +12,7 @@ mod imp {
     use glib::{ParamSpec, ParamSpecBoolean};
     use once_cell::sync::Lazy;
 
-    #[derive(Properties, gtk::CompositeTemplate)]
+    #[derive(Default, Properties, gtk::CompositeTemplate)]
     #[properties(wrapper_type = super::ManuscriptProjectLayoutChunkContainer)]
     #[template(resource = "/io/sixpounder/Manuscript/project_layout_chunk_container.ui")]
     pub struct ManuscriptProjectLayoutChunkContainer {
@@ -26,17 +26,6 @@ mod imp {
         pub(super) title: RefCell<String>,
 
         pub(super) children_map: RefCell<HashMap<String, ManuscriptChunkRow>>,
-    }
-
-    impl Default for ManuscriptProjectLayoutChunkContainer {
-        fn default() -> Self {
-            Self {
-                listbox: TemplateChild::default(),
-                title: RefCell::default(),
-                category_name: RefCell::default(),
-                children_map: RefCell::default(),
-            }
-        }
     }
 
     impl ManuscriptProjectLayoutChunkContainer {}
@@ -147,7 +136,7 @@ impl ManuscriptProjectLayoutChunkContainer {
         let mut changed: bool = false;
         {
             let mut map = self.imp().children_map.borrow_mut();
-            if let Some(removed) = map.remove(&chunk_id.to_string()) {
+            if let Some(removed) = map.remove(&chunk_id) {
                 self.imp().listbox.remove(&removed);
                 changed = true;
             }

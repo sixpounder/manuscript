@@ -192,7 +192,7 @@ impl ManuscriptProjectLayout {
 
     pub fn set_document_title_label_text(&self, value: Option<String>) {
         let new_title = value.unwrap_or(i18n::i18n("Untitled Project"));
-        *self.imp().title.borrow_mut() = new_title.clone();
+        *self.imp().title.borrow_mut() = new_title;
         self.notify("title");
     }
 
@@ -229,14 +229,14 @@ impl ManuscriptProjectLayout {
     where
         F: Fn(&ManuscriptProjectLayoutChunkContainer),
     {
-        self.containers().iter().for_each(|c| f(c));
+        self.containers().iter().for_each(f);
     }
 
     fn container_for(&self, chunk: &dyn DocumentChunk) -> ManuscriptProjectLayoutChunkContainer {
         let imp = self.imp();
-        if let Some(_) = chunk.as_any().downcast_ref::<Chapter>() {
+        if chunk.as_any().downcast_ref::<Chapter>().is_some() {
             imp.chapters_container.get()
-        } else if let Some(_) = chunk.as_any().downcast_ref::<CharacterSheet>() {
+        } else if chunk.as_any().downcast_ref::<CharacterSheet>().is_some() {
             imp.character_sheets_container.get()
         } else {
             unimplemented!("Not a known chunk type");
@@ -315,13 +315,11 @@ impl ManuscriptProjectLayout {
         self.clear_all_rows();
         self.imp().project_actionbar.set_revealed(value);
 
-        let selection_mode;
-
-        if value {
-            selection_mode = gtk::SelectionMode::Multiple;
+        let selection_mode = if value {
+            gtk::SelectionMode::Multiple
         } else {
-            selection_mode = gtk::SelectionMode::None;
-        }
+            gtk::SelectionMode::None
+        };
 
         self.containers_apply(|c| {
             c.clear_selection();
