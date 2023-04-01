@@ -1,7 +1,7 @@
 use crate::{
     libs::files::{with_file_open_dialog, with_file_save_dialog},
     models::*,
-    services::{DocumentManager, ManuscriptSettings},
+    services::{i18n::i18n, DocumentManager, ManuscriptSettings},
     widgets::{
         dialogs::ManuscriptDestroyConfirmDialog, ManuscriptEditorViewShell,
         ManuscriptPrimaryMenuButton, ManuscriptProjectLayout, ManuscriptWelcomeView,
@@ -484,12 +484,6 @@ impl ManuscriptWindow {
                 imp.project_layout.add_chunk(added_chunk);
                 imp.editor_view.add_page(added_chunk);
                 self.show_chunk_page(added_chunk);
-
-                // Ensure flap closes and editor view gets revealed if in folded mode
-                // let flap = self.flap();
-                // if flap.is_folded() {
-                //     flap.set_reveal_flap(false);
-                // }
             }
         }
     }
@@ -679,10 +673,31 @@ impl ManuscriptWindow {
 
     #[template_callback]
     fn on_remove_selected_activated(&self, ids: Vec<String>) {
-        let dm = self.document_manager();
-        ids.iter().for_each(|id| {
-            dm.remove_chunk(id);
-        });
+        if ids.len() > 0 {
+            let win = self.upcast_ref::<gtk::Window>();
+            let dialog = adw::MessageDialog::builder()
+                .transient_for(win)
+                .heading(i18n("Remove these items?"))
+                .body(i18n("Removed items cannot be recovered"))
+                .default_response("cancel")
+                .close_response("cancel")
+                .build();
+            dialog.add_response("cancel", &i18n("Keep items"));
+            dialog.add_response("confirm", &i18n("Remove items"));
+            dialog.set_response_appearance("confirm", adw::ResponseAppearance::Destructive);
+            dialog.connect_response(
+                None,
+                glib::clone!(@strong self as this => move |_dialog, res| {
+                    if res == "confirm" {
+                        let dm = this.document_manager();
+                        ids.iter().for_each(|id| {
+                            dm.remove_chunk(id);
+                        });
+                    }
+                }),
+            );
+            dialog.show();
+        }
     }
 
     #[template_callback]

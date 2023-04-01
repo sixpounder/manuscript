@@ -112,7 +112,11 @@ impl ManuscriptProjectLayoutChunkContainer {
 
     pub fn clear_selection(&self) {}
 
-    pub fn select_all_rows(&self) {}
+    pub fn select_all_rows(&self) {
+        let map = self.imp().children_map.borrow();
+        map.iter()
+            .for_each(|(_key, widget)| widget.set_property("selected", true));
+    }
 
     pub fn add(&self, chunk: &dyn DocumentChunk) -> ManuscriptChunkRow {
         let row = ManuscriptChunkRow::new(Some(chunk), self);

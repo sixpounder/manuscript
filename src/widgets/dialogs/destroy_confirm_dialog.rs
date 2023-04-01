@@ -1,5 +1,6 @@
 use adw::subclass::prelude::*;
 use gtk::{gio, glib};
+// use glib_macros::Properties;
 
 mod imp {
     use super::*;
@@ -27,22 +28,15 @@ mod imp {
 
     impl ObjectImpl for ManuscriptDestroyConfirmDialog {
         // fn properties() -> &'static [gtk::glib::ParamSpec] {
-        //     static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(Vec::new);
-        //     PROPERTIES.as_ref()
+        //     Self::derived_properties()
         // }
 
-        // fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
-        //     let _obj = self.obj();
-        //     match pspec.name() {
-        //         _ => unimplemented!(),
-        //     }
+        // fn property(&self, id: usize, pspec: &ParamSpec) -> glib::Value {
+        //     self.derived_property(id, pspec)
         // }
 
-        // fn set_property(&self, _id: usize, _value: &glib::Value, pspec: &ParamSpec) {
-        //     let _obj = self.obj();
-        //     match pspec.name() {
-        //         _ => unimplemented!(),
-        //     }
+        // fn set_property(&self, id: usize, value: &glib::Value, pspec: &ParamSpec) {
+        //     self.derived_set_property(id, value, pspec)
         // }
     }
 

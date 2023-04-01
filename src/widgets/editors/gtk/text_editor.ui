@@ -20,7 +20,6 @@
             <property name="vexpand">true</property>
             <child>
               <object class="GtkTextView" id="text_view">
-                <!-- <property name="buffer" bind-property="buffer" bind-source="ManuscriptTextEditor" bind-flags="default|sync-create"></property> -->
                 <property name="monospace">true</property>
                 <property
                   name="pixels-below-lines"
