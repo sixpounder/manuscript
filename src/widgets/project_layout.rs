@@ -80,9 +80,12 @@ mod imp {
 
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-                vec![Signal::builder("remove-selected-activated")
-                    .param_types([Vec::<String>::static_type()])
-                    .build()]
+                vec![
+                    Signal::builder("remove-selected-activated")
+                        .param_types([Vec::<String>::static_type()])
+                        .build(),
+                    Signal::builder("settings-activated").build(),
+                ]
             });
 
             SIGNALS.as_ref()
@@ -204,7 +207,7 @@ impl ManuscriptProjectLayout {
         if let Some(document) = document {
             // Populate project structure
             // 1. Set title
-            self.set_document_title_label_text(document.title().cloned());
+            self.set_document_title_label_text(document.title());
 
             // 2. Add chunk entries
             document.chunks().iter().for_each(|chunk| {
@@ -394,5 +397,10 @@ impl ManuscriptProjectLayout {
     #[template_callback]
     fn on_select_all_button_clicked(&self, _button: &gtk::Button) {
         self.select_all_rows();
+    }
+
+    #[template_callback]
+    fn on_settings_activated(&self, _row: &adw::ActionRow) {
+        self.emit_by_name::<()>("settings-activated", &[]);
     }
 }

@@ -23,6 +23,8 @@
           <object class="AdwClamp">
             <property name="tightening-threshold">612</property>
             <property name="maximum-size">1024</property>
+            <property name="margin-start">24</property>
+            <property name="margin-end">24</property>
             <property name="child">
               <object class="GtkBox">
                 <property name="orientation">vertical</property>

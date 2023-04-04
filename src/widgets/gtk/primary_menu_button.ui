@@ -24,11 +24,11 @@
       </item>
       <item>
         <attribute name="label" translatable="yes">_New Project</attribute>
-        <attribute name="action">app.new-project</attribute>
+        <attribute name="action">win.new-project</attribute>
       </item>
       <item>
         <attribute name="label" translatable="yes">_Open</attribute>
-        <attribute name="action">app.open-project</attribute>
+        <attribute name="action">win.open-project</attribute>
       </item>
       <item>
         <attribute name="label" translatable="yes">_Save</attribute>

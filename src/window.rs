@@ -91,11 +91,11 @@ mod imp {
 
             klass.bind_template_instance_callbacks();
 
-            klass.install_action("app.new-project", None, move |win, _, _| {
+            klass.install_action("win.new-project", None, move |win, _, _| {
                 win.new_project();
             });
 
-            klass.install_action("app.open-project", None, move |win, _, _| {
+            klass.install_action("win.open-project", None, move |win, _, _| {
                 win.open_project(false);
             });
 
@@ -471,7 +471,7 @@ impl ManuscriptWindow {
         if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = lock.as_ref() {
                 self.project_layout()
-                    .set_document_title_label_text(document.title().cloned());
+                    .set_document_title_label_text(document.title());
             }
         }
     }
@@ -482,7 +482,7 @@ impl ManuscriptWindow {
                 let imp = self.imp();
                 let added_chunk = document.get_chunk_ref(id.as_str()).unwrap();
                 imp.project_layout.add_chunk(added_chunk);
-                imp.editor_view.add_page(added_chunk);
+                imp.editor_view.add_chunk_page(added_chunk);
                 self.show_chunk_page(added_chunk);
             }
         }
@@ -652,7 +652,7 @@ impl ManuscriptWindow {
     }
 
     pub fn show_chunk_page(&self, chunk: &dyn DocumentChunk) {
-        self.editor_view().select_page(chunk);
+        self.editor_view().select_chunk_page(chunk);
         self.imp()
             .leaflet
             .set_visible_child_name("editor_view_shell_page");
@@ -669,6 +669,17 @@ impl ManuscriptWindow {
     #[template_callback]
     fn on_navigate_back(&self, _btn: gtk::Button) {
         self.imp().leaflet.navigate(adw::NavigationDirection::Back);
+    }
+
+    #[template_callback]
+    fn on_document_settings_activated(&self, _widget: ManuscriptProjectLayout) {
+        if let Ok(lock) = self.document_manager().document_ref() {
+            if let Some(document) = lock.as_ref() {
+                let imp = self.imp();
+                imp.editor_view.add_chunk_page(document.manifest());
+                self.show_chunk_page(document.manifest());
+            }
+        }
     }
 
     #[template_callback]

@@ -1,5 +1,5 @@
 use crate::{
-    libs::consts::CHUNK_ID_DATA_KEY, models::*, services::DocumentAction, widgets::editors::*,
+    libs::consts::RESOURCE_ID_DATA_KEY, models::*, services::DocumentAction, widgets::editors::*,
 };
 use adw::subclass::prelude::*;
 use gtk::{
@@ -130,7 +130,14 @@ impl ManuscriptEditorViewShell {
 
     fn editor_view_widget_for_chunk(&self, chunk: &dyn DocumentChunk) -> gtk::Widget {
         match chunk.chunk_type() {
-            ChunkType::Manifest => todo!(),
+            ChunkType::Manifest => {
+                let manifest = chunk.as_any().downcast_ref::<DocumentManifest>().unwrap();
+                let editor = ManuscriptProjectSettingsEditor::new(manifest, self.sender());
+                editor.set_halign(gtk::Align::Fill);
+                editor.set_valign(gtk::Align::Fill);
+                editor.set_hexpand(true);
+                editor.upcast::<gtk::Widget>()
+            }
             ChunkType::Chapter => {
                 let text_view = ManuscriptTextEditor::new(self.sender());
                 text_view.set_halign(gtk::Align::Fill);
@@ -154,17 +161,17 @@ impl ManuscriptEditorViewShell {
     }
 
     fn page_for_chunk(&self, chunk: &dyn DocumentChunk) -> Option<adw::TabPage> {
-        self.page_for_chunk_by_id(chunk.id().to_string())
+        self.page_by_resource_id(chunk.id().to_string())
     }
 
-    fn page_for_chunk_by_id(&self, id: String) -> Option<adw::TabPage> {
+    fn page_by_resource_id(&self, id: String) -> Option<adw::TabPage> {
         let editor_view = self.editor_tab_view();
         let page_list_iterator = editor_view.pages();
         let mut page_list_iterator = page_list_iterator.iter::<adw::TabPage>();
         page_list_iterator
             .find(|page| {
                 if let Ok(page) = page {
-                    let maybe_data = unsafe { page.data::<String>(CHUNK_ID_DATA_KEY) };
+                    let maybe_data = unsafe { page.data::<String>(RESOURCE_ID_DATA_KEY) };
                     if let Some(inner_data) = maybe_data {
                         let inner_data = unsafe { inner_data.as_ref() };
                         if *inner_data == id {
@@ -178,29 +185,37 @@ impl ManuscriptEditorViewShell {
             .map(|page| page.unwrap())
     }
 
-    pub fn add_page(&self, chunk: &dyn DocumentChunk) -> adw::TabPage {
-        let view_child = self.editor_view_widget_for_chunk(chunk);
-        let view = self.editor_tab_view();
-        let page = view.append(&view_child);
-        page.set_title(chunk.safe_title());
-        unsafe { page.set_data(CHUNK_ID_DATA_KEY, chunk.id().to_string()) };
+    pub fn add_chunk_page(&self, chunk: &dyn DocumentChunk) -> adw::TabPage {
+        let page = self
+            .page_by_resource_id(chunk.id().to_string())
+            .unwrap_or_else(|| {
+                let view_child = self.editor_view_widget_for_chunk(chunk);
+                let view = self.editor_tab_view();
+                let page = view.append(&view_child);
+                page.set_title(chunk.safe_title());
+                unsafe { page.set_data(RESOURCE_ID_DATA_KEY, chunk.id().to_string()) };
+                page
+            });
 
         self.notify("visible-view-name");
-
         page
     }
 
     pub fn add_and_select_page(&self, chunk: &dyn DocumentChunk) {
         let view = self.editor_tab_view();
-        view.set_selected_page(&self.add_page(chunk));
+        view.set_selected_page(&self.add_chunk_page(chunk));
     }
 
-    pub fn select_page(&self, chunk: &dyn DocumentChunk) {
+    pub fn select_chunk_page(&self, chunk: &dyn DocumentChunk) {
         if let Some(page) = self.page_for_chunk(chunk) {
             self.editor_tab_view().set_selected_page(&page);
         } else {
             self.add_and_select_page(chunk);
         }
+    }
+
+    pub fn select_page(&self, page: &adw::TabPage) {
+        self.editor_tab_view().set_selected_page(page);
     }
 
     pub fn close_page(&self, chunk: &dyn DocumentChunk) {
@@ -210,7 +225,7 @@ impl ManuscriptEditorViewShell {
     }
 
     pub fn close_page_by_id(&self, id: String) {
-        if let Some(page) = self.page_for_chunk_by_id(id) {
+        if let Some(page) = self.page_by_resource_id(id) {
             self.editor_tab_view().close_page(&page);
         }
     }

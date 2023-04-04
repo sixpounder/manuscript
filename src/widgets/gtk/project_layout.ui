@@ -130,9 +130,11 @@
                         <property name="selection-mode">GTK_SELECTION_NONE</property>
                         <child>
                           <object class="AdwActionRow">
+                            <property name="activatable">true</property>
                             <property name="title" translatable="yes">Project settings</property>
                             <property name="subtitle" translatable="yes">Change project title, text styles and other settings</property>
                             <property name="icon-name">settings-symbolic</property>
+                            <signal name="activated" handler="on_settings_activated" swapped="true"></signal>
                           </object>
                         </child>
                       </object>

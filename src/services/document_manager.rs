@@ -292,7 +292,7 @@ impl DocumentManager {
     pub fn document_settings(&self) -> Result<DocumentSettings, ManuscriptError> {
         if let Ok(lock) = self.document_guard().read() {
             if let Some(document) = lock.as_ref() {
-                Ok(document.settings().clone())
+                Ok(document.manifest().settings().clone())
             } else {
                 Err(ManuscriptError::NoDocument)
             }

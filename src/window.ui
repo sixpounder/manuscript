@@ -68,6 +68,7 @@
                               <lookup name="folded">leaflet</lookup>
                             </binding>
                             <signal name="remove-selected-activated" handler="on_remove_selected_activated" swapped="true"></signal>
+                            <signal name="settings-activated" handler="on_document_settings_activated" swapped="true"></signal>
                           </object>
                         </child>
                         <child>

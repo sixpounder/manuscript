@@ -25,7 +25,7 @@
                 <child>
                   <object class="GtkButton" id="add_folder_button">
                     <property name="label" translatable="yes">New Project</property>
-                    <property name="action-name">app.new-project</property>
+                    <property name="action-name">win.new-project</property>
                     <style>
                       <class name="suggested-action"/>
                       <class name="pill"/>
@@ -35,7 +35,7 @@
                 <child>
                   <object class="GtkButton">
                     <property name="label" translatable="yes">Open File</property>
-                    <property name="action-name">app.open-project</property>
+                    <property name="action-name">win.open-project</property>
                     <style>
                       <class name="pill"/>
                     </style>

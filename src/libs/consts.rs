@@ -1,4 +1,4 @@
-pub const CHUNK_ID_DATA_KEY: &str = "chunk-id";
+pub const RESOURCE_ID_DATA_KEY: &str = "chunk-id";
 
 pub const LOOKUP_ACCENT_FG_COLOR: &str = "buffer_accent_fg_color";
 pub const LOOKUP_LIGHT_ACCENT_FG_COLOR: &str = "buffer_light_accent_fg_color";

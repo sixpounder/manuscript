@@ -1,6 +1,9 @@
 use super::{BufferChunk, ChunkType, DocumentChunk, MutableBufferChunk};
 use crate::{
-    models::prelude::{Color, ManuscriptResult},
+    models::{
+        prelude::{Color, ManuscriptResult},
+        settings::DocumentSettings,
+    },
     services::i18n::i18n,
 };
 use bytes::Bytes;
@@ -11,6 +14,7 @@ use ulid::Ulid;
 pub struct DocumentManifest {
     title: Option<String>,
     author: String,
+    settings: DocumentSettings,
     locked: bool,
 }
 
@@ -21,18 +25,27 @@ impl Default for DocumentManifest {
             author: gtk::glib::real_name()
                 .into_string()
                 .unwrap_or(String::from("")),
+            settings: DocumentSettings::default(),
             locked: false,
         }
     }
 }
 
 impl DocumentManifest {
-    pub fn title(&self) -> Option<&String> {
-        self.title.as_ref()
-    }
-
     pub fn set_title(&mut self, value: Option<String>) {
         self.title = value;
+    }
+
+    pub fn author(&self) -> &str {
+        &self.author
+    }
+
+    pub fn set_author(&mut self, value: String) {
+        self.author = value;
+    }
+
+    pub fn settings(&self) -> &DocumentSettings {
+        &self.settings
     }
 }
 

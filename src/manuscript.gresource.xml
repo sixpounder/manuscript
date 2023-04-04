@@ -26,5 +26,7 @@
     <file preprocess="xml-stripblanks" alias="settings-symbolic.svg">assets/icons/settings-symbolic.svg</file>
     <file preprocess="xml-stripblanks" alias="paper-symbolic.svg">assets/icons/paper-symbolic.svg</file>
     <file preprocess="xml-stripblanks" alias="character-symbolic.svg">assets/icons/character-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="text2-symbolic.svg">assets/icons/text2-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="library-symbolic.svg">assets/icons/library-symbolic.svg</file>
   </gresource>
 </gresources>

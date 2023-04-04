@@ -1,7 +1,11 @@
 use crate::services::i18n::i18n;
+use crate::{
+    models::{DocumentChunk, DocumentManifest},
+    services::DocumentAction,
+};
 use adw::subclass::prelude::*;
 use glib_macros::Properties;
-use gtk::{gio, glib, prelude::*};
+use gtk::{gio, glib::Sender, prelude::*};
 use std::cell::RefCell;
 
 #[allow(unused)]
@@ -15,14 +19,25 @@ mod imp {
     #[properties(wrapper_type = super::ManuscriptProjectSettingsEditor)]
     #[template(resource = "/io/sixpounder/Manuscript/editors/project_settings_editor.ui")]
     pub struct ManuscriptProjectSettingsEditor {
+        pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
+
+        #[property(get, set)]
+        pub(super) heading: RefCell<String>,
+
         #[property(get, set)]
         pub(super) title: RefCell<String>,
+
+        #[property(get, set)]
+        pub(super) author: RefCell<String>,
     }
 
     impl Default for ManuscriptProjectSettingsEditor {
         fn default() -> Self {
             Self {
-                title: RefCell::new(i18n("Project Settings")),
+                sender: RefCell::default(),
+                heading: RefCell::new(i18n("Project Settings")),
+                title: RefCell::default(),
+                author: RefCell::default(),
             }
         }
     }
@@ -67,14 +82,13 @@ glib::wrapper! {
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
 }
 
-impl Default for ManuscriptProjectSettingsEditor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ManuscriptProjectSettingsEditor {
-    pub fn new() -> Self {
-        glib::Object::builder().build()
+    pub fn new(manifest: &DocumentManifest, sender: Option<Sender<DocumentAction>>) -> Self {
+        let obj: Self = glib::Object::builder().build();
+        *obj.imp().sender.borrow_mut() = sender;
+        obj.set_title(i18n("Project settings"));
+        obj.set_author(manifest.author());
+
+        obj
     }
 }

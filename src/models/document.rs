@@ -1,7 +1,6 @@
 use super::{
     chunk::{Chapter, CharacterSheet, DocumentManifest},
     prelude::*,
-    DocumentSettings,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,7 +8,6 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Default)]
 pub struct Document {
     manifest: DocumentManifest,
-    settings: DocumentSettings,
     chunks: HashMap<String, Box<dyn DocumentChunk>>,
 }
 
@@ -20,16 +18,12 @@ impl glib::StaticType for Document {
 }
 
 impl Document {
-    pub fn title(&self) -> Option<&String> {
-        self.manifest.title()
+    pub fn title(&self) -> Option<String> {
+        self.manifest.title().map(String::from)
     }
 
     pub fn set_title(&mut self, value: Option<String>) {
         self.manifest.set_title(value);
-    }
-
-    pub fn settings(&self) -> &DocumentSettings {
-        &self.settings
     }
 
     pub fn add_chunk<C: DocumentChunk + 'static>(&mut self, value: C) {
@@ -115,7 +109,6 @@ impl<'d> TryFrom<&'d [u8]> for Document {
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SerializableDocument {
     manifest: DocumentManifest,
-    settings: DocumentSettings,
     chapters: Vec<Chapter>,
     character_sheets: Vec<CharacterSheet>,
 }
@@ -124,7 +117,6 @@ impl SerializableDocument {
     pub fn new(source: &Document) -> Self {
         let source = source.clone();
         let manifest = source.manifest().clone();
-        let settings = source.settings.clone();
         let mut chapters = vec![];
         let mut character_sheets = vec![];
 
@@ -142,7 +134,6 @@ impl SerializableDocument {
 
         Self {
             manifest,
-            settings,
             chapters,
             character_sheets,
         }
@@ -158,7 +149,6 @@ impl From<SerializableDocument> for Document {
     fn from(source: SerializableDocument) -> Self {
         let mut document = Document::default();
         document.manifest = source.manifest.clone();
-        document.settings = source.settings.clone();
 
         for chapter in source.chapters {
             document.add_chunk(chapter);
