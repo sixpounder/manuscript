@@ -63,16 +63,6 @@ pub enum ChunkType {
     CharacterSheet,
 }
 
-// impl ToString for ChunkType {
-//     fn to_string(&self) -> String {
-//         match self {
-//             ChunkType::Manifest => "Manifest".into(),
-//             ChunkType::Chapter => "Chapter".into(),
-//             ChunkType::CharacterSheet => "Character Sheet".into(),
-//         }
-//     }
-// }
-
 impl std::fmt::Display for ChunkType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let desc = match self {
@@ -103,8 +93,8 @@ pub type ManuscriptResult<T> = Result<T, ManuscriptError>;
 
 pub trait DocumentChunk {
     fn id(&self) -> &str;
-    fn title(&self) -> Option<&str>;
-    fn default_title(&self) -> &str;
+    fn title(&self) -> Option<String>;
+    fn default_title(&self) -> String;
     fn chunk_type(&self) -> ChunkType;
     fn category_name(&self) -> String;
     fn priority(&self) -> Option<u64>;
@@ -122,8 +112,12 @@ pub trait DocumentChunk {
         Err(ManuscriptError::Reason("Not implemented"))
     }
 
-    fn safe_title(&self) -> &str {
+    fn safe_title(&self) -> String {
         self.title().unwrap_or(self.default_title())
+    }
+
+    fn heading(&self) -> String {
+        self.safe_title()
     }
 
     fn include_in_compilation(&self) -> bool {
@@ -164,12 +158,16 @@ where
         self.deref().id()
     }
 
-    fn title(&self) -> Option<&str> {
+    fn title(&self) -> Option<String> {
         self.deref().title()
     }
 
-    fn default_title(&self) -> &str {
+    fn default_title(&self) -> String {
         self.deref().default_title()
+    }
+
+    fn heading(&self) -> String {
+        self.deref().heading()
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

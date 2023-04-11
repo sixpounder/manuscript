@@ -131,7 +131,10 @@ impl ManuscriptEditorViewShell {
     fn editor_view_widget_for_chunk(&self, chunk: &dyn DocumentChunk) -> gtk::Widget {
         match chunk.chunk_type() {
             ChunkType::Manifest => {
-                let manifest = chunk.as_any().downcast_ref::<DocumentManifest>().unwrap();
+                let manifest = chunk
+                    .as_any()
+                    .downcast_ref::<DocumentManifest>()
+                    .expect("Expected manifest, got non compliant type");
                 let editor = ManuscriptProjectSettingsEditor::new(manifest, self.sender());
                 editor.set_halign(gtk::Align::Fill);
                 editor.set_valign(gtk::Align::Fill);
@@ -192,7 +195,7 @@ impl ManuscriptEditorViewShell {
                 let view_child = self.editor_view_widget_for_chunk(chunk);
                 let view = self.editor_tab_view();
                 let page = view.append(&view_child);
-                page.set_title(chunk.safe_title());
+                page.set_title(chunk.heading().as_str());
                 unsafe { page.set_data(RESOURCE_ID_DATA_KEY, chunk.id().to_string()) };
                 page
             });
@@ -244,7 +247,7 @@ impl ManuscriptEditorViewShell {
 
     pub fn update_page(&self, chunk: &dyn DocumentChunk) {
         if let Some(page) = self.page_for_chunk(chunk) {
-            page.set_title(chunk.safe_title());
+            page.set_title(chunk.heading().as_str());
         }
     }
 

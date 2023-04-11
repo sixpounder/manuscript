@@ -18,12 +18,12 @@ impl glib::StaticType for Document {
 }
 
 impl Document {
-    pub fn title(&self) -> Option<String> {
-        self.manifest.title().map(String::from)
+    pub fn title(&self) -> Option<&String> {
+        self.manifest.manifest_title()
     }
 
     pub fn set_title(&mut self, value: Option<String>) {
-        self.manifest.set_title(value);
+        self.manifest.set_manifest_title(value);
     }
 
     pub fn add_chunk<C: DocumentChunk + 'static>(&mut self, value: C) {
@@ -52,6 +52,10 @@ impl Document {
 
     pub fn manifest(&self) -> &DocumentManifest {
         &self.manifest
+    }
+
+    pub fn manifest_mut(&mut self) -> &mut DocumentManifest {
+        &mut self.manifest
     }
 
     pub fn chunks(&self) -> Vec<&dyn DocumentChunk> {

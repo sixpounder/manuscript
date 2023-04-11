@@ -113,7 +113,7 @@ impl ManuscriptChunkRow {
         if let Ok(mut borrow) = self.imp().chunk_id.try_borrow_mut() {
             if let Some(chunk) = chunk {
                 *borrow = chunk.id().to_string();
-                self.set_title(chunk.safe_title());
+                self.set_title(chunk.safe_title().as_str());
                 self.set_locked(chunk.locked());
                 self.set_tint(chunk.accent());
 

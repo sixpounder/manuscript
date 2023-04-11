@@ -1,6 +1,6 @@
 use crate::models::{
-    Chapter, CharacterSheet, Document, DocumentChunk, DocumentSettings, ManuscriptError,
-    ManuscriptResult, MutableBufferChunk,
+    Chapter, CharacterSheet, Document, DocumentChunk, DocumentManifest, DocumentSettings,
+    ManuscriptError, ManuscriptResult, MutableBufferChunk,
 };
 use adw::subclass::prelude::*;
 use bytes::Bytes;
@@ -42,6 +42,7 @@ impl std::fmt::Display for BufferStats {
 }
 
 type ChunkUpdateFunc = dyn FnOnce(&mut dyn DocumentChunk);
+type ManifestUpdateFunc = dyn FnOnce(&mut DocumentManifest);
 
 pub enum DocumentAction {
     SetTitle(String),
@@ -52,6 +53,7 @@ pub enum DocumentAction {
     UpdateChunkBufferStats(String, BufferStats),
     UpdateChunk(String),
     UpdateChunkWith(String, Box<ChunkUpdateFunc>),
+    UpdateManifestWith(Box<ManifestUpdateFunc>),
 }
 
 impl std::fmt::Display for DocumentAction {
@@ -77,6 +79,9 @@ impl std::fmt::Display for DocumentAction {
             Self::UpdateChunk(id) => write!(f, "DocumentAction::UpdateChunk(#{id})"),
             Self::UpdateChunkWith(id, _func) => {
                 write!(f, "DocumentAction::UpdateChunkWith(#{id}, function)")
+            }
+            Self::UpdateManifestWith(_func) => {
+                write!(f, "DocumentAction::UpdateManifestWith(function)")
             }
         }
     }
@@ -142,6 +147,7 @@ mod imp {
                     Signal::builder("chunk-updated")
                         .param_types([String::static_type()])
                         .build(),
+                    Signal::builder("manifest-updated").build(),
                     Signal::builder("chunk-stats-updated")
                         .param_types([
                             String::static_type(),
@@ -180,7 +186,7 @@ impl DocumentManager {
     }
 
     fn process_action(&self, action: DocumentAction) {
-        glib::trace!("{}::{}", G_LOG_DOMAIN, action);
+        glib::g_debug!(G_LOG_DOMAIN, "{}", action);
         match action {
             DocumentAction::SetTitle(new_title) => {
                 if let Ok(mut lock) = self.imp().document.write() {
@@ -258,9 +264,20 @@ impl DocumentManager {
                     if let Some(document) = lock.as_mut() {
                         if let Some(chunk) = document.get_chunk_mut(id.as_str()) {
                             func(chunk);
+                            self.set_sync(false);
                             drop(lock);
                             self.emit_by_name::<()>("chunk-updated", &[&id]);
                         }
+                    }
+                }
+            }
+            DocumentAction::UpdateManifestWith(func) => {
+                if let Ok(mut lock) = self.imp().document.write() {
+                    if let Some(document) = lock.as_mut() {
+                        func(document.manifest_mut());
+                        self.set_sync(false);
+                        drop(lock);
+                        self.emit_by_name::<()>("manifest-updated", &[]);
                     }
                 }
             }

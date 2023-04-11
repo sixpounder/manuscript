@@ -152,6 +152,15 @@ impl ManuscriptProjectLayoutChunkContainer {
     }
 
     pub fn remove_all(&self) {
+        {
+            let listbox = self.imp().listbox.get();
+            let mut map = self.imp().children_map.borrow_mut();
+            for widget in map.values() {
+                listbox.remove(widget);
+            }
+
+            *map = HashMap::new();
+        }
         self.notify("has-items");
     }
 

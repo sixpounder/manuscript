@@ -141,6 +141,7 @@
                     </child>
                     <child>
                       <object class="ManuscriptProjectLayoutChunkContainer" id="chapters_container">
+                        <property name="category-name" translatable="yes">Chapters</property>
                         <binding name="visible">
                           <lookup name="has-items">chapters_container</lookup>
                         </binding>
@@ -148,6 +149,7 @@
                     </child>
                     <child>
                       <object class="ManuscriptProjectLayoutChunkContainer" id="character_sheets_container">
+                        <property name="category-name" translatable="yes">Character sheets</property>
                         <binding name="visible">
                           <lookup name="has-items">character_sheets_container</lookup>
                         </binding>

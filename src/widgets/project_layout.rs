@@ -207,7 +207,7 @@ impl ManuscriptProjectLayout {
         if let Some(document) = document {
             // Populate project structure
             // 1. Set title
-            self.set_document_title_label_text(document.title());
+            self.set_document_title_label_text(document.title().cloned());
 
             // 2. Add chunk entries
             document.chunks().iter().for_each(|chunk| {

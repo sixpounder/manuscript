@@ -32,7 +32,11 @@ impl Default for DocumentManifest {
 }
 
 impl DocumentManifest {
-    pub fn set_title(&mut self, value: Option<String>) {
+    pub fn manifest_title(&self) -> Option<&String> {
+        self.title.as_ref()
+    }
+
+    pub fn set_manifest_title(&mut self, value: Option<String>) {
         self.title = value;
     }
 
@@ -47,6 +51,10 @@ impl DocumentManifest {
     pub fn settings(&self) -> &DocumentSettings {
         &self.settings
     }
+
+    pub fn settings_mut(&mut self) -> &mut DocumentSettings {
+        &mut self.settings
+    }
 }
 
 impl DocumentChunk for DocumentManifest {
@@ -54,15 +62,12 @@ impl DocumentChunk for DocumentManifest {
         "manifest"
     }
 
-    fn title(&self) -> Option<&str> {
-        match self.title.as_ref() {
-            Some(title) => Some(title.as_str()),
-            None => None,
-        }
+    fn title(&self) -> Option<String> {
+        self.manifest_title().cloned()
     }
 
-    fn default_title(&self) -> &str {
-        "Untitled manuscript"
+    fn default_title(&self) -> String {
+        i18n("Untitled Project")
     }
 
     fn chunk_type(&self) -> ChunkType {
@@ -94,6 +99,10 @@ impl DocumentChunk for DocumentManifest {
     fn set_locked(&mut self, value: bool) {
         self.locked = value;
     }
+
+    fn heading(&self) -> String {
+        i18n("Project settings")
+    }
 }
 
 /// A Chapter is a chunk representing the content of a single manuscript chapter
@@ -114,21 +123,12 @@ impl DocumentChunk for Chapter {
         self.id.as_str()
     }
 
-    fn title(&self) -> Option<&str> {
-        match self.title.as_ref() {
-            Some(title) => {
-                if title.is_empty() {
-                    None
-                } else {
-                    Some(title.as_str())
-                }
-            }
-            None => None,
-        }
+    fn title(&self) -> Option<String> {
+        self.title.as_ref().cloned()
     }
 
-    fn default_title(&self) -> &str {
-        "Untitled chapter"
+    fn default_title(&self) -> String {
+        i18n("Untitled chapter")
     }
 
     fn chunk_type(&self) -> ChunkType {
@@ -357,21 +357,22 @@ impl DocumentChunk for CharacterSheet {
         self.id.as_str()
     }
 
-    fn title(&self) -> Option<&str> {
-        match self.name.as_ref() {
-            Some(title) => {
-                if title.is_empty() {
-                    None
-                } else {
-                    Some(title.as_str())
-                }
-            }
-            None => None,
-        }
+    fn title(&self) -> Option<String> {
+        // match self.name.as_ref() {
+        //     Some(title) => {
+        //         if title.is_empty() {
+        //             None
+        //         } else {
+        //             Some(title.as_str())
+        //         }
+        //     }
+        //     None => None,
+        // }
+        self.name.as_ref().cloned()
     }
 
-    fn default_title(&self) -> &str {
-        "Unnamed character"
+    fn default_title(&self) -> String {
+        i18n("Unnamed character")
     }
 
     fn chunk_type(&self) -> ChunkType {

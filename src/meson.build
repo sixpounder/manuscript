@@ -62,8 +62,7 @@ cargo_build = custom_target(
 
 test('Lint code with clippy', cargo_bin, args: [
     'clippy',
-    '--no-deps',
-    '--manifest-path',
-    join_paths(meson.project_source_root(), 'Cargo.toml')
+    cargo_opt,
+    '--no-deps'
   ]
 )

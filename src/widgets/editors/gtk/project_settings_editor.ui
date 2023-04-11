@@ -6,6 +6,16 @@
     <child>
       <object class="GtkBox">
         <property name="orientation">vertical</property>
+        <!-- <child> -->
+        <!--   <object class="AdwEntryRow" id="project_title_entry"> -->
+        <!--     <property name="title" translatable="yes">Title</property> -->
+        <!--   </object> -->
+        <!-- </child> -->
+        <!-- <child> -->
+        <!--   <object class="AdwEntryRow" id="author_entry"> -->
+        <!--     <property name="title" translatable="yes">Author</property> -->
+        <!--   </object> -->
+        <!-- </child> -->
         <child>
           <object class="AdwViewSwitcher">
             <property name="policy">ADW_VIEW_SWITCHER_POLICY_WIDE</property>
@@ -23,7 +33,49 @@
                 <property name="icon-name">library-symbolic</property>
                 <property name="title" translatable="yes">Cover</property>
                 <property name="child">
-                  <object class="GtkBox"></object>
+                  <object class="GtkScrolledWindow">
+                    <property name="propagate-natural-height">true</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <child>
+                      <object class="AdwClamp">
+                        <property name="tightening-threshold">612</property>
+                        <property name="maximum-size">1024</property>
+                        <property name="margin-start">24</property>
+                        <property name="margin-end">24</property>
+                        <property name="child">
+                          <object class="AdwPreferencesGroup">
+                            <property name="title" translatable="yes">Title and author</property>
+                            <child>
+                              <object class="GtkListBox">
+                                <property name="selection-mode">none</property>
+                                <property name="valign">start</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">false</property>
+                                <style>
+                                  <class name="boxed-list" />
+                                </style>
+                                <child>
+                                  <object class="AdwEntryRow" id="project_title_entry">
+                                    <property name="title" translatable="yes">Title</property>
+                                    <property name="text" bind-source="ManuscriptProjectSettingsEditor" bind-property="title" bind-flags="bidirectional"></property>
+                                    <signal name="changed" handler="on_project_title_entry_changed" swapped="true"></signal>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="AdwEntryRow" id="author_entry">
+                                    <property name="title" translatable="yes">Author</property>
+                                    <property name="text" bind-source="ManuscriptProjectSettingsEditor" bind-property="author" bind-flags="bidirectional"></property>
+                                    <signal name="changed" handler="on_author_entry_changed" swapped="true"></signal>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
                 </property>
               </object>
             </child>
@@ -32,7 +84,65 @@
                 <property name="icon-name">text2-symbolic</property>
                 <property name="title" translatable="yes">Typography</property>
                 <property name="child">
-                  <object class="GtkBox"></object>
+                  <object class="GtkScrolledWindow">
+                    <property name="propagate-natural-height">true</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <child>
+                      <object class="AdwClamp">
+                        <property name="tightening-threshold">612</property>
+                        <property name="maximum-size">1024</property>
+                        <property name="margin-start">24</property>
+                        <property name="margin-end">24</property>
+                        <property name="child">
+                          <object class="AdwPreferencesGroup">
+                            <property name="title" translatable="yes">Text metrics</property>
+                            <child>
+                              <object class="GtkListBox">
+                                <property name="selection-mode">none</property>
+                                <property name="valign">start</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">false</property>
+                                <style>
+                                  <class name="boxed-list" />
+                                </style>
+                                <child>
+                                  <object class="AdwComboRow" id="paragraph_spacing_entry">
+                                    <property name="title" translatable="yes">Paragraph Spacing</property>
+                                    <property name="selected" bind-source="ManuscriptProjectSettingsEditor" bind-property="paragraph-spacing-selected-index" bind-flags="bidirectional"></property>
+                                    <property name="model">
+                                      <object class="GtkStringList">
+                                        <items>
+                                          <item translatable="yes">Narrow</item>
+                                          <item translatable="yes">Medium</item>
+                                          <item translatable="yes">Wide</item>
+                                        </items>
+                                      </object>
+                                    </property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="AdwComboRow" id="line_height_entry">
+                                    <property name="title" translatable="yes">Line Height</property>
+                                    <property name="selected" bind-source="ManuscriptProjectSettingsEditor" bind-property="line-height-selected-index" bind-flags="bidirectional"></property>
+                                    <property name="model">
+                                      <object class="GtkStringList">
+                                        <items>
+                                          <item translatable="yes">Narrow</item>
+                                          <item translatable="yes">Medium</item>
+                                          <item translatable="yes">Wide</item>
+                                        </items>
+                                      </object>
+                                    </property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
                 </property>
               </object>
             </child>

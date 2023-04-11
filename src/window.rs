@@ -471,7 +471,7 @@ impl ManuscriptWindow {
         if let Ok(lock) = self.document_manager().document_ref() {
             if let Some(document) = lock.as_ref() {
                 self.project_layout()
-                    .set_document_title_label_text(document.title());
+                    .set_document_title_label_text(document.title().cloned());
             }
         }
     }
@@ -684,7 +684,7 @@ impl ManuscriptWindow {
 
     #[template_callback]
     fn on_remove_selected_activated(&self, ids: Vec<String>) {
-        if ids.len() > 0 {
+        if !ids.is_empty() {
             let win = self.upcast_ref::<gtk::Window>();
             let dialog = adw::MessageDialog::builder()
                 .transient_for(win)
