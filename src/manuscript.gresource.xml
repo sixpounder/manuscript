@@ -8,6 +8,7 @@
     <file preprocess="xml-stripblanks" alias="dialogs/destroy_confirm_dialog.ui">widgets/dialogs/gtk/destroy_confirm_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="dialogs/compile_dialog.ui">widgets/dialogs/gtk/compile_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="dialogs/entry_input_dialog.ui">widgets/dialogs/gtk/entry_input_dialog.ui</file>
+    <file preprocess="xml-stripblanks" alias="editors/editor_view.ui">widgets/editors/gtk/editor_view.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/text_editor.ui">widgets/editors/gtk/text_editor.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/sheet_editor.ui">widgets/editors/gtk/sheet_editor.ui</file>
     <file preprocess="xml-stripblanks" alias="editors/project_settings_editor.ui">widgets/editors/gtk/project_settings_editor.ui</file>

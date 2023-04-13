@@ -1,4 +1,4 @@
-use super::ManuscriptBuffer;
+use super::{prelude::EditorWidgetProtocol, ManuscriptBuffer};
 use crate::{
     models::*,
     services::{
@@ -194,6 +194,21 @@ glib::wrapper! {
 impl Default for ManuscriptTextEditor {
     fn default() -> Self {
         Self::new(None)
+    }
+}
+
+impl EditorWidgetProtocol for ManuscriptTextEditor {
+    fn editor_widget(&self) -> Option<gtk::Widget> {
+        Some(self.upcast_ref::<gtk::Widget>().clone())
+    }
+
+    fn side_panel_widget(&self) -> Option<gtk::Widget> {
+        Some(
+            gtk::Label::builder()
+                .label("Side panel tools will appear here")
+                .build()
+                .upcast::<gtk::Widget>(),
+        )
     }
 }
 

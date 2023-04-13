@@ -1,4 +1,4 @@
-use super::ManuscriptBuffer;
+use super::{prelude::EditorWidgetProtocol, ManuscriptBuffer};
 use crate::{models::*, services::prelude::*, services::*};
 use adw::{prelude::*, subclass::prelude::*};
 use bytes::Bytes;
@@ -132,6 +132,21 @@ mod imp {
 glib::wrapper! {
     pub struct ManuscriptCharacterSheetEditor(ObjectSubclass<imp::ManuscriptCharacterSheetEditor>)
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
+}
+
+impl EditorWidgetProtocol for ManuscriptCharacterSheetEditor {
+    fn editor_widget(&self) -> Option<gtk::Widget> {
+        Some(self.upcast_ref::<gtk::Widget>().clone())
+    }
+
+    fn side_panel_widget(&self) -> Option<gtk::Widget> {
+        Some(
+            gtk::Label::builder()
+                .label("Side panel tools will appear here")
+                .build()
+                .upcast::<gtk::Widget>(),
+        )
+    }
 }
 
 impl ManuscriptCharacterSheetEditor {

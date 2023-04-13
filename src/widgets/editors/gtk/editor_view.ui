@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="Adw" version="1.0"/>
+  <template class="ManuscriptEditorView" parent="GtkWidget">
+    <child>
+      <object class="GtkPaned" id="container">
+        <property name="orientation">horizontal</property>
+        <property name="start-child" bind-source="ManuscriptEditorView" bind-property="child"></property>
+        <property name="end-child" bind-source="ManuscriptEditorView" bind-property="side_panel"></property>
+      </object>
+    </child>
+  </template>
+</interface>
+

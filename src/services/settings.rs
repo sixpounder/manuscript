@@ -66,6 +66,16 @@ impl ManuscriptSettings {
             .expect("Could not store text analysis delay");
     }
 
+    pub fn chunk_props_panel_visible(&self) -> bool {
+        self.inner.boolean("chunk-props-panel-visible")
+    }
+
+    pub fn set_chunk_props_panel_visible(&self, value: bool) {
+        self.inner
+            .set_boolean("chunk-props-panel-visible", value)
+            .expect("Could not store chunk-props-panel-visible");
+    }
+
     pub fn connect_changed<F>(&self, key: &str, f: F)
     where
         F: Fn(&gtk::gio::Settings, &str) + 'static,

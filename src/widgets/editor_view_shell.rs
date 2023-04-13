@@ -1,5 +1,8 @@
 use crate::{
-    libs::consts::RESOURCE_ID_DATA_KEY, models::*, services::DocumentAction, widgets::editors::*,
+    libs::consts::RESOURCE_ID_DATA_KEY,
+    models::*,
+    services::{DocumentAction, ManuscriptSettings},
+    widgets::editors::*,
 };
 use adw::subclass::prelude::*;
 use gtk::{
@@ -7,7 +10,7 @@ use gtk::{
     glib::{clone, Sender},
     prelude::*,
 };
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 // const G_LOG_DOMAIN: &str = "ManuscriptEditorViewShell";
 
@@ -26,6 +29,8 @@ mod imp {
         pub(super) editor_tab_view: TemplateChild<adw::TabView>,
 
         pub(super) channel: RefCell<Option<Sender<DocumentAction>>>,
+
+        pub(super) chunk_props_panel_visible: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -53,6 +58,10 @@ mod imp {
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
+                    ParamSpecBoolean::builder("chunk-props-panel-visible")
+                        .default_value(false)
+                        .readwrite()
+                        .build(),
                     ParamSpecBoolean::builder("has-views")
                         .default_value(false)
                         .read_only()
@@ -69,6 +78,7 @@ mod imp {
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             let obj = self.obj();
             match pspec.name() {
+                "chunk-props-panel-visible" => obj.chunk_props_panel_visible().to_value(),
                 "has-views" => obj.editor_tab_view().n_pages().is_positive().to_value(),
                 "visible-view-name" => {
                     if obj.editor_tab_view().n_pages().is_positive() {
@@ -81,11 +91,14 @@ mod imp {
             }
         }
 
-        fn set_property(&self, _id: usize, _value: &glib::Value, _pspec: &ParamSpec) {
-            // let _obj = self.obj();
-            // match pspec.name() {
-            //     _ => unimplemented!(),
-            // }
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
+            let obj = self.obj();
+            match pspec.name() {
+                "chunk-props-panel-visible" => {
+                    obj.set_chunk_props_panel_visible(value.get::<bool>().unwrap())
+                }
+                _ => unimplemented!(),
+            }
         }
     }
 
@@ -109,6 +122,9 @@ impl ManuscriptEditorViewShell {
     }
 
     fn setup_widgets(&self) {
+        let settings = ManuscriptSettings::default();
+        self.set_chunk_props_panel_visible(settings.chunk_props_panel_visible());
+
         self.imp().editor_tab_view.connect_close_page(
             clone!(@weak self as this => @default-return false, move |_, _| {
                 glib::idle_add_local(move || {
@@ -128,39 +144,72 @@ impl ManuscriptEditorViewShell {
         self.tab_bar().view().expect("Could not get tab view")
     }
 
-    fn editor_view_widget_for_chunk(&self, chunk: &dyn DocumentChunk) -> gtk::Widget {
-        match chunk.chunk_type() {
-            ChunkType::Manifest => {
-                let manifest = chunk
-                    .as_any()
-                    .downcast_ref::<DocumentManifest>()
-                    .expect("Expected manifest, got non compliant type");
-                let editor = ManuscriptProjectSettingsEditor::new(manifest, self.sender());
-                editor.set_halign(gtk::Align::Fill);
-                editor.set_valign(gtk::Align::Fill);
-                editor.set_hexpand(true);
-                editor.upcast::<gtk::Widget>()
-            }
-            ChunkType::Chapter => {
-                let text_view = ManuscriptTextEditor::new(self.sender());
-                text_view.set_halign(gtk::Align::Fill);
-                text_view.set_valign(gtk::Align::Fill);
-                text_view.set_hexpand(true);
-                if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
-                    text_view.init(chunk.id().into(), Some(chapter.buffer().clone()));
-                } else {
-                    text_view.init(chunk.id().into(), None);
+    fn chunk_props_panel_visible(&self) -> bool {
+        self.imp().chunk_props_panel_visible.get()
+    }
+
+    fn set_chunk_props_panel_visible(&self, value: bool) {
+        let settings = ManuscriptSettings::default();
+        settings.set_chunk_props_panel_visible(value);
+        self.imp().chunk_props_panel_visible.set(value);
+        self.notify("chunk-props-panel-visible");
+
+        let pages = self.editor_tab_view().pages();
+        let pages = pages.iter::<adw::TabPage>();
+
+        pages.for_each(|page| {
+            let page = page.unwrap();
+            let editor_view = page.child();
+            let editor_view = editor_view
+                .downcast_ref::<ManuscriptEditorView>()
+                .expect("Not an editor view");
+            editor_view.set_side_panel_visible(value);
+        });
+    }
+
+    fn editor_view_widget_for_chunk(&self, chunk: &dyn DocumentChunk) -> ManuscriptEditorView {
+        let child_widget: *mut dyn crate::widgets::editors::prelude::EditorWidgetProtocol =
+            match chunk.chunk_type() {
+                ChunkType::Manifest => {
+                    let manifest = chunk
+                        .as_any()
+                        .downcast_ref::<DocumentManifest>()
+                        .expect("Expected manifest, got non compliant type");
+                    let editor = ManuscriptProjectSettingsEditor::new(manifest, self.sender());
+                    editor.set_halign(gtk::Align::Fill);
+                    editor.set_valign(gtk::Align::Fill);
+                    editor.set_hexpand(true);
+                    // editor.upcast::<gtk::Widget>()
+                    Box::into_raw(Box::new(editor))
                 }
-                text_view.upcast::<gtk::Widget>()
-            }
-            ChunkType::CharacterSheet => {
-                let editor = ManuscriptCharacterSheetEditor::new(chunk, self.sender());
-                editor.set_halign(gtk::Align::Fill);
-                editor.set_valign(gtk::Align::Fill);
-                editor.set_hexpand(true);
-                editor.upcast::<gtk::Widget>()
-            }
-        }
+                ChunkType::Chapter => {
+                    let text_view = ManuscriptTextEditor::new(self.sender());
+                    text_view.set_halign(gtk::Align::Fill);
+                    text_view.set_valign(gtk::Align::Fill);
+                    text_view.set_hexpand(true);
+                    if let Some(chapter) = chunk.as_any().downcast_ref::<Chapter>() {
+                        text_view.init(chunk.id().into(), Some(chapter.buffer().clone()));
+                    } else {
+                        text_view.init(chunk.id().into(), None);
+                    }
+                    // text_view.upcast::<gtk::Widget>()
+                    Box::into_raw(Box::new(text_view))
+                }
+                ChunkType::CharacterSheet => {
+                    let editor = ManuscriptCharacterSheetEditor::new(chunk, self.sender());
+                    editor.set_halign(gtk::Align::Fill);
+                    editor.set_valign(gtk::Align::Fill);
+                    editor.set_hexpand(true);
+                    // editor.upcast::<gtk::Widget>()
+                    Box::into_raw(Box::new(editor))
+                }
+            };
+
+        let child_widget = unsafe { Box::from_raw(child_widget) };
+        let settings = ManuscriptSettings::default();
+        let view = ManuscriptEditorView::new(child_widget);
+        view.set_side_panel_visible(settings.chunk_props_panel_visible());
+        view
     }
 
     fn page_for_chunk(&self, chunk: &dyn DocumentChunk) -> Option<adw::TabPage> {

@@ -47,6 +47,16 @@ mod imp {
     }
 
     impl ObjectImpl for ManuscriptProjectLayoutChunkContainer {
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.listbox.set_sort_func(|row1, row2| {
+                let chunk_row1 = row1.downcast_ref::<ManuscriptChunkRow>().expect("How?");
+                let chunk_row2 = row2.downcast_ref::<ManuscriptChunkRow>().expect("How?");
+
+                chunk_row1.priority().cmp(&chunk_row2.priority()).into()
+            })
+        }
+
         fn properties() -> &'static [gtk::glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 let derived: &'static [gtk::glib::ParamSpec] =

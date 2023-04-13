@@ -44,10 +44,23 @@
                         <property name="hexpand">true</property>
                         <property name="view">editor_tab_view</property>
                         <property name="end-action-widget">
-                          <object class="AdwTabButton">
-                              <property name="view">editor_tab_view</property>
-                              <property name="action-name">overview.open</property>
-                            </object>
+                          <object class="GtkBox">
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">4</property>
+                            <child>
+                              <object class="GtkToggleButton">
+                                <property name="icon-name">document-properties-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Toggle Item Properties Panel</property>
+                                <property name="active" bind-source="ManuscriptEditorViewShell" bind-property="chunk-props-panel-visible" bind-flags="bidirectional"></property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwTabButton">
+                                <property name="view">editor_tab_view</property>
+                                <property name="action-name">overview.open</property>
+                              </object>
+                            </child>
+                          </object>
                         </property>
                       </object>
                     </child>

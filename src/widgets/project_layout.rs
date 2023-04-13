@@ -190,7 +190,12 @@ impl ManuscriptProjectLayout {
     }
 
     pub fn document_title_label_text(&self) -> String {
-        self.imp().title.borrow().clone()
+        let title = self.imp().title.borrow().clone();
+        if title.is_empty() {
+            i18n::i18n("Untitled Project")
+        } else {
+            title
+        }
     }
 
     pub fn set_document_title_label_text(&self, value: Option<String>) {
@@ -328,6 +333,8 @@ impl ManuscriptProjectLayout {
             c.clear_selection();
             c.set_selection_mode(selection_mode);
         });
+
+        self.notify("selection-label");
     }
 
     fn select_all_rows(&self) {

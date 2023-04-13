@@ -1,7 +1,7 @@
-use crate::services::i18n::i18n;
+use super::prelude::EditorWidgetProtocol;
 use crate::{
     models::{DocumentManifest, TextMetricSize},
-    services::DocumentAction,
+    services::{i18n::i18n, DocumentAction},
 };
 use adw::subclass::prelude::*;
 use glib_macros::Properties;
@@ -174,6 +174,15 @@ mod imp {
 glib::wrapper! {
     pub struct ManuscriptProjectSettingsEditor(ObjectSubclass<imp::ManuscriptProjectSettingsEditor>)
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
+}
+
+impl EditorWidgetProtocol for ManuscriptProjectSettingsEditor {
+    fn editor_widget(&self) -> Option<gtk::Widget> {
+        Some(self.upcast_ref::<gtk::Widget>().clone())
+    }
+    fn side_panel_widget(&self) -> Option<gtk::Widget> {
+        None
+    }
 }
 
 impl ManuscriptProjectSettingsEditor {

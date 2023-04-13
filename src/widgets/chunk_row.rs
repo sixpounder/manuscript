@@ -33,6 +33,9 @@ mod imp {
         #[property(name = "selected", get, set)]
         pub(super) selected: Cell<bool>,
 
+        #[property(name = "priority", get, set)]
+        pub(super) priority: Cell<u64>,
+
         pub(super) style_provider: gtk::CssProvider,
     }
 
@@ -113,6 +116,7 @@ impl ManuscriptChunkRow {
         if let Ok(mut borrow) = self.imp().chunk_id.try_borrow_mut() {
             if let Some(chunk) = chunk {
                 *borrow = chunk.id().to_string();
+                self.set_priority(chunk.priority().unwrap_or(0));
                 self.set_title(chunk.safe_title().as_str());
                 self.set_locked(chunk.locked());
                 self.set_tint(chunk.accent());

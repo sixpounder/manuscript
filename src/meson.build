@@ -62,7 +62,7 @@ cargo_build = custom_target(
 
 test('Lint code with clippy', cargo_bin, args: [
     'clippy',
-    cargo_opt,
-    '--no-deps'
+    '--no-deps',
+    cargo_opt
   ]
 )

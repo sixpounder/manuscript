@@ -282,6 +282,14 @@ impl ManuscriptWindow {
             })
         );
 
+        dm.connect_closure(
+            "manifest-updated",
+            false,
+            closure_local!(@strong self as this => move |_dm: DocumentManager| {
+                this.on_manifest_updated();
+            }),
+        );
+
         self.imp().project_layout.searchbar().connect_notify_local(
             Some("search-mode-enabled"),
             glib::clone!(@weak self as win => move |searchbar, _| {
@@ -465,6 +473,15 @@ impl ManuscriptWindow {
 
     fn on_document_unloaded(&self) {
         self.update_actions();
+    }
+
+    fn on_manifest_updated(&self) {
+        if let Ok(lock) = self.document_manager().document_ref() {
+            if let Some(document) = lock.as_ref() {
+                self.project_layout()
+                    .set_document_title_label_text(document.manifest().title());
+            }
+        }
     }
 
     fn on_title_set(&self) {
