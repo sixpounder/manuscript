@@ -2,6 +2,12 @@
 
 ![Application icon](./data/icons/hicolor/scalable/apps/io.sixpounder.Manuscript.svg)
 
+## This is a work in progress
+
+This software is not production ready and it's still in active development.
+
+---
+
 A text editor specifically designed for book writers, authors and storytellers.
 
 ## Installation
