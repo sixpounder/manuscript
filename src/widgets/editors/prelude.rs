@@ -1,5 +1,9 @@
-use crate::services::DocumentAction;
+use crate::{models::DocumentChunk, services::DocumentAction};
 use glib::Sender;
+
+pub trait ConstructFromChunk {
+    fn new(chunk: &dyn DocumentChunk) -> Self;
+}
 
 pub trait EditorWidgetProtocol {
     fn document_action_sender(&self) -> Option<Sender<DocumentAction>> {

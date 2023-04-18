@@ -190,7 +190,9 @@ impl ManuscriptProjectSettingsEditor {
         glib::g_debug!(G_LOG_DOMAIN, "Initializing on manifest -> {:?}", manifest);
 
         let obj: Self = glib::Object::builder().build();
-        *obj.imp().sender.borrow_mut() = sender;
+        let imp = obj.imp();
+
+        *imp.sender.borrow_mut() = sender;
         obj.set_title(
             manifest
                 .manifest_title()
@@ -200,10 +202,9 @@ impl ManuscriptProjectSettingsEditor {
         obj.set_author(manifest.author());
 
         // Set directly on impl to avoid triggering document updates, not needed here
-        obj.imp()
-            .paragraph_spacing
+        imp.paragraph_spacing
             .set(manifest.settings().paragraph_spacing());
-        obj.imp().line_height.set(manifest.settings().line_height());
+        imp.line_height.set(manifest.settings().line_height());
         obj.notify_paragraph_spacing_selected_index();
         obj.notify_line_height_selected_index();
 

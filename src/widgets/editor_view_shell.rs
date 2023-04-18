@@ -183,7 +183,7 @@ impl ManuscriptEditorViewShell {
                     Box::into_raw(Box::new(editor))
                 }
                 ChunkType::Chapter => {
-                    let text_view = ManuscriptTextEditor::new(self.sender());
+                    let text_view = ManuscriptTextEditor::new(chunk, self.sender());
                     text_view.set_halign(gtk::Align::Fill);
                     text_view.set_valign(gtk::Align::Fill);
                     text_view.set_hexpand(true);

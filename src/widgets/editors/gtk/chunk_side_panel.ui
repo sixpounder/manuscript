@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="Adw" version="1.0"/>
+  <template class="ManuscriptChunkSidePanel" parent="GtkWidget">
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
+        <property name="spacing">24</property>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title" translatable="yes">Compile settings</property>
+            <child>
+              <object class="GtkListBox">
+                <property name="selection-mode">none</property>
+                <style>
+                  <class name="boxed-list" />
+                </style>
+                <child>
+                  <object class="AdwActionRow">
+                    <property name="title" translatable="yes">Include in compilation</property>
+                    <child>
+                      <object class="GtkSwitch">
+                        <property name="valign">center</property>
+                        <property name="active" bind-source="ManuscriptChunkSidePanel" bind-property="include-in-compilation" bind-flags="bidirectional"></property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwActionRow">
+                    <property name="title" translatable="yes">Priority</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title" translatable="yes">Management</property>
+            <child>
+              <object class="GtkListBox">
+                <style>
+                  <class name="boxed-list" />
+                </style>
+                <child>
+                  <object class="AdwActionRow">
+                    <property name="title" translatable="yes">Locked</property>
+                    <property name="subtitle" translatable="yes">Locking prevents any kind of edits on this item</property>
+                    <child>
+                      <object class="GtkSwitch">
+                        <property name="valign">center</property>
+                        <property name="active" bind-source="ManuscriptChunkSidePanel" bind-property="locked" bind-flags="bidirectional"></property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
+

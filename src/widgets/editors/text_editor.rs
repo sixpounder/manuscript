@@ -5,7 +5,7 @@ use crate::{
         i18n::i18n, prelude::bytes_from_text_buffer, BufferStats, DocumentAction,
         ManuscriptSettings,
     },
-    widgets::ManuscriptProgressIndicator,
+    widgets::{editors::ManuscriptChunkSidePanel, ManuscriptProgressIndicator},
 };
 use adw::subclass::prelude::*;
 use bytes::Bytes;
@@ -40,6 +40,7 @@ mod imp {
         pub(super) reading_time_label: TemplateChild<gtk::Label>,
 
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
+        pub(super) side_panel_widget: RefCell<Option<gtk::Widget>>,
         pub(super) chunk_id: RefCell<Option<String>>,
         pub(super) text_buffer: RefCell<Option<ManuscriptBuffer>>,
         pub(super) metrics_idle_resource_id: RefCell<Option<glib::SourceId>>,
@@ -61,6 +62,7 @@ mod imp {
                 words_count_label: TemplateChild::default(),
                 reading_time_label: TemplateChild::default(),
                 sender: RefCell::default(),
+                side_panel_widget: RefCell::new(None),
                 text_buffer: RefCell::default(),
                 metrics_idle_resource_id: RefCell::default(),
                 format_idle_resource_id: RefCell::default(),
@@ -191,11 +193,11 @@ glib::wrapper! {
         @extends gtk::Widget, @implements gio::ActionGroup, gio::ActionMap;
 }
 
-impl Default for ManuscriptTextEditor {
-    fn default() -> Self {
-        Self::new(None)
-    }
-}
+// impl Default for ManuscriptTextEditor {
+//     fn default() -> Self {
+//         Self::new(None)
+//     }
+// }
 
 impl EditorWidgetProtocol for ManuscriptTextEditor {
     fn editor_widget(&self) -> Option<gtk::Widget> {
@@ -203,20 +205,16 @@ impl EditorWidgetProtocol for ManuscriptTextEditor {
     }
 
     fn side_panel_widget(&self) -> Option<gtk::Widget> {
-        Some(
-            gtk::Label::builder()
-                .label("Side panel tools will appear here")
-                .build()
-                .upcast::<gtk::Widget>(),
-        )
+        self.imp().side_panel_widget.borrow().clone()
     }
 }
 
 impl ManuscriptTextEditor {
-    pub fn new(sender: Option<Sender<DocumentAction>>) -> Self {
+    pub fn new(chunk: &dyn DocumentChunk, sender: Option<Sender<DocumentAction>>) -> Self {
         let obj: Self = glib::Object::new();
-        obj.imp().sender.replace(sender);
-
+        obj.imp().sender.replace(sender.clone());
+        *obj.imp().side_panel_widget.borrow_mut() =
+            Some(ManuscriptChunkSidePanel::new(chunk, sender).upcast::<gtk::Widget>());
         obj
     }
 

@@ -1,4 +1,4 @@
-use super::{prelude::EditorWidgetProtocol, ManuscriptBuffer};
+use super::{prelude::EditorWidgetProtocol, ManuscriptBuffer, ManuscriptChunkSidePanel};
 use crate::{models::*, services::prelude::*, services::*};
 use adw::{prelude::*, subclass::prelude::*};
 use bytes::Bytes;
@@ -44,6 +44,7 @@ mod imp {
         pub(super) character_psycological_traits_buffer: TemplateChild<ManuscriptBuffer>,
 
         pub(super) chunk_id: RefCell<String>,
+        pub(super) side_panel_widget: RefCell<Option<gtk::Widget>>,
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
     }
 
@@ -140,35 +141,26 @@ impl EditorWidgetProtocol for ManuscriptCharacterSheetEditor {
     }
 
     fn side_panel_widget(&self) -> Option<gtk::Widget> {
-        Some(
-            gtk::Label::builder()
-                .label("Side panel tools will appear here")
-                .build()
-                .upcast::<gtk::Widget>(),
-        )
+        self.imp().side_panel_widget.borrow().clone()
     }
 }
 
 impl ManuscriptCharacterSheetEditor {
-    pub fn new(source: &dyn DocumentChunk, sender: Option<Sender<DocumentAction>>) -> Self {
+    pub fn new(chunk: &dyn DocumentChunk, sender: Option<Sender<DocumentAction>>) -> Self {
         let obj: Self = glib::Object::new();
-        obj.set_chunk_id(source.id().into());
-        obj.set_sender(sender);
-        if let Some(source) = source.as_any().downcast_ref::<CharacterSheet>() {
+        obj.set_chunk_id(chunk.id().into());
+        obj.set_sender(sender.clone());
+        if let Some(source) = chunk.as_any().downcast_ref::<CharacterSheet>() {
             obj.setup_widgets(source);
             obj.connect_events();
         }
+
+        *obj.imp().side_panel_widget.borrow_mut() =
+            Some(ManuscriptChunkSidePanel::new(chunk, sender).upcast::<gtk::Widget>());
         obj
     }
 
     fn setup_widgets(&self, source: &CharacterSheet) {
-        // self.background_text_view()
-        //     .set_buffer(Some(&self.character_background_buffer()));
-        // self.physical_traits_text_view()
-        //     .set_buffer(Some(&self.character_physical_traits_buffer()));
-        // self.psycological_traits_text_view()
-        //     .set_buffer(Some(&self.character_physical_traits_buffer()));
-
         self.character_name_entry()
             .set_text(source.name().unwrap_or(&String::default()).as_str());
 
