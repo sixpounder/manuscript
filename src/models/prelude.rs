@@ -16,7 +16,7 @@ fn default_contrast_dark() -> Color {
 
 /// Wraps a `gdk::RGBA` adding more capabilities like dark/light
 /// detection and (de)serialization support
-#[derive(glib::ValueDelegate, Debug, Clone)]
+#[derive(glib::ValueDelegate, Debug, Clone, Copy)]
 #[value_delegate(nullable)]
 pub struct Color(RGBA);
 
@@ -67,13 +67,13 @@ impl From<gtk::gdk::RGBA> for Color {
 
 impl From<Color> for gtk::gdk::RGBA {
     fn from(value: Color) -> Self {
-        value.0.clone()
+        value.0
     }
 }
 
 impl From<&Color> for gtk::gdk::RGBA {
     fn from(value: &Color) -> Self {
-        value.0.clone()
+        value.0
     }
 }
 
@@ -195,7 +195,7 @@ impl<'de> Deserialize<'de> for Color {
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["red", "green", "blue", "alpha"];
+        const FIELDS: &[&str] = &["red", "green", "blue", "alpha"];
         deserializer.deserialize_struct("Duration", FIELDS, ColorVisitor)
     }
 }

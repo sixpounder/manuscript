@@ -30,7 +30,7 @@ mod imp {
         pub(super) locked: Cell<bool>,
 
         #[property(name = "accent", get, set)]
-        pub(super) accent: RefCell<Option<Color>>,
+        pub(super) accent: Cell<Option<Color>>,
 
         #[allow(dead_code)]
         #[property(type = Option<RGBA>, name = "accent-rgba", get = Self::accent_rgba, set = Self::set_accent_rgba)]
@@ -39,13 +39,13 @@ mod imp {
 
     impl ManuscriptChunkSidePanel {
         fn accent_rgba(&self) -> Option<RGBA> {
-            let owned = self.accent.borrow().to_owned();
-            owned.map(|a| RGBA::from(a))
+            let owned = self.accent.get();
+            owned.map(RGBA::from)
         }
 
         fn set_accent_rgba(&self, value: Option<RGBA>) {
-            let mapped = value.map(|rgba| Color::from(rgba));
-            *self.accent.borrow_mut() = mapped;
+            let mapped = value.map(Color::from);
+            self.accent.set(mapped);
             self.obj().notify_accent();
         }
     }
@@ -95,7 +95,7 @@ impl ManuscriptChunkSidePanel {
         *obj.imp().sender.borrow_mut() = sender;
         obj.set_chunk_id(chunk.id());
         obj.set_include_in_compilation(chunk.include_in_compilation());
-        *obj.imp().accent.borrow_mut() = chunk.accent();
+        obj.imp().accent.set(chunk.accent());
         obj.set_locked(chunk.locked());
         obj.notify_accent_rgba();
         obj.connect_events();
