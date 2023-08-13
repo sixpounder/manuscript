@@ -3,6 +3,8 @@ use glib;
 use gtk::gio;
 use gtk::prelude::*;
 
+/// Gets the currently active window for
+/// this application
 pub fn window() -> gtk::Window {
     let app = gio::Application::default()
         .expect("Failed to retrieve application singleton")
@@ -14,6 +16,8 @@ pub fn window() -> gtk::Window {
         .unwrap()
 }
 
+/// Shows a file selection dialog for manuscripts
+/// and executes `on_done` when a file is selected
 pub fn with_file_open_dialog<F>(on_done: F)
 where
     F: Fn(String) + 'static,
@@ -58,6 +62,8 @@ where
     dialog.show();
 }
 
+/// Shows a file selection dialog for manuscripts
+/// with a save intent and executes `on_choice` when a file is selected
 pub fn with_file_save_dialog<F>(on_choice: F)
 where
     F: Fn(String) + 'static,

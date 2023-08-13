@@ -373,13 +373,13 @@ impl ManuscriptProjectLayout {
         let dialog = ManuscriptEntryInputDialog::new(
             &crate::libs::files::window(),
             &[
-                ("heading", &i18n::i18n("Change Project Title")),
+                ("heading", &i18n::i18n("Change Manuscript Title")),
                 (
                     "body",
-                    &i18n::i18n("This will appear in the cover page of your exports"),
+                    &i18n::i18n("This will appear on the cover page of your exports"),
                 ),
                 ("entry-text", &current_title),
-                ("entry-label", &i18n::i18n("Project Title")),
+                ("entry-label", &i18n::i18n("Manuscript Title")),
             ],
         );
         dialog.connect_response(

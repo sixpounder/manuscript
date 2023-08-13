@@ -24,7 +24,7 @@
                   <object class="AdwActionRow">
                     <property name="title" translatable="yes">Include in compilation</property>
                     <child>
-                      <object class="GtkSwitch">
+                      <object class="GtkSwitch" id="include_in_compilation_switch">
                         <property name="valign">center</property>
                         <property name="active" bind-source="ManuscriptChunkSidePanel" bind-property="include-in-compilation" bind-flags="bidirectional"></property>
                       </object>
@@ -33,7 +33,17 @@
                 </child>
                 <child>
                   <object class="AdwActionRow">
+                    <binding name="sensitive">
+                      <lookup name="active">include_in_compilation_switch</lookup>
+                    </binding>
                     <property name="title" translatable="yes">Priority</property>
+                    <property name="subtitle" translatable="yes">Defines the position of this item into a compiled manuscript. The lower the value the earlier it will appear.</property>
+                    <child>
+                      <object class="GtkSpinButton" id="priority_spin_button">
+                        <property name="valign">center</property>
+                        <property name="adjustment">priority_adjustment</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -48,6 +58,22 @@
                 <style>
                   <class name="boxed-list" />
                 </style>
+                <property name="selection-mode">none</property>
+                <child>
+                  <object class="AdwActionRow">
+                    <property name="title" translatable="yes">Color</property>
+                    <property name="subtitle" translatable="yes">Assign a specific color to this chunk</property>
+                    <child>
+                      <object class="GtkColorDialogButton">
+                        <property name="valign">center</property>
+                        <property name="rgba" bind-source="ManuscriptChunkSidePanel" bind-property="accent-rgba" bind-flags="bidirectional"></property>
+                        <property name="dialog">
+                          <object class="GtkColorDialog"></object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
                 <child>
                   <object class="AdwActionRow">
                     <property name="title" translatable="yes">Locked</property>
@@ -67,5 +93,10 @@
       </object>
     </child>
   </template>
+  <object class="GtkAdjustment" id="priority_adjustment">
+    <property name="lower">0</property>
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+  </object>
 </interface>
 

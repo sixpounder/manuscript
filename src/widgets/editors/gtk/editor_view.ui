@@ -5,6 +5,8 @@
   <template class="ManuscriptEditorView" parent="GtkWidget">
     <child>
       <object class="GtkPaned" id="container">
+        <property name="can-focus">true</property>
+        <property name="focusable">true</property>
         <property name="orientation">horizontal</property>
         <property name="start-child" bind-source="ManuscriptEditorView" bind-property="child"></property>
         <property name="end-child" bind-source="ManuscriptEditorView" bind-property="side_panel"></property>

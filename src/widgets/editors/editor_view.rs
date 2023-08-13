@@ -72,6 +72,7 @@ glib::wrapper! {
 impl ManuscriptEditorView {
     pub fn new(editor: impl EditorWidgetProtocol) -> Self {
         let obj: Self = glib::Object::builder().build();
+        obj.set_property("focusable", true);
 
         if let Some(editor) = editor.editor_widget() {
             obj.set_child(&editor);
@@ -94,5 +95,9 @@ impl ManuscriptEditorView {
 
     pub fn container(&self) -> gtk::Paned {
         self.imp().container.get()
+    }
+
+    pub fn grab_focus(&self) -> bool {
+        self.upcast_ref::<gtk::Widget>().grab_focus()
     }
 }

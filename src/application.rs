@@ -30,12 +30,12 @@ mod imp {
             self.parent_constructed();
             let obj = self.obj();
             obj.setup_gactions();
-            obj.set_accels_for_action("app.quit", &["<primary>q"]);
             obj.set_accels_for_action("app.new-window", &["<ctrl><shift>n"]);
             obj.set_accels_for_action("win.new-project", &["<ctrl>n"]);
             obj.set_accels_for_action("win.open-project", &["<ctrl>o"]);
             obj.set_accels_for_action("project.save", &["<ctrl>s"]);
-            obj.set_accels_for_action("project.close", &["<ctrl><shift>c"]);
+            obj.set_accels_for_action("project.close", &["<ctrl>q"]);
+            obj.set_accels_for_action("project.close", &["<primary>q"]);
             obj.set_accels_for_action("win.toggle-command-palette", &["<ctrl><shift>p"]);
             obj.set_accels_for_action("project.search", &["<ctrl>f"]);
         }
@@ -98,7 +98,7 @@ glib::wrapper! {
 impl ManuscriptApplication {
     pub fn new(application_id: &str, flags: &gio::ApplicationFlags) -> Self {
         glib::Object::builder()
-            .property("application-id", &application_id)
+            .property("application-id", application_id)
             .property("flags", flags)
             .build()
     }

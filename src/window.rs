@@ -705,6 +705,7 @@ impl ManuscriptWindow {
             let win = self.upcast_ref::<gtk::Window>();
             let dialog = adw::MessageDialog::builder()
                 .transient_for(win)
+                .modal(true)
                 .heading(i18n("Remove these items?"))
                 .body(i18n("Removed items cannot be recovered"))
                 .default_response("cancel")

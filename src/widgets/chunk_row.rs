@@ -12,6 +12,8 @@ mod imp {
     use super::*;
     use glib::ParamSpec;
 
+    /// A widget to display as a row entry in the project layout in place of a
+    /// project chunk
     #[derive(Default, Properties, gtk::CompositeTemplate)]
     #[properties(wrapper_type = super::ManuscriptChunkRow)]
     #[template(resource = "/io/sixpounder/Manuscript/chunk_row.ui")]
@@ -35,6 +37,9 @@ mod imp {
 
         #[property(name = "priority", get, set)]
         pub(super) priority: Cell<u64>,
+
+        #[property(name = "accent", get, set)]
+        pub(super) accent: RefCell<Option<Color>>,
 
         pub(super) style_provider: gtk::CssProvider,
     }
@@ -97,7 +102,7 @@ impl ManuscriptChunkRow {
     ) -> Self {
         let obj: Self = glib::Object::builder()
             .property("parent-container", parent)
-            .property("select-mode", &false)
+            .property("select-mode", false)
             .build();
         obj.init(chunk);
         obj
@@ -141,7 +146,7 @@ impl ManuscriptChunkRow {
         if let Some(color) = color {
             let mut css = String::new();
             css.push_str(&format!(
-                ".chunk-row {{ background-color: {}; color: {} }}",
+                ".chunk-row {{ background-color: {}; color: {}; }}",
                 color,
                 color.contrast_color()
             ));

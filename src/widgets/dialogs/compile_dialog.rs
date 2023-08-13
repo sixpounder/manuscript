@@ -59,7 +59,7 @@ glib::wrapper! {
 impl ManuscriptCompileDialog {
     pub fn new(parent: &gtk::Window) -> Self {
         glib::Object::builder()
-            .property("modal", &true)
+            .property("modal", true)
             .property("transient-for", parent)
             .build()
     }

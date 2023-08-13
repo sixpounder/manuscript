@@ -21,6 +21,8 @@ mod imp {
 
     #[derive(Default, gtk::CompositeTemplate)]
     #[template(resource = "/io/sixpounder/Manuscript/editor_view_shell.ui")]
+    /// A widget capable of organizing `ManuscriptEditorView` and manage their lifecycle. Also enables
+    /// the display of the chunk properties panel.
     pub struct ManuscriptEditorViewShell {
         #[template_child]
         pub(super) editor_tab_bar: TemplateChild<adw::TabBar>,
@@ -121,6 +123,11 @@ impl ManuscriptEditorViewShell {
         glib::Object::new()
     }
 
+    fn sender(&self) -> Option<Sender<DocumentAction>> {
+        let channel = self.imp().channel.borrow();
+        channel.as_ref().cloned()
+    }
+
     fn setup_widgets(&self) {
         let settings = ManuscriptSettings::default();
         self.set_chunk_props_panel_visible(settings.chunk_props_panel_visible());
@@ -200,6 +207,7 @@ impl ManuscriptEditorViewShell {
                     editor.set_halign(gtk::Align::Fill);
                     editor.set_valign(gtk::Align::Fill);
                     editor.set_hexpand(true);
+                    editor.set_width_request(250);
                     // editor.upcast::<gtk::Widget>()
                     Box::into_raw(Box::new(editor))
                 }
@@ -255,7 +263,9 @@ impl ManuscriptEditorViewShell {
 
     pub fn add_and_select_page(&self, chunk: &dyn DocumentChunk) {
         let view = self.editor_tab_view();
-        view.set_selected_page(&self.add_chunk_page(chunk));
+        let selected_page = &self.add_chunk_page(chunk);
+        view.set_selected_page(selected_page);
+        selected_page.child().grab_focus();
     }
 
     pub fn select_chunk_page(&self, chunk: &dyn DocumentChunk) {
@@ -282,6 +292,7 @@ impl ManuscriptEditorViewShell {
         }
     }
 
+    /// Closes all currently opened pages
     pub fn clear(&self) {
         let editor_view = self.editor_tab_view();
         let page_list_iterator = editor_view.pages();
@@ -294,6 +305,7 @@ impl ManuscriptEditorViewShell {
         });
     }
 
+    /// Updates a page with the state of a given `chunk`
     pub fn update_page(&self, chunk: &dyn DocumentChunk) {
         if let Some(page) = self.page_for_chunk(chunk) {
             page.set_title(chunk.heading().as_str());
@@ -303,9 +315,5 @@ impl ManuscriptEditorViewShell {
     pub fn set_channel(&self, sender: Sender<DocumentAction>) {
         self.imp().channel.replace(Some(sender));
     }
-
-    fn sender(&self) -> Option<Sender<DocumentAction>> {
-        let channel = self.imp().channel.borrow();
-        channel.as_ref().cloned()
-    }
 }
+

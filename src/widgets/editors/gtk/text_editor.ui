@@ -20,6 +20,8 @@
             <property name="vexpand">true</property>
             <child>
               <object class="GtkTextView" id="text_view">
+                <property name="can-focus">true</property>
+                <property name="focusable">true</property>
                 <property name="monospace">true</property>
                 <property
                   name="pixels-below-lines"

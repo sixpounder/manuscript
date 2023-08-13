@@ -37,7 +37,7 @@
             <property name="title-widget">
               <object class="GtkButton">
                 <property name="icon-name">document-edit-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Your project's title. Click to modify.</property>
+                <property name="tooltip-text" translatable="yes">Your manuscript's title. Click to modify.</property>
                 <signal name="clicked" handler="on_title_clicked" swapped="true"></signal>
                 <child>
                   <object class="GtkLabel">

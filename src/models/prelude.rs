@@ -1,16 +1,30 @@
 use super::{Chapter, CharacterSheet};
+use serde::{Serialize, Deserialize, ser::{Serializer, SerializeStruct}, de::{Deserializer, Visitor, Error}};
 use bytes::Bytes;
 use glib::{StaticType, Type};
-use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
+use gtk::gdk::RGBA;
 
-const DEFAULT_CONTRAST_LIGHT: Color = Color(0.0, 0.0, 0.0, 0.9);
-const DEFAULT_CONTRAST_DARK: Color = Color(250.0, 250.0, 250.0, 0.9);
+fn default_contrast_light() -> Color {
+    Color::new(0.0, 0.0, 0.0, 0.9)
+}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Color(pub f32, pub f32, pub f32, pub f32);
+fn default_contrast_dark() -> Color {
+    Color::new(250.0, 250.0, 250.0, 0.9)
+}
+
+
+/// Wraps a `gdk::RGBA` adding more capabilities like dark/light
+/// detection and (de)serialization support
+#[derive(glib::ValueDelegate, Debug, Clone)]
+#[value_delegate(nullable)]
+pub struct Color(RGBA);
 
 impl Color {
+    pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        Self(RGBA::new(red, green, blue, alpha))
+    }
+
     pub fn is_dark(&self) -> bool {
         !self.is_light()
     }
@@ -18,16 +32,16 @@ impl Color {
     // Calculate the perceived brightness of the color using the formula
     // (0.299 * R + 0.587 * G + 0.114 * B) * A
     pub fn is_light(&self) -> bool {
-        let brightness = (0.299 * self.0 + 0.587 * self.1 + 0.114 * self.2) * self.3;
+        let brightness = (0.299 * self.0.red() + 0.587 * self.0.green() + 0.114 * self.0.blue()) * self.0.alpha();
         // If the brightness is greater than or equal to 0.6, the color is considered light
         brightness >= 0.6
     }
 
     pub fn contrast_color(&self) -> Color {
         if self.is_light() {
-            DEFAULT_CONTRAST_LIGHT
+            default_contrast_light()
         } else {
-            DEFAULT_CONTRAST_DARK
+            default_contrast_dark()
         }
     }
 }
@@ -37,22 +51,152 @@ impl std::fmt::Display for Color {
         write!(
             f,
             "rgba({}, {}, {}, {})",
-            self.0.ceil(),
-            self.1.ceil(),
-            self.2.ceil(),
-            self.3
+            self.0.red() * 255.0,
+            self.0.green() * 255.0,
+            self.0.blue() * 255.0,
+            self.0.alpha().clamp(0.0, 1.0)
         )
     }
 }
 
 impl From<gtk::gdk::RGBA> for Color {
     fn from(value: gtk::gdk::RGBA) -> Self {
-        Self(
-            value.red() * 255.0,
-            value.green() * 255.0,
-            value.blue() * 255.0,
-            value.alpha(),
-        )
+        Self(value)
+    }
+}
+
+impl From<Color> for gtk::gdk::RGBA {
+    fn from(value: Color) -> Self {
+        value.0.clone()
+    }
+}
+
+impl From<&Color> for gtk::gdk::RGBA {
+    fn from(value: &Color) -> Self {
+        value.0.clone()
+    }
+}
+
+impl Serialize for Color {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // 4 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("Color", 4)?;
+        state.serialize_field("r", &self.0.red())?;
+        state.serialize_field("g", &self.0.green())?;
+        state.serialize_field("b", &self.0.blue())?;
+        state.serialize_field("a", &self.0.alpha())?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Color {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        enum Field { Red, Green, Blue, Alpha }
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        formatter.write_str("Color field")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: Error,
+                    {
+                        match value {
+                            "red" => Ok(Field::Red),
+                            "green" => Ok(Field::Green),
+                            "blue" => Ok(Field::Blue),
+                            "alpha" => Ok(Field::Alpha),
+                            _ => Err(Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct ColorVisitor;
+
+        impl<'de> Visitor<'de> for ColorVisitor {
+            type Value = Color;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct Color")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+                where
+                    A: serde::de::SeqAccess<'de>, {
+                let red = seq.next_element()?
+                    .ok_or_else(|| Error::invalid_length(0, &self))?;
+                let green = seq.next_element()?
+                    .ok_or_else(|| Error::invalid_length(0, &self))?;
+                let blue = seq.next_element()?
+                .ok_or_else(|| Error::invalid_length(0, &self))?;
+                let alpha = seq.next_element()?
+                .ok_or_else(|| Error::invalid_length(0, &self))?;
+                Ok(Color::new(red, green, blue, alpha))
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+                where
+                    A: serde::de::MapAccess<'de>, {
+                let mut red = None;
+                let mut green = None;
+                let mut blue = None;
+                let mut alpha = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Red => {
+                            if red.is_some() {
+                                return Err(Error::duplicate_field("red"));
+                            }
+                            red = Some(map.next_value()?);
+                        }
+                        Field::Green => {
+                            if green.is_some() {
+                                return Err(Error::duplicate_field("green"));
+                            }
+                            green = Some(map.next_value()?);
+                        }
+                        Field::Blue => {
+                            if blue.is_some() {
+                                return Err(Error::duplicate_field("blue"));
+                            }
+                            blue = Some(map.next_value()?);
+                        }
+                        Field::Alpha => {
+                            if alpha.is_some() {
+                                return Err(Error::duplicate_field("alpha"));
+                            }
+                            alpha = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let red = red.ok_or_else(|| Error::missing_field("red"))?;
+                let green = green.ok_or_else(|| Error::missing_field("green"))?;
+                let blue = blue.ok_or_else(|| Error::missing_field("blue"))?;
+                let alpha = alpha.ok_or_else(|| Error::missing_field("alpha"))?;
+
+                Ok(Color::new(red, green, blue, alpha))
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["red", "green", "blue", "alpha"];
+        deserializer.deserialize_struct("Duration", FIELDS, ColorVisitor)
     }
 }
 
@@ -273,3 +417,4 @@ impl BufferAnalytics for Bytes {
         (minutes, seconds)
     }
 }
+

@@ -1,7 +1,7 @@
 use crate::{models::*, services::DocumentAction};
 use adw::subclass::prelude::*;
 use glib_macros::Properties;
-use gtk::{gio, glib::Sender, prelude::*};
+use gtk::{gdk::RGBA, gio, glib::Sender, prelude::*};
 use std::cell::{Cell, RefCell};
 
 #[allow(unused)]
@@ -17,6 +17,9 @@ mod imp {
     pub struct ManuscriptChunkSidePanel {
         pub(super) sender: RefCell<Option<Sender<DocumentAction>>>,
 
+        #[template_child]
+        pub(super) priority_adjustment: TemplateChild<gtk::Adjustment>,
+
         #[property(get, set)]
         pub(super) chunk_id: RefCell<String>,
 
@@ -25,6 +28,26 @@ mod imp {
 
         #[property(get, set)]
         pub(super) locked: Cell<bool>,
+
+        #[property(name = "accent", get, set)]
+        pub(super) accent: RefCell<Option<Color>>,
+
+        #[allow(dead_code)]
+        #[property(type = Option<RGBA>, name = "accent-rgba", get = Self::accent_rgba, set = Self::set_accent_rgba)]
+        accent_rgba: Option<Color>,
+    }
+
+    impl ManuscriptChunkSidePanel {
+        fn accent_rgba(&self) -> Option<RGBA> {
+            let owned = self.accent.borrow().to_owned();
+            owned.map(|a| RGBA::from(a))
+        }
+
+        fn set_accent_rgba(&self, value: Option<RGBA>) {
+            let mapped = value.map(|rgba| Color::from(rgba));
+            *self.accent.borrow_mut() = mapped;
+            self.obj().notify_accent();
+        }
     }
 
     #[glib::object_subclass]
@@ -72,7 +95,9 @@ impl ManuscriptChunkSidePanel {
         *obj.imp().sender.borrow_mut() = sender;
         obj.set_chunk_id(chunk.id());
         obj.set_include_in_compilation(chunk.include_in_compilation());
+        *obj.imp().accent.borrow_mut() = chunk.accent();
         obj.set_locked(chunk.locked());
+        obj.notify_accent_rgba();
         obj.connect_events();
 
         obj
@@ -92,6 +117,14 @@ impl ManuscriptChunkSidePanel {
                 chunk.set_locked(this.locked())
             });
         }));
+
+        self.connect_accent_notify(
+            glib::clone!(@weak self as this => move |widget| {
+                widget.send_update(move |chunk| {
+                    chunk.set_accent(this.accent()).unwrap();
+                })
+            })
+        );
     }
 
     fn send_update<F>(&self, f: F)
@@ -111,3 +144,4 @@ impl ManuscriptChunkSidePanel {
 
 #[gtk::template_callbacks]
 impl ManuscriptChunkSidePanel {}
+
