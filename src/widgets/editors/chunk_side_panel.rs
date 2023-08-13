@@ -118,13 +118,11 @@ impl ManuscriptChunkSidePanel {
             });
         }));
 
-        self.connect_accent_notify(
-            glib::clone!(@weak self as this => move |widget| {
-                widget.send_update(move |chunk| {
-                    chunk.set_accent(this.accent()).unwrap();
-                })
+        self.connect_accent_notify(glib::clone!(@weak self as this => move |widget| {
+            widget.send_update(move |chunk| {
+                chunk.set_accent(this.accent()).unwrap();
             })
-        );
+        }));
     }
 
     fn send_update<F>(&self, f: F)
@@ -144,4 +142,3 @@ impl ManuscriptChunkSidePanel {
 
 #[gtk::template_callbacks]
 impl ManuscriptChunkSidePanel {}
-

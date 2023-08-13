@@ -1,9 +1,13 @@
 use super::{Chapter, CharacterSheet};
-use serde::{Serialize, Deserialize, ser::{Serializer, SerializeStruct}, de::{Deserializer, Visitor, Error}};
 use bytes::Bytes;
 use glib::{StaticType, Type};
-use std::ops::{Deref, DerefMut};
 use gtk::gdk::RGBA;
+use serde::{
+    de::{Deserializer, Error, Visitor},
+    ser::{SerializeStruct, Serializer},
+    Deserialize, Serialize,
+};
+use std::ops::{Deref, DerefMut};
 
 fn default_contrast_light() -> Color {
     Color::new(0.0, 0.0, 0.0, 0.9)
@@ -12,7 +16,6 @@ fn default_contrast_light() -> Color {
 fn default_contrast_dark() -> Color {
     Color::new(250.0, 250.0, 250.0, 0.9)
 }
-
 
 /// Wraps a `gdk::RGBA` adding more capabilities like dark/light
 /// detection and (de)serialization support
@@ -32,7 +35,8 @@ impl Color {
     // Calculate the perceived brightness of the color using the formula
     // (0.299 * R + 0.587 * G + 0.114 * B) * A
     pub fn is_light(&self) -> bool {
-        let brightness = (0.299 * self.0.red() + 0.587 * self.0.green() + 0.114 * self.0.blue()) * self.0.alpha();
+        let brightness = (0.299 * self.0.red() + 0.587 * self.0.green() + 0.114 * self.0.blue())
+            * self.0.alpha();
         // If the brightness is greater than or equal to 0.6, the color is considered light
         brightness >= 0.6
     }
@@ -93,8 +97,16 @@ impl Serialize for Color {
 }
 
 impl<'de> Deserialize<'de> for Color {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        enum Field { Red, Green, Blue, Alpha }
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        enum Field {
+            Red,
+            Green,
+            Blue,
+            Alpha,
+        }
 
         impl<'de> Deserialize<'de> for Field {
             fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
@@ -138,22 +150,28 @@ impl<'de> Deserialize<'de> for Color {
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-                where
-                    A: serde::de::SeqAccess<'de>, {
-                let red = seq.next_element()?
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let red = seq
+                    .next_element()?
                     .ok_or_else(|| Error::invalid_length(0, &self))?;
-                let green = seq.next_element()?
+                let green = seq
+                    .next_element()?
                     .ok_or_else(|| Error::invalid_length(0, &self))?;
-                let blue = seq.next_element()?
-                .ok_or_else(|| Error::invalid_length(0, &self))?;
-                let alpha = seq.next_element()?
-                .ok_or_else(|| Error::invalid_length(0, &self))?;
+                let blue = seq
+                    .next_element()?
+                    .ok_or_else(|| Error::invalid_length(0, &self))?;
+                let alpha = seq
+                    .next_element()?
+                    .ok_or_else(|| Error::invalid_length(0, &self))?;
                 Ok(Color::new(red, green, blue, alpha))
             }
 
             fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-                where
-                    A: serde::de::MapAccess<'de>, {
+            where
+                A: serde::de::MapAccess<'de>,
+            {
                 let mut red = None;
                 let mut green = None;
                 let mut blue = None;
@@ -417,4 +435,3 @@ impl BufferAnalytics for Bytes {
         (minutes, seconds)
     }
 }
-

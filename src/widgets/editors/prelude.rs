@@ -6,7 +6,7 @@ use gtk::prelude::WidgetExt;
 pub enum EditorWidgetFocusResult {
     Unfocusable,
     Focused,
-    NotFocused
+    NotFocused,
 }
 
 pub trait ConstructFromChunk {
@@ -30,7 +30,7 @@ pub trait EditorWidgetProtocol {
         if let Some(widget) = self.editor_widget() {
             match widget.grab_focus() {
                 true => EditorWidgetFocusResult::Focused,
-                false => EditorWidgetFocusResult::NotFocused
+                false => EditorWidgetFocusResult::NotFocused,
             }
         } else {
             EditorWidgetFocusResult::Unfocusable

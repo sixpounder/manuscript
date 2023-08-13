@@ -316,4 +316,3 @@ impl ManuscriptEditorViewShell {
         self.imp().channel.replace(Some(sender));
     }
 }
-
