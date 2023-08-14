@@ -83,3 +83,7 @@ textview.view {
   color: @theme_selected_fg_color;
 }
 
+.chunk-row {
+  transition-property: background-color, color;
+  transition-duration: 250ms;
+}

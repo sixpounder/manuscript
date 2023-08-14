@@ -26,19 +26,7 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for ManuscriptDestroyConfirmDialog {
-        // fn properties() -> &'static [gtk::glib::ParamSpec] {
-        //     Self::derived_properties()
-        // }
-
-        // fn property(&self, id: usize, pspec: &ParamSpec) -> glib::Value {
-        //     self.derived_property(id, pspec)
-        // }
-
-        // fn set_property(&self, id: usize, value: &glib::Value, pspec: &ParamSpec) {
-        //     self.derived_set_property(id, value, pspec)
-        // }
-    }
+    impl ObjectImpl for ManuscriptDestroyConfirmDialog {}
 
     impl WidgetImpl for ManuscriptDestroyConfirmDialog {}
     impl WindowImpl for ManuscriptDestroyConfirmDialog {}

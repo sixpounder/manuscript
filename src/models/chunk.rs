@@ -173,7 +173,7 @@ impl DocumentChunk for Chapter {
     }
 
     fn accent(&self) -> Option<Color> {
-        self.accent.clone()
+        self.accent
     }
 
     fn set_accent(&mut self, value: Option<Color>) -> ManuscriptResult<()> {
@@ -417,7 +417,7 @@ impl DocumentChunk for CharacterSheet {
     }
 
     fn accent(&self) -> Option<Color> {
-        self.accent.clone()
+        self.accent
     }
 
     fn set_accent(&mut self, value: Option<Color>) -> ManuscriptResult<()> {

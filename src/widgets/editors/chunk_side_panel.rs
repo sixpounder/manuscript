@@ -9,7 +9,8 @@ const G_LOG_DOMAIN: &str = "ManuscriptChunkSidePanel";
 
 mod imp {
     use super::*;
-    use glib::ParamSpec;
+    use glib::{ParamSpec, ParamSpecBoxed};
+    use once_cell::sync::Lazy;
 
     #[derive(Properties, Default, gtk::CompositeTemplate)]
     #[properties(wrapper_type = super::ManuscriptChunkSidePanel)]
@@ -29,23 +30,17 @@ mod imp {
         #[property(get, set)]
         pub(super) locked: Cell<bool>,
 
-        #[property(name = "accent", get, set)]
+        #[property(get, set, nullable)]
         pub(super) accent: Cell<Option<Color>>,
-
-        #[allow(dead_code)]
-        #[property(type = Option<RGBA>, name = "accent-rgba", get = Self::accent_rgba, set = Self::set_accent_rgba)]
-        accent_rgba: Option<Color>,
     }
 
     impl ManuscriptChunkSidePanel {
         fn accent_rgba(&self) -> Option<RGBA> {
-            let owned = self.accent.get();
-            owned.map(RGBA::from)
+            self.accent.get().map(RGBA::from)
         }
 
         fn set_accent_rgba(&self, value: Option<RGBA>) {
-            let mapped = value.map(Color::from);
-            self.accent.set(mapped);
+            self.accent.set(value.map(Color::from));
             self.obj().notify_accent();
         }
     }
@@ -68,16 +63,42 @@ mod imp {
     }
 
     impl ObjectImpl for ManuscriptChunkSidePanel {
+        /// Meshes derived properties with custom defined properties. Custom defined properties
+        /// are tipically computed and have no backing variables
         fn properties() -> &'static [gtk::glib::ParamSpec] {
-            Self::derived_properties()
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                let derived: &'static [gtk::glib::ParamSpec] =
+                    ManuscriptChunkSidePanel::derived_properties();
+
+                let mut props: Vec<ParamSpec> = vec![ParamSpecBoxed::builder::<
+                    Option<gtk::gdk::RGBA>,
+                >("accent-rgba")
+                .readwrite()
+                .build()];
+
+                let mut derived = derived.to_vec();
+                derived.append(&mut props);
+                derived
+            });
+            PROPERTIES.as_ref()
         }
 
         fn property(&self, id: usize, pspec: &ParamSpec) -> glib::Value {
-            self.derived_property(id, pspec)
+            match pspec.name() {
+                "accent-rgba" => self.accent_rgba().to_value(),
+                _ => self.derived_property(id, pspec),
+            }
         }
 
         fn set_property(&self, id: usize, value: &glib::Value, pspec: &ParamSpec) {
-            self.derived_set_property(id, value, pspec)
+            match pspec.name() {
+                "accent-rgba" => self.set_accent_rgba(
+                    value
+                        .get::<Option<RGBA>>()
+                        .expect("Expected Option<RGBA>, got something else"),
+                ),
+                _ => self.derived_set_property(id, value, pspec),
+            }
         }
     }
 
@@ -97,7 +118,7 @@ impl ManuscriptChunkSidePanel {
         obj.set_include_in_compilation(chunk.include_in_compilation());
         obj.imp().accent.set(chunk.accent());
         obj.set_locked(chunk.locked());
-        obj.notify_accent_rgba();
+        obj.notify("accent-rgba");
         obj.connect_events();
 
         obj
