@@ -12,17 +12,18 @@ use gtk::{
 };
 use std::cell::{Cell, RefCell};
 
-// const G_LOG_DOMAIN: &str = "ManuscriptEditorViewShell";
+#[allow(unused)]
+const G_LOG_DOMAIN: &str = "ManuscriptEditorViewShell";
 
 mod imp {
     use super::*;
     use glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::Lazy;
 
-    #[derive(Default, gtk::CompositeTemplate)]
-    #[template(resource = "/io/sixpounder/Manuscript/editor_view_shell.ui")]
     /// A widget capable of organizing `ManuscriptEditorView` and manage their lifecycle. Also enables
     /// the display of the chunk properties panel.
+    #[derive(Default, gtk::CompositeTemplate)]
+    #[template(resource = "/io/sixpounder/Manuscript/editor_view_shell.ui")]
     pub struct ManuscriptEditorViewShell {
         #[template_child]
         pub(super) editor_tab_bar: TemplateChild<adw::TabBar>,
@@ -155,6 +156,8 @@ impl ManuscriptEditorViewShell {
         self.imp().chunk_props_panel_visible.get()
     }
 
+    /// Sets wheter the chunk properties panel is visible or not
+    /// in this shell.
     fn set_chunk_props_panel_visible(&self, value: bool) {
         let settings = ManuscriptSettings::default();
         settings.set_chunk_props_panel_visible(value);
@@ -174,6 +177,8 @@ impl ManuscriptEditorViewShell {
         });
     }
 
+    /// Creates a `ManuscriptEditorView` for a given `chunk` and initializes it taking
+    /// into account the concrete type of the `chunk`
     fn editor_view_widget_for_chunk(&self, chunk: &dyn DocumentChunk) -> ManuscriptEditorView {
         let child_widget: *mut dyn crate::widgets::editors::prelude::EditorWidgetProtocol =
             match chunk.chunk_type() {
@@ -220,7 +225,7 @@ impl ManuscriptEditorViewShell {
         view
     }
 
-    fn page_for_chunk(&self, chunk: &dyn DocumentChunk) -> Option<adw::TabPage> {
+    fn page_for_chunk(&self, chunk: &(impl DocumentChunk + ?Sized)) -> Option<adw::TabPage> {
         self.page_by_resource_id(chunk.id().to_string())
     }
 
@@ -245,6 +250,7 @@ impl ManuscriptEditorViewShell {
             .map(|page| page.unwrap())
     }
 
+    /// Adds a `TabPage` to the shell for `chunk`, without selecting it
     pub fn add_chunk_page(&self, chunk: &dyn DocumentChunk) -> adw::TabPage {
         let page = self
             .page_by_resource_id(chunk.id().to_string())
@@ -261,31 +267,37 @@ impl ManuscriptEditorViewShell {
         page
     }
 
-    pub fn add_and_select_page(&self, chunk: &dyn DocumentChunk) {
+    /// Adds a `TabPage` to the shell for `chunk` and selects it
+    pub fn add_and_select_chunk_page(&self, chunk: &dyn DocumentChunk) {
         let view = self.editor_tab_view();
         let selected_page = &self.add_chunk_page(chunk);
         view.set_selected_page(selected_page);
         selected_page.child().grab_focus();
     }
 
+    /// Selects a `TabPage` for a given `chunk`. If that page does not exists, creates it and
+    /// then selects it
     pub fn select_chunk_page(&self, chunk: &dyn DocumentChunk) {
         if let Some(page) = self.page_for_chunk(chunk) {
             self.editor_tab_view().set_selected_page(&page);
         } else {
-            self.add_and_select_page(chunk);
+            self.add_and_select_chunk_page(chunk);
         }
     }
 
+    /// Selects a `TabPage` for a given `chunk`.
     pub fn select_page(&self, page: &adw::TabPage) {
         self.editor_tab_view().set_selected_page(page);
     }
 
+    /// Closes the `TabPage` corresponding to a given `chunk`.
     pub fn close_page(&self, chunk: &dyn DocumentChunk) {
         if let Some(page) = self.page_for_chunk(chunk) {
             self.editor_tab_view().close_page(&page);
         }
     }
 
+    /// Closes the `TabPage` with the given resource `id`, if any exists.
     pub fn close_page_by_id(&self, id: String) {
         if let Some(page) = self.page_by_resource_id(id) {
             self.editor_tab_view().close_page(&page);
@@ -305,8 +317,9 @@ impl ManuscriptEditorViewShell {
         });
     }
 
-    /// Updates a page with the state of a given `chunk`
-    pub fn update_page(&self, chunk: &dyn DocumentChunk) {
+    /// Updates a page with the state of a given `chunk`, if that page
+    /// exists
+    pub fn update_page(&self, chunk: &(impl DocumentChunk + ?Sized)) {
         if let Some(page) = self.page_for_chunk(chunk) {
             page.set_title(chunk.heading().as_str());
         }

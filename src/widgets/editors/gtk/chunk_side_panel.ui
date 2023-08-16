@@ -39,9 +39,14 @@
                     <property name="title" translatable="yes">Priority</property>
                     <property name="subtitle" translatable="yes">Defines the position of this item into a compiled manuscript. The lower the value the earlier it will appear.</property>
                     <child>
-                      <object class="GtkSpinButton" id="priority_spin_button">
-                        <property name="valign">center</property>
-                        <property name="adjustment">priority_adjustment</property>
+                      <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <child>
+                          <object class="GtkSpinButton" id="priority_spin_button">
+                            <property name="valign">center</property>
+                            <property name="adjustment">priority_adjustment</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -64,12 +69,30 @@
                     <property name="title" translatable="yes">Color</property>
                     <property name="subtitle" translatable="yes">Assign a specific color to this chunk</property>
                     <child>
-                      <object class="GtkColorDialogButton">
-                        <property name="valign">center</property>
-                        <property name="rgba" bind-source="ManuscriptChunkSidePanel" bind-property="accent-rgba" bind-flags="bidirectional"></property>
-                        <property name="dialog">
-                          <object class="GtkColorDialog"></object>
-                        </property>
+                      <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="valign">center</property>
+                            <property name="icon-name">edit-delete-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Clear This Chunk Color</property>
+                            <property name="visible" bind-source="ManuscriptChunkSidePanel" bind-property="has-accent" bind-flags="default"></property>
+                            <signal name="clicked" handler="on_remove_accent_clicked" swapped="true"></signal>
+                            <style>
+                              <class name="flat" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkColorDialogButton">
+                            <property name="valign">center</property>
+                            <property name="rgba" bind-source="ManuscriptChunkSidePanel" bind-property="accent-rgba" bind-flags="bidirectional"></property>
+                            <property name="dialog">
+                              <object class="GtkColorDialog"></object>
+                            </property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>

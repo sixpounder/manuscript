@@ -1,19 +1,15 @@
 @define-color view_bg_color #FFFFFF;
 @define-color view_fg_color #2e3436;
 
-@define-color headerbar_bg_color  @view_bg_color;
-
-@define-color project_layout_bg mix(@window_bg_color, @light_3, 0.2);
-
 @define-color code_bg_color mix(@window_bg_color, @view_fg_color, 0.15);
-
 @define-color buffer_accent_fg_color @view_fg_color;
 @define-color buffer_light_accent_fg_color @purple_2;
 
-.sheet-editor row {
-	background-color: @view_bg_color;
-	color: @view_fg_color;
-}
+/* This screws up AdwComboRow popover */
+/* .sheet-editor row { */
+/* 	background-color: @view_bg_color; */
+/* 	color: @view_fg_color; */
+/* } */
 
 .transparent-bg {
   background-color: rgba(0, 0, 0, 0);

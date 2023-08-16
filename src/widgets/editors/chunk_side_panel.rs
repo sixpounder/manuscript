@@ -9,9 +9,11 @@ const G_LOG_DOMAIN: &str = "ManuscriptChunkSidePanel";
 
 mod imp {
     use super::*;
-    use glib::{ParamSpec, ParamSpecBoxed};
+    use glib::{ParamSpec, ParamSpecBoolean, ParamSpecBoxed};
     use once_cell::sync::Lazy;
 
+    /// A widget that can be used as side panel content for any object that
+    /// implements `EditorWidgetProtocol`
     #[derive(Properties, Default, gtk::CompositeTemplate)]
     #[properties(wrapper_type = super::ManuscriptChunkSidePanel)]
     #[template(resource = "/io/sixpounder/Manuscript/editors/chunk_side_panel.ui")]
@@ -35,13 +37,17 @@ mod imp {
     }
 
     impl ManuscriptChunkSidePanel {
-        fn accent_rgba(&self) -> Option<RGBA> {
-            self.accent.get().map(RGBA::from)
+        pub(super) fn accent_rgba(&self) -> Option<RGBA> {
+            self.accent
+                .get()
+                .map(RGBA::from)
+                .or(Some(RGBA::TRANSPARENT))
         }
 
-        fn set_accent_rgba(&self, value: Option<RGBA>) {
+        pub(super) fn set_accent_rgba(&self, value: Option<RGBA>) {
             self.accent.set(value.map(Color::from));
             self.obj().notify_accent();
+            self.obj().notify("has-accent");
         }
     }
 
@@ -70,11 +76,15 @@ mod imp {
                 let derived: &'static [gtk::glib::ParamSpec] =
                     ManuscriptChunkSidePanel::derived_properties();
 
-                let mut props: Vec<ParamSpec> = vec![ParamSpecBoxed::builder::<
-                    Option<gtk::gdk::RGBA>,
-                >("accent-rgba")
-                .readwrite()
-                .build()];
+                let mut props: Vec<ParamSpec> = vec![
+                    ParamSpecBoxed::builder::<Option<gtk::gdk::RGBA>>("accent-rgba")
+                        .readwrite()
+                        .build(),
+                    ParamSpecBoolean::builder("has-accent")
+                        .default_value(false)
+                        .read_only()
+                        .build(),
+                ];
 
                 let mut derived = derived.to_vec();
                 derived.append(&mut props);
@@ -85,6 +95,7 @@ mod imp {
 
         fn property(&self, id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
+                "has-accent" => self.accent.get().is_some().to_value(),
                 "accent-rgba" => self.accent_rgba().to_value(),
                 _ => self.derived_property(id, pspec),
             }
@@ -119,6 +130,7 @@ impl ManuscriptChunkSidePanel {
         obj.imp().accent.set(chunk.accent());
         obj.set_locked(chunk.locked());
         obj.notify("accent-rgba");
+        obj.notify("has-accent");
         obj.connect_events();
 
         obj
@@ -162,4 +174,13 @@ impl ManuscriptChunkSidePanel {
 }
 
 #[gtk::template_callbacks]
-impl ManuscriptChunkSidePanel {}
+impl ManuscriptChunkSidePanel {
+    #[template_callback]
+    fn on_remove_accent_clicked(&self, _button: &gtk::Button) {
+        self.send_update(glib::clone!(@weak self as this => move |chunk| {
+            chunk.set_accent(None).expect("Could not reset accent");
+            this.set_accent(None::<Color>);
+            this.notify("accent-rgba");
+        }));
+    }
+}

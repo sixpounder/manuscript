@@ -392,7 +392,8 @@ impl ManuscriptWindow {
                     Ok(bytes_written) => {
                         glib::g_info!(
                             G_LOG_DOMAIN,
-                            "Project saved - {bytes_written} bytes written"
+                            "Project saved - {bytes_written} bytes written to {}",
+                            dm.backend_path().unwrap_or("<NO PATH>".into())
                         );
                     }
                     Err(error) => {

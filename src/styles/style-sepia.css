@@ -7,13 +7,14 @@
 @define-color accent_color #62a0ea;
 @define-color accent_bg_color #9d825a;
 
+/* TabBar color, mainly. See  https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/named-colors.html */
+@define-color headerbar_bg_color #f4e8d5;
+
 @define-color popover_bg_color @view_bg_color;
 @define-color popover_fg_color @view_fg_color;
 
 @define-color dialog_bg_color @view_bg_color;
 @define-color popover_fg_color @view_fg_color;
-
-@define-color project_layout_bg #f4e7d3;
 
 @define-color code_bg_color mix(@window_bg_color, @view_fg_color, 0.15);
 

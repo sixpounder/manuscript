@@ -476,6 +476,12 @@ impl DocumentManager {
         self.imp().backend_file.borrow_mut()
     }
 
+    pub fn backend_path(&self) -> Option<String> {
+        self.backend_file()
+            .as_ref()
+            .map(|file| String::from(file.path().unwrap().to_str().unwrap()))
+    }
+
     pub fn set_backend_path(&self, path: String) {
         *self.imp().backend_file.borrow_mut() = Some(gio::File::for_path(path));
         self.start_monitor();
