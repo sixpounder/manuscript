@@ -1,7 +1,7 @@
 use super::{BufferChunk, ChunkType, DocumentChunk, MutableBufferChunk};
 use crate::{
     models::{
-        prelude::{Color, ManuscriptResult},
+        prelude::{Color, ManuscriptResult, TagMark},
         settings::DocumentSettings,
     },
     services::i18n::i18n,
@@ -115,6 +115,7 @@ pub struct Chapter {
     locked: bool,
     title: Option<String>,
     buffer: Bytes,
+    tags: Vec<TagMark>,
     notes: Vec<Note>,
 }
 
@@ -186,6 +187,10 @@ impl BufferChunk for Chapter {
     fn buffer(&self) -> &Bytes {
         &self.buffer
     }
+
+    fn tags_map(&self) -> &Vec<TagMark> {
+        &self.tags
+    }
 }
 
 impl MutableBufferChunk for Chapter {
@@ -204,6 +209,7 @@ impl Default for Chapter {
             locked: false,
             title: None,
             buffer: Bytes::from(""),
+            tags: vec![],
             notes: vec![],
         }
     }
@@ -358,16 +364,6 @@ impl DocumentChunk for CharacterSheet {
     }
 
     fn title(&self) -> Option<String> {
-        // match self.name.as_ref() {
-        //     Some(title) => {
-        //         if title.is_empty() {
-        //             None
-        //         } else {
-        //             Some(title.as_str())
-        //         }
-        //     }
-        //     None => None,
-        // }
         self.name.as_ref().cloned()
     }
 

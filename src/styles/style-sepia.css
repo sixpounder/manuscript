@@ -10,6 +10,9 @@
 /* TabBar color, mainly. See  https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/named-colors.html */
 @define-color headerbar_bg_color #f4e8d5;
 
+/* Cards and boxed lists */
+@define-color card_bg_color #fff9f0;
+
 @define-color popover_bg_color @view_bg_color;
 @define-color popover_fg_color @view_fg_color;
 

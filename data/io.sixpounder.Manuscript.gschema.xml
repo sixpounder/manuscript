@@ -24,7 +24,7 @@
         <description>The absolute path to the last opened document</description>
     </key>
 	  <key name="chunk-props-panel-visible" type="b">
-	    <default>true</default>
+	    <default>false</default>
 	    <description>Wheter to show the document chunk properties panel in the editor view</description>
 	  </key>
 	  <key name="text-scale-factor" type="d">

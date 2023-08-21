@@ -50,6 +50,12 @@ impl Color {
     }
 }
 
+impl Default for Color {
+    fn default() -> Self {
+        Color::from(RGBA::TRANSPARENT)
+    }
+}
+
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -380,8 +386,17 @@ impl Clone for Box<dyn DocumentChunk> {
 
 pub trait SerializableChunk<'de>: DocumentChunk + Serialize + Deserialize<'de> {}
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TagMark(i32, i32, String);
+
 pub trait BufferChunk: DocumentChunk {
     fn buffer(&self) -> &Bytes;
+
+    fn tags_map(&self) -> &Vec<TagMark> {
+        static EMPTY_MARKS: once_cell::sync::Lazy<Vec<TagMark>> =
+            once_cell::sync::Lazy::new(|| vec![]);
+        EMPTY_MARKS.as_ref()
+    }
 
     /// Counts the words in the buffer
     fn words_count(&self) -> u64 {

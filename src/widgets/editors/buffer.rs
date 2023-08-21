@@ -16,7 +16,7 @@ mod imp {
 
     pub struct ManuscriptBuffer {
         pub(super) parent_view: RefCell<Option<gtk::TextView>>,
-        pub(super) matched_tags: RefCell<Vec<TagApplyRules>>,
+        pub(super) matched_rules: RefCell<Vec<TagApplyRules>>,
         pub(super) autoformat: Cell<bool>,
         pub(super) accent_secondary_fg_color: Cell<Option<gtk::gdk::RGBA>>,
         pub(super) accent_primary_fg_color: Cell<Option<gtk::gdk::RGBA>>,
@@ -26,7 +26,7 @@ mod imp {
         fn default() -> Self {
             Self {
                 parent_view: RefCell::default(),
-                matched_tags: RefCell::default(),
+                matched_rules: RefCell::default(),
                 autoformat: Cell::default(),
                 accent_primary_fg_color: Cell::new(None),
                 accent_secondary_fg_color: Cell::new(None),
@@ -134,6 +134,7 @@ impl ManuscriptBuffer {
         }));
     }
 
+    /// Re-set colors on inner tag table by loading them from `context`
     pub fn reload_colors(&self, context: &gtk::StyleContext) {
         self.set_accent_primary_fg_color(context.lookup_color(LOOKUP_ACCENT_FG_COLOR));
         self.set_accent_secondary_fg_color(context.lookup_color(LOOKUP_LIGHT_ACCENT_FG_COLOR));
@@ -147,6 +148,7 @@ impl ManuscriptBuffer {
         self.imp().autoformat.set(value);
     }
 
+    /// Gets the parent `gtk::TextView` holding this buffer
     pub fn parent_view(&self) -> Option<gtk::TextView> {
         self.imp().parent_view.borrow().clone()
     }
@@ -179,7 +181,7 @@ impl ManuscriptBuffer {
     }
 
     pub fn parsed_tags(&self) -> std::cell::Ref<Vec<TagApplyRules>> {
-        self.imp().matched_tags.borrow()
+        self.imp().matched_rules.borrow()
     }
 
     pub fn format_for(&self, view: &gtk::TextView) {
@@ -200,9 +202,10 @@ impl ManuscriptBuffer {
         self.remove_all_tags(&start_iter, &end_iter);
     }
 
+    /// Applies `rules` to this buffer.
     fn apply(&self, rules: Vec<TagApplyRules>, _view: &gtk::TextView) {
         let rules_iter = rules.clone();
-        *self.imp().matched_tags.borrow_mut() = rules;
+        *self.imp().matched_rules.borrow_mut() = rules;
         let mut maybe_first_title: Option<String> = None;
 
         for rule in rules_iter {
@@ -239,6 +242,9 @@ impl ManuscriptBuffer {
         self.emit_by_name::<()>("parsed", &[]);
     }
 
+    ///  Populates `self`'s tag table with default tags. Note that this method makes use of
+    /// `self.parent_view()` in order to calculate font sizes and extract informations from the underlying `gtk::StyleContext`.
+    /// If that is `None` defaults will be assumed.
     fn bind_default_tags(&self) {
         let buffer = self;
 
