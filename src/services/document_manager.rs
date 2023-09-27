@@ -105,7 +105,7 @@ mod imp {
 
     impl Default for ManuscriptDocumentManager {
         fn default() -> Self {
-            let (tx, rx) = MainContext::channel(glib::PRIORITY_DEFAULT);
+            let (tx, rx) = MainContext::channel(glib::Priority::DEFAULT);
 
             Self {
                 document: RwLock::new(None),
@@ -180,7 +180,7 @@ impl DocumentManager {
             None,
             clone!(@strong self as this => move |action| {
                 this.process_action(action);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }

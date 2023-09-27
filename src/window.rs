@@ -42,10 +42,10 @@ mod imp {
         pub(super) editor_view: TemplateChild<ManuscriptEditorViewShell>,
 
         #[template_child]
-        pub(super) leaflet: TemplateChild<adw::Leaflet>,
+        pub(super) split_view: TemplateChild<adw::NavigationSplitView>,
 
         #[template_child]
-        pub(super) editor_view_shell_page: TemplateChild<adw::LeafletPage>,
+        pub(super) editor_view_shell_page: TemplateChild<adw::NavigationPage>,
 
         #[template_child]
         pub(super) project_layout: TemplateChild<ManuscriptProjectLayout>,
@@ -75,7 +75,7 @@ mod imp {
                 welcome_view: TemplateChild::default(),
                 command_palette_overlay: TemplateChild::default(),
                 editor_view: TemplateChild::default(),
-                leaflet: TemplateChild::default(),
+                split_view: TemplateChild::default(),
                 editor_view_shell_page: TemplateChild::default(),
                 project_layout: TemplateChild::default(),
                 settings: ManuscriptSettings::default(),
@@ -199,8 +199,16 @@ impl ManuscriptWindow {
         &self.imp().document_manager
     }
 
+    pub fn split_view(&self) -> adw::NavigationSplitView {
+        self.imp().split_view.get()
+    }
+
     pub fn editor_view(&self) -> ManuscriptEditorViewShell {
         self.imp().editor_view.get()
+    }
+
+    pub fn editor_view_shell_page(&self) -> adw::NavigationPage {
+        self.imp().editor_view_shell_page.get()
     }
 
     pub fn project_layout(&self) -> ManuscriptProjectLayout {
@@ -304,7 +312,7 @@ impl ManuscriptWindow {
             let settings = ManuscriptSettings::default();
             settings.set_window_width(width);
             settings.set_window_height(height);
-            glib::signal::Inhibit(false)
+            glib::Propagation::Proceed
         });
     }
 
@@ -457,7 +465,7 @@ impl ManuscriptWindow {
     fn on_document_loaded(&self) {
         self.update_actions();
         glib::idle_add_local(
-            glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
+            glib::clone!(@weak self as this => @default-return glib::ControlFlow::Break, move || {
                 let imp = this.imp();
                 let new_document = imp
                     .document_manager
@@ -467,7 +475,7 @@ impl ManuscriptWindow {
 
                 // Update project layout
                 imp.project_layout.load_document(new_document.as_ref());
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }
@@ -671,9 +679,7 @@ impl ManuscriptWindow {
 
     pub fn show_chunk_page(&self, chunk: &dyn DocumentChunk) {
         self.editor_view().select_chunk_page(chunk);
-        self.imp()
-            .leaflet
-            .set_visible_child_name("editor_view_shell_page");
+        self.split_view().set_show_content(true);
     }
 
     pub fn can_close(&self) -> bool {
@@ -684,11 +690,6 @@ impl ManuscriptWindow {
 
 #[gtk::template_callbacks]
 impl ManuscriptWindow {
-    #[template_callback]
-    fn on_navigate_back(&self, _btn: gtk::Button) {
-        self.imp().leaflet.navigate(adw::NavigationDirection::Back);
-    }
-
     #[template_callback]
     fn on_document_settings_activated(&self, _widget: ManuscriptProjectLayout) {
         if let Ok(lock) = self.document_manager().document_ref() {

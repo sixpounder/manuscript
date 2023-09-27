@@ -403,7 +403,7 @@ impl ManuscriptTextEditor {
         );
         let source_id = glib::source::timeout_add_local(
             delay,
-            glib::clone!(@weak self as this => @default-return glib::Continue(false), move || {
+            glib::clone!(@weak self as this => @default-return glib::ControlFlow::Break, move || {
                 let imp = this.imp();
                 if let Some(buf) = this.text_buffer().as_ref() {
                     let bytes = bytes_from_text_buffer(buf.upcast_ref::<gtk::TextBuffer>());
@@ -427,7 +427,7 @@ impl ManuscriptTextEditor {
                 }
 
                 *imp.metrics_idle_resource_id.borrow_mut() = None;
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
         *self.imp().metrics_idle_resource_id.borrow_mut() = Some(source_id);

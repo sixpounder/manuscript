@@ -9,6 +9,32 @@ use gtk::prelude::*;
 use gtk::{gio, glib};
 use std::cell::RefCell;
 
+#[cfg(any(target_os = "linux", windows))]
+const ACCELS_MAP: &[(&'static str, &[&'static str])] = &[
+    ("app.quit", &["<ctrl>q"]),
+    ("app.new-window", &["<ctrl><shift>n"]),
+    ("win.new-project", &["<ctrl>n"]),
+    ("win.open-project", &["<ctrl>o"]),
+    ("project.save", &["<ctrl>s"]),
+    ("project.close", &["<primary>q"]),
+    ("win.toggle-command-palette", &["<ctrl><shift>p"]),
+    ("project.search", &["<ctrl>f"]),
+];
+
+// I have no idea if gtk/gdk or some other wonky library on this stack automatically remaps ctrl to primary
+// in OSX context but just in case...
+#[cfg(target_os = "macos")]
+const ACCELS_MAP: &[(&'static str, &[&'static str])] = &[
+    ("app.quit", &["<primary>q"]),
+    ("app.new-window", &["<primary><shift>n"]),
+    ("win.new-project", &["<primary>n"]),
+    ("win.open-project", &["<primary>o"]),
+    ("project.save", &["<primary>s"]),
+    ("project.close", &["<ctrl>q"]),
+    ("win.toggle-command-palette", &["<primary><shift>p"]),
+    ("project.search", &["<primary>f"]),
+];
+
 mod imp {
     use super::*;
 
@@ -30,14 +56,9 @@ mod imp {
             self.parent_constructed();
             let obj = self.obj();
             obj.setup_gactions();
-            obj.set_accels_for_action("app.quit", &["<ctrl>q"]);
-            obj.set_accels_for_action("app.new-window", &["<ctrl><shift>n"]);
-            obj.set_accels_for_action("win.new-project", &["<ctrl>n"]);
-            obj.set_accels_for_action("win.open-project", &["<ctrl>o"]);
-            obj.set_accels_for_action("project.save", &["<ctrl>s"]);
-            obj.set_accels_for_action("project.close", &["<primary>q"]);
-            obj.set_accels_for_action("win.toggle-command-palette", &["<ctrl><shift>p"]);
-            obj.set_accels_for_action("project.search", &["<ctrl>f"]);
+            for (accel_name, accel_keys) in ACCELS_MAP {
+                obj.set_accels_for_action(accel_name, accel_keys);
+            }
         }
     }
 
@@ -108,13 +129,13 @@ impl ManuscriptApplication {
         let sepia_provider = self.imp().sepia_style_provider.borrow();
         let sepia_provider: &gtk::CssProvider = sepia_provider.as_ref().unwrap();
         if scheme == "sepia" {
-            gtk::StyleContext::add_provider_for_display(
+            gtk::style_context_add_provider_for_display(
                 &display,
                 sepia_provider,
                 gtk::STYLE_PROVIDER_PRIORITY_USER,
             );
         } else {
-            gtk::StyleContext::remove_provider_for_display(&display, sepia_provider);
+            gtk::style_context_remove_provider_for_display(&display, sepia_provider);
         }
     }
 

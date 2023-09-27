@@ -137,7 +137,7 @@ impl ManuscriptEditorViewShell {
             clone!(@weak self as this => @default-return false, move |_, _| {
                 glib::idle_add_local(move || {
                     this.notify("visible-view-name");
-                    glib::Continue(false)
+                    glib::ControlFlow::Break
                 });
                 false
             }),
@@ -212,7 +212,7 @@ impl ManuscriptEditorViewShell {
                     editor.set_halign(gtk::Align::Fill);
                     editor.set_valign(gtk::Align::Fill);
                     editor.set_hexpand(true);
-                    editor.set_width_request(250);
+                    // editor.set_width_request(250);
                     // editor.upcast::<gtk::Widget>()
                     Box::into_raw(Box::new(editor))
                 }

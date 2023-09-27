@@ -11,7 +11,7 @@
             <style>
               <class name="flat" />
             </style>
-            <property name="width-request">350</property>
+            <!-- <property name="width-request">350</property> -->
             <child type="start">
               <object class="GtkMenuButton" id="add_chunk_menu_button">
                 <property name="icon-name">list-add-symbolic</property>

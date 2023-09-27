@@ -3,8 +3,6 @@ use gtk::{gio, glib};
 
 mod imp {
     use super::*;
-    // use glib::ParamSpec;
-    // use once_cell::sync::Lazy;
 
     #[derive(Default, gtk::CompositeTemplate)]
     #[template(resource = "/io/sixpounder/Manuscript/command_palette.ui")]
@@ -26,26 +24,7 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for ManuscriptCommandPalette {
-        // fn properties() -> &'static [gtk::glib::ParamSpec] {
-        //     static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(Vec::new);
-        //     PROPERTIES.as_ref()
-        // }
-
-        // fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
-        //     let _obj = self.obj();
-        //     match pspec.name() {
-        //         _ => unimplemented!(),
-        //     }
-        // }
-
-        // fn set_property(&self, _id: usize, _value: &glib::Value, pspec: &ParamSpec) {
-        //     let _obj = self.obj();
-        //     match pspec.name() {
-        //         _ => unimplemented!(),
-        //     }
-        // }
-    }
+    impl ObjectImpl for ManuscriptCommandPalette {}
 
     impl WidgetImpl for ManuscriptCommandPalette {}
 }

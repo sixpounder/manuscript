@@ -1,7 +1,7 @@
 {
     "app-id" : "io.sixpounder.Manuscript",
     "runtime" : "org.gnome.Platform",
-    "runtime-version" : "45",
+    "runtime-version" : "44",
     "sdk" : "org.gnome.Sdk",
     "sdk-extensions" : [
         "org.freedesktop.Sdk.Extension.rust-stable"
@@ -37,35 +37,35 @@
         "*.a"
     ],
     "modules" : [
-        {
-            "name" : "reuse",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "mkdir /app/bin",
-                "pip3 install --prefix=/app ."
-            ],
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "https://github.com/fsfe/reuse-tool/archive/refs/tags/v1.1.2.tar.gz",
-                    "sha256" : "b46259228fcb6f49405652f0667eb114799b0848c20dbb89d2d779b5b84797aa"
-                }
-            ]
-        },
-        {
-            "name" : "pandoc",
-            "only-arches" : [
+    	{
+    	    "name": "reuse",
+    	    "buildsystem": "simple",
+    	    "build-commands": [
+    	    	"mkdir /app/bin",
+    	        "pip3 install --prefix=/app ."
+    	    ],
+    	    "sources": [
+    	    	{
+    		    "type": "archive",
+    		    "url": "https://github.com/fsfe/reuse-tool/archive/refs/tags/v1.1.2.tar.gz",
+    		    "sha256": "b46259228fcb6f49405652f0667eb114799b0848c20dbb89d2d779b5b84797aa"
+    	    	}
+    	    ]
+    	},
+    	{
+            "name": "pandoc",
+            "only-arches": [
                 "x86_64"
             ],
-            "buildsystem" : "simple",
-            "build-commands" : [
+            "buildsystem": "simple",
+            "build-commands": [
                 "cp bin/pandoc /app/bin/pandoc"
             ],
-            "sources" : [
+            "sources": [
                 {
-                    "type" : "archive",
-                    "url" : "https://github.com/jgm/pandoc/releases/download/3.1.1/pandoc-3.1.1-linux-amd64.tar.gz",
-                    "sha256" : "52b25f0115517e32047a06d821e63729108027bd06d9605fe8eac0fa83e0bf81"
+                    "type": "archive",
+                    "url": "https://github.com/jgm/pandoc/releases/download/3.1.1/pandoc-3.1.1-linux-amd64.tar.gz",
+                    "sha256": "52b25f0115517e32047a06d821e63729108027bd06d9605fe8eac0fa83e0bf81"
                 }
             ]
         },

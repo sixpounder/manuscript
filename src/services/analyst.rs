@@ -6,6 +6,10 @@ use regex::Regex;
 
 const G_LOG_DOMAIN: &str = "ManuscriptAnalyst";
 
+lazy_static! {
+    pub static ref TEXT_ANALYZER: TextAnalyzer = TextAnalyzer::new();
+}
+
 pub trait MarkupHandler {
     fn tag(&self, name: &str) -> Option<gtk::TextTag>;
     fn margin_indent_tag(&self, margin_level: i32, indent_level: i32) -> gtk::TextTag;
@@ -32,10 +36,6 @@ impl MarkupHandler for gtk::TextView {
             self.tag(tag_name.as_str()).unwrap()
         }
     }
-}
-
-lazy_static! {
-    pub static ref TEXT_ANALYZER: TextAnalyzer = TextAnalyzer::new();
 }
 
 pub struct TextAnalyzer {

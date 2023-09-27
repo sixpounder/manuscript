@@ -5,9 +5,19 @@
   <template class="ManuscriptWindow" parent="AdwApplicationWindow">
     <property name="default-width">600</property>
     <property name="default-height">300</property>
-    <signal name="close-request" handler="on_close_request" swapped="true"></signal>
+    <property name="width-request">480</property>
+    <property name="height-request">300</property>
+    <signal name="close-request" handler="on_close_request" swapped="true"/>
+    <child>
+      <object class="AdwBreakpoint">
+        <condition>max-width: 400sp</condition>
+        <setter object="split_view" property="collapsed">True</setter>
+      </object>
+    </child>
     <property name="content">
       <object class="AdwToastOverlay" id="toast_overlay">
+        <property name="hexpand">true</property>
+        <property name="halign">fill</property>
         <property name="child">
           <object class="GtkOverlay" id="command_palette_overlay">
             <child>
@@ -33,7 +43,7 @@
                                   </object>
                                 </child>
                                 <child type="end">
-                                  <object class="ManuscriptPrimaryMenuButton" id="primary_menu_button"></object>
+                                  <object class="ManuscriptPrimaryMenuButton" id="primary_menu_button"/>
                                 </child>
                               </object>
                             </child>
@@ -54,63 +64,51 @@
                   <object class="GtkStackPage">
                     <property name="name">project-view</property>
                     <property name="child">
-                      <object class="AdwLeaflet" id="leaflet">
-                        <property name="can-navigate-back">True</property>
-                        <property name="fold-threshold-policy">ADW_FOLD_THRESHOLD_POLICY_NATURAL</property>
+                      <object class="AdwNavigationSplitView" id="split_view">
                         <property name="vexpand">True</property>
                         <property name="hexpand">True</property>
-                        <child>
-                          <object class="ManuscriptProjectLayout" id="project_layout">
-                            <binding name="show-end-title-buttons">
-                              <lookup name="folded">leaflet</lookup>
-                            </binding>
-                            <binding name="show-primary-menu-button">
-                              <lookup name="folded">leaflet</lookup>
-                            </binding>
-                            <signal name="remove-selected-activated" handler="on_remove_selected_activated" swapped="true"></signal>
-                            <signal name="settings-activated" handler="on_document_settings_activated" swapped="true"></signal>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="AdwLeafletPage">
-                            <property name="navigatable">False</property>
+                        <property name="sidebar">
+                          <object class="AdwNavigationPage">
                             <property name="child">
-                              <object class="GtkSeparator"/>
+                              <object class="ManuscriptProjectLayout" id="project_layout">
+                                <binding name="show-end-title-buttons">
+                                  <lookup name="collapsed">split_view</lookup>
+                                </binding>
+                                <binding name="show-primary-menu-button">
+                                  <lookup name="collapsed">split_view</lookup>
+                                </binding>
+                                <signal name="remove-selected-activated" handler="on_remove_selected_activated" swapped="true"/>
+                                <signal name="settings-activated" handler="on_document_settings_activated" swapped="true"/>
+                              </object>
                             </property>
                           </object>
-                        </child>
-                        <child>
-                          <object class="AdwLeafletPage" id="editor_view_shell_page">
+                        </property>
+                        <property name="content">
+                          <object class="AdwNavigationPage" id="editor_view_shell_page">
                             <property name="name">editor_view_shell_page</property>
-                            <property name="navigatable">True</property>
+                            <property name="tag">content</property>
                             <property name="child">
                               <object class="GtkBox">
                                 <property name="orientation">vertical</property>
-                                <property name="hexpand">True</property>>
+                                <property name="hexpand">True</property>&gt;
                                 <child>
                                   <object class="AdwHeaderBar">
                                     <style>
-                                      <class name="flat" />
+                                      <class name="flat"/>
                                     </style>
                                     <binding name="show-start-title-buttons">
-                                      <lookup name="folded">leaflet</lookup>
+                                      <lookup name="collapsed">split_view</lookup>
                                     </binding>
-                                    <child type="start">
-                                      <object class="GtkButton">
-                                        <binding name="visible">
-                                          <lookup name="folded">leaflet</lookup>
-                                        </binding>
-                                        <property name="icon-name">go-previous-symbolic</property>
-                                        <signal name="clicked" handler="on_navigate_back" swapped="true"></signal>
-                                      </object>
-                                    </child>
+                                    <binding name="show-back-button">
+                                      <lookup name="collapsed">split_view</lookup>
+                                    </binding>
                                     <property name="title-widget">
                                       <object class="AdwWindowTitle">
-                                        <property name="title" translatable="yes"></property>
+                                        <property name="title" translatable="yes"/>
                                       </object>
                                     </property>
                                     <child type="end">
-                                      <object class="ManuscriptPrimaryMenuButton"></object>
+                                      <object class="ManuscriptPrimaryMenuButton"/>
                                     </child>
                                   </object>
                                 </child>
@@ -123,7 +121,7 @@
                               </object>
                             </property>
                           </object>
-                        </child>
+                        </property> <!-- end content -->
                       </object>
                     </property>
                   </object>
@@ -136,3 +134,4 @@
     </property>
   </template>
 </interface>
+
